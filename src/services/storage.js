@@ -34,6 +34,7 @@ class StorageService {
     }
 
     async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1, guests = []) {
+        console.log('[Storage] registerForSlot starting', { slotId, date, userId })
         const { error } = await supabase
             .from('reservations')
             .insert({
@@ -46,6 +47,8 @@ class StorageService {
                 guests: guests
             })
 
+        console.log('[Storage] insert completed', { error: error?.message || 'none' })
+
         if (error) {
             // Ignore duplicate key errors (user already registered)
             if (error.code !== '23505') {
@@ -53,7 +56,8 @@ class StorageService {
             }
         }
 
-        return this.getEvents()
+        // Don't re-fetch events here, let caller handle it
+        return { success: !error || error.code === '23505' }
     }
 
     async unregisterFromSlot(slotId, date, userId) {
