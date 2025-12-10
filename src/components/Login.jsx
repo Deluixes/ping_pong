@@ -1,31 +1,57 @@
 import React, { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Mail, Check, ArrowLeft } from 'lucide-react'
+import { Mail, Check, ArrowLeft, UserPlus, LogIn } from 'lucide-react'
 
 export default function Login() {
+    const [activeTab, setActiveTab] = useState('login') // 'login' | 'signup'
     const [email, setEmail] = useState('')
     const [name, setName] = useState('')
     const [step, setStep] = useState('form') // 'form' | 'sent'
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [error, setError] = useState(null)
     const { user, sendMagicLink, authError } = useAuth()
 
-    // If already logged in, redirect to home
     if (user) {
         return <Navigate to="/" replace />
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!email.trim() || !name.trim()) return
+        setError(null)
+
+        if (activeTab === 'signup' && !name.trim()) {
+            setError('Veuillez entrer votre nom')
+            return
+        }
+        if (!email.trim()) {
+            setError('Veuillez entrer votre email')
+            return
+        }
 
         setIsSubmitting(true)
-        const result = await sendMagicLink(email, name)
+
+        // For signup, we pass the name. For login, we don't (Supabase will use existing metadata)
+        const result = await sendMagicLink(email, activeTab === 'signup' ? name : null)
         setIsSubmitting(false)
 
         if (result.success) {
             setStep('sent')
+        } else if (result.error?.includes('already registered') || result.error?.includes('User already registered')) {
+            // User exists, suggest login
+            setError('Cet email est déjà inscrit. Utilisez l\'onglet Connexion.')
+            setActiveTab('login')
         }
+    }
+
+    const resetForm = () => {
+        setStep('form')
+        setError(null)
+    }
+
+    const switchTab = (tab) => {
+        setActiveTab(tab)
+        setError(null)
     }
 
     return (
@@ -37,43 +63,100 @@ export default function Login() {
             minHeight: '80vh',
             padding: '2rem'
         }}>
-            <div className="card" style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+            <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
 
                 {step === 'form' && (
                     <>
-                        <div style={{ marginBottom: '2rem', color: 'var(--color-primary)' }}>
-                            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                        {/* Logo */}
+                        <div style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--color-primary)' }}>
+                            <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
                                 <circle cx="24" cy="24" r="20" fill="var(--color-primary)" />
                                 <rect x="38" y="38" width="8" height="22" rx="4" fill="var(--color-secondary)" transform="rotate(-45 38 38)" />
                                 <circle cx="50" cy="14" r="6" fill="white" stroke="var(--color-secondary)" strokeWidth="2" />
                             </svg>
-                            <h1 style={{ marginTop: '1rem', fontSize: '1.5rem' }}>Ping Pong Club</h1>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Connexion par email</p>
+                            <h1 style={{ marginTop: '0.75rem', fontSize: '1.4rem' }}>Ping Pong Club</h1>
+                        </div>
+
+                        {/* Tabs */}
+                        <div style={{
+                            display: 'flex',
+                            marginBottom: '1.5rem',
+                            background: 'var(--color-bg)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '4px'
+                        }}>
+                            <button
+                                onClick={() => switchTab('login')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.75rem',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: activeTab === 'login' ? 'white' : 'transparent',
+                                    color: activeTab === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                                    fontWeight: activeTab === 'login' ? '600' : '400',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: activeTab === 'login' ? 'var(--shadow-sm)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <LogIn size={16} />
+                                Connexion
+                            </button>
+                            <button
+                                onClick={() => switchTab('signup')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.75rem',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: activeTab === 'signup' ? 'white' : 'transparent',
+                                    color: activeTab === 'signup' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                                    fontWeight: activeTab === 'signup' ? '600' : '400',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: activeTab === 'signup' ? 'var(--shadow-sm)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <UserPlus size={16} />
+                                Inscription
+                            </button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                                    Votre nom
-                                </label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Jean Dupont"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid #CCC',
-                                        fontSize: '1rem'
-                                    }}
-                                    required
-                                />
-                            </div>
+                            {/* Name field (only for signup) */}
+                            {activeTab === 'signup' && (
+                                <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                                        Prénom Nom
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Jean Dupont"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid #DDD',
+                                            fontSize: '1rem'
+                                        }}
+                                    />
+                                </div>
+                            )}
 
+                            {/* Email field */}
                             <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
                                     Email
                                 </label>
                                 <input
@@ -85,14 +168,15 @@ export default function Login() {
                                         width: '100%',
                                         padding: '0.75rem',
                                         borderRadius: 'var(--radius-md)',
-                                        border: '1px solid #CCC',
+                                        border: '1px solid #DDD',
                                         fontSize: '1rem'
                                     }}
                                     required
                                 />
                             </div>
 
-                            {authError && (
+                            {/* Error message */}
+                            {(error || authError) && (
                                 <div style={{
                                     background: '#FEE2E2',
                                     border: '1px solid #EF4444',
@@ -100,9 +184,9 @@ export default function Login() {
                                     padding: '0.75rem',
                                     marginBottom: '1rem',
                                     color: '#991B1B',
-                                    fontSize: '0.9rem'
+                                    fontSize: '0.85rem'
                                 }}>
-                                    {authError}
+                                    {error || authError}
                                 </div>
                             )}
 
@@ -117,15 +201,16 @@ export default function Login() {
                             </button>
                         </form>
 
-                        <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                            Un lien de connexion sera envoyé à votre email.
-                            <br />Pas de mot de passe à retenir !
+                        <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                            {activeTab === 'signup'
+                                ? 'Un lien de confirmation sera envoyé à votre email.'
+                                : 'Un lien de connexion sera envoyé à votre email.'}
                         </p>
                     </>
                 )}
 
                 {step === 'sent' && (
-                    <>
+                    <div style={{ textAlign: 'center' }}>
                         <div style={{
                             width: '80px',
                             height: '80px',
@@ -144,7 +229,7 @@ export default function Login() {
                         </h2>
 
                         <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
-                            Nous avons envoyé un lien de connexion à<br />
+                            Un lien de connexion a été envoyé à<br />
                             <strong style={{ color: 'var(--color-text)' }}>{email}</strong>
                         </p>
 
@@ -155,14 +240,11 @@ export default function Login() {
                             marginBottom: '1.5rem',
                             fontSize: '0.9rem'
                         }}>
-                            <p style={{ margin: 0 }}>
-                                📧 Vérifiez votre boîte mail<br />
-                                (et les spams au cas où)
-                            </p>
+                            📧 Vérifiez votre boîte mail (et les spams)
                         </div>
 
                         <button
-                            onClick={() => setStep('form')}
+                            onClick={resetForm}
                             className="btn"
                             style={{
                                 width: '100%',
@@ -176,7 +258,7 @@ export default function Login() {
                             <ArrowLeft size={18} />
                             Modifier l'email
                         </button>
-                    </>
+                    </div>
                 )}
             </div>
         </div>
