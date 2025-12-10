@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
     const [name, setName] = useState('')
-    const { login } = useAuth()
+    const { login, user } = useAuth()
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const navigate = useNavigate()
+
+    // If already logged in, redirect to home
+    if (user) {
+        return <Navigate to="/" replace />
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -13,10 +20,12 @@ export default function Login() {
         setIsSubmitting(true)
         try {
             await login(name)
+            navigate('/', { replace: true })
         } finally {
             setIsSubmitting(false)
         }
     }
+
 
     return (
         <div className="login-container" style={{
