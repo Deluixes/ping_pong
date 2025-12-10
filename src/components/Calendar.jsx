@@ -30,12 +30,36 @@ const DURATION_OPTIONS = [
     { slots: 8, label: '4 h', value: 8 }
 ]
 
+// Cache events in localStorage for instant display
+const getCachedEvents = () => {
+    try {
+        const cached = localStorage.getItem('pingpong_events')
+        if (cached) {
+            const { events, timestamp } = JSON.parse(cached)
+            // Cache valid for 5 minutes
+            if (Date.now() - timestamp < 5 * 60 * 1000) {
+                return events
+            }
+        }
+    } catch { /* ignore */ }
+    return []
+}
+
+const setCachedEvents = (events) => {
+    try {
+        localStorage.setItem('pingpong_events', JSON.stringify({
+            events,
+            timestamp: Date.now()
+        }))
+    } catch { /* ignore */ }
+}
+
 export default function Calendar() {
     const { user } = useAuth()
     const [selectedDate, setSelectedDate] = useState(() => new Date())
     const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
-    const [events, setEvents] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [events, setEvents] = useState(getCachedEvents)
+    const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
     const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
 
     // Modal state - 3 steps
@@ -57,14 +81,17 @@ export default function Calendar() {
             return
         }
         try {
-            const [loadedEvents, members] = await Promise.all([
-                storageService.getEvents(),
-                storageService.getMembers()
-            ])
+            // Load events first (most important), members can wait
+            const loadedEvents = await storageService.getEvents()
             setEvents(loadedEvents)
-            // Filter out current user from invite list
+            setCachedEvents(loadedEvents)
+            setLoading(false)
+
+            // Load members in background (for guest selection)
+            const members = await storageService.getMembers()
             setApprovedMembers(members.approved.filter(m => m.userId !== user.id))
-        } finally {
+        } catch (error) {
+            console.error('Error loading data:', error)
             setLoading(false)
         }
     }, [user?.id])

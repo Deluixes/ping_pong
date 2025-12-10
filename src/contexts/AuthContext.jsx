@@ -71,46 +71,49 @@ export const AuthProvider = ({ children }) => {
     }, [user])
 
     useEffect(() => {
-        // If we have a cached user, skip the initial session check
-        // onAuthStateChange will handle session validation
         const cachedUser = getCachedUser()
 
-        if (!cachedUser) {
-            // No cache - need to check session
-            const checkSession = async () => {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession()
-                    if (session?.user) {
-                        const userData = {
-                            id: session.user.id,
-                            email: session.user.email,
-                            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                            isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
-                            isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
-                        }
-                        setUser(userData)
-                        setLoading(false)
+        // Always validate session in background, but don't block UI if we have cache
+        const validateSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
 
-                        // Check member status in background
-                        const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
-                        setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
-                    } else {
-                        setUser(null)
-                        setLoading(false)
+                if (session?.user) {
+                    // Session is valid - update user data (might have changed)
+                    const userData = {
+                        id: session.user.id,
+                        email: session.user.email,
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
+                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
+                        isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
-                } catch (error) {
-                    console.error('Session check error:', error)
+                    setUser(userData)
+                    setLoading(false)
+                } else if (cachedUser) {
+                    // Had cache but session expired - clear everything
+                    localStorage.removeItem('pingpong_user')
+                    localStorage.removeItem('pingpong_member_status')
+                    localStorage.removeItem('pingpong_is_admin')
+                    setUser(null)
+                    setMemberStatus('none')
+                    setLoading(false)
+                } else {
+                    // No cache, no session
                     setLoading(false)
                 }
+            } catch (error) {
+                console.error('Session check error:', error)
+                // On error, trust the cache if we have it
+                setLoading(false)
             }
-            checkSession()
         }
+
+        validateSession()
 
         // Listen for auth changes (login/logout)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                // Only react to actual auth events, not initial state
-                if (event === 'SIGNED_IN') {
+                if (event === 'SIGNED_IN' && session?.user) {
                     const userData = {
                         id: session.user.id,
                         email: session.user.email,
@@ -125,6 +128,8 @@ export const AuthProvider = ({ children }) => {
                     setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                 } else if (event === 'SIGNED_OUT') {
                     localStorage.removeItem('pingpong_user')
+                    localStorage.removeItem('pingpong_member_status')
+                    localStorage.removeItem('pingpong_is_admin')
                     setUser(null)
                     setMemberStatus('none')
                     setLoading(false)
