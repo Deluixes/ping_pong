@@ -35,9 +35,20 @@ class StorageService {
 
     async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1, guests = []) {
         console.log('[Storage] registerForSlot starting', { slotId, date, userId })
-        const { error } = await supabase
-            .from('reservations')
-            .insert({
+
+        // Use fetch directly to bypass any Supabase client issues
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+        const response = await fetch(`${supabaseUrl}/rest/v1/reservations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
                 slot_id: slotId,
                 date: date,
                 user_id: userId,
@@ -46,8 +57,10 @@ class StorageService {
                 duration: duration,
                 guests: guests
             })
+        })
 
-        console.log('[Storage] insert completed', { error: error?.message || 'none' })
+        const error = response.ok ? null : { message: await response.text(), code: response.status }
+        console.log('[Storage] insert completed', { status: response.status, error: error?.message || 'none' })
 
         if (error) {
             // Ignore duplicate key errors (user already registered)
