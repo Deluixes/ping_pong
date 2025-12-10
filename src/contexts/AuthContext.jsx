@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
     // Initialize from cache for instant display
     const [user, setUser] = useState(getCachedUser)
     const [loading, setLoading] = useState(() => !getCachedUser())
+    const [sessionReady, setSessionReady] = useState(false) // True when Supabase session is confirmed
     const [authError, setAuthError] = useState(null)
     // Initialize from cache if available to speed up launch
     const [memberStatus, setMemberStatus] = useState(() => {
@@ -88,6 +89,7 @@ export const AuthProvider = ({ children }) => {
                         isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
                     setUser(userData)
+                    setSessionReady(true)
                     setLoading(false)
                 } else if (cachedUser) {
                     // Had cache but session expired - clear everything
@@ -96,14 +98,17 @@ export const AuthProvider = ({ children }) => {
                     localStorage.removeItem('pingpong_is_admin')
                     setUser(null)
                     setMemberStatus('none')
+                    setSessionReady(false)
                     setLoading(false)
                 } else {
                     // No cache, no session
+                    setSessionReady(false)
                     setLoading(false)
                 }
             } catch (error) {
                 console.error('Session check error:', error)
                 // On error, trust the cache if we have it
+                setSessionReady(!!cachedUser)
                 setLoading(false)
             }
         }
@@ -122,6 +127,7 @@ export const AuthProvider = ({ children }) => {
                         isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
                     setUser(userData)
+                    setSessionReady(true)
                     setLoading(false)
 
                     const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
@@ -132,6 +138,7 @@ export const AuthProvider = ({ children }) => {
                     localStorage.removeItem('pingpong_is_admin')
                     setUser(null)
                     setMemberStatus('none')
+                    setSessionReady(false)
                     setLoading(false)
                 }
             }
@@ -212,6 +219,7 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={{
             user,
             loading,
+            sessionReady,
             authError,
             memberStatus,
             sendMagicLink,

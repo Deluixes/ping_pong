@@ -55,7 +55,7 @@ const setCachedEvents = (events) => {
 }
 
 export default function Calendar() {
-    const { user } = useAuth()
+    const { user, sessionReady } = useAuth()
     const [selectedDate, setSelectedDate] = useState(() => new Date())
     const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
     const [events, setEvents] = useState(getCachedEvents)
@@ -243,6 +243,10 @@ export default function Calendar() {
     // Actions
     const handleSlotClick = (slotId) => {
         if (isUserParticipating(slotId)) {
+            if (!sessionReady) {
+                alert('Connexion en cours... Veuillez patienter quelques secondes.')
+                return
+            }
             handleUnregister(slotId)
         } else {
             // Open duration selection modal
@@ -365,6 +369,32 @@ export default function Calendar() {
 
     return (
         <div className="calendar-view" style={{ paddingBottom: '2rem' }}>
+            {/* Session status banner */}
+            {!sessionReady && (
+                <div style={{
+                    background: '#FEF3C7',
+                    border: '1px solid #F59E0B',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.5rem 1rem',
+                    marginBottom: '0.75rem',
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    color: '#92400E'
+                }}>
+                    <span style={{ animation: 'pulse 1.5s infinite' }}>⏳</span>
+                    Connexion au serveur...
+                    <style>{`
+                        @keyframes pulse {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.5; }
+                        }
+                    `}</style>
+                </div>
+            )}
+
             {/* Modal */}
             {modalStep && (
                 <div style={{
@@ -654,15 +684,17 @@ export default function Calendar() {
                                 <button
                                     onClick={handleRegister}
                                     className="btn btn-primary"
+                                    disabled={!sessionReady}
                                     style={{
                                         width: '100%',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '0.5rem'
+                                        gap: '0.5rem',
+                                        opacity: sessionReady ? 1 : 0.7
                                     }}
                                 >
-                                    ✓ Confirmer la réservation
+                                    {sessionReady ? '✓ Confirmer la réservation' : '⏳ Connexion en cours...'}
                                 </button>
                             </>
                         )}
