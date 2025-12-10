@@ -7,11 +7,22 @@ import { supabase, sessionReadyPromise } from '../lib/supabase'
 
 export const GROUP_NAME = 'Ping-Pong Ramonville'
 
-// Wait for session to be ready (without calling getSession which can block)
+// Wait for session to be ready and ensure token is set
 const ensureSession = async () => {
     console.log('[Storage] ensureSession: waiting for auth...')
     const session = await sessionReadyPromise
     console.log('[Storage] ensureSession:', session ? 'OK' : 'NO SESSION')
+
+    // If we have a session, make sure the client has the token
+    if (session?.access_token) {
+        console.log('[Storage] Setting session token...')
+        await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+        })
+        console.log('[Storage] Token set')
+    }
+
     return session
 }
 
