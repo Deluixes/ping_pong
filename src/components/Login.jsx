@@ -3,7 +3,8 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
-    const [name, setName] = useState('')
+    const [firstName, setFirstName] = useState('')
+    const [lastName, setLastName] = useState('')
     const { login, user } = useAuth()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const navigate = useNavigate()
@@ -15,17 +16,17 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!name.trim()) return
+        if (!firstName.trim() || !lastName.trim()) return
 
         setIsSubmitting(true)
         try {
-            await login(name)
+            const fullName = `${firstName.trim()} ${lastName.trim()}`
+            await login(fullName)
             navigate('/', { replace: true })
         } finally {
             setIsSubmitting(false)
         }
     }
-
 
     return (
         <div className="login-container" style={{
@@ -38,24 +39,42 @@ export default function Login() {
         }}>
             <div className="card" style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
                 <div style={{ marginBottom: '2rem', color: 'var(--color-primary)' }}>
-                    {/* Simple SVG Logo Placeholder */}
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12h20"></path>
-                        <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3Z"></path>
-                        <path d="M12 15v7"></path>
+                    {/* Ping Pong Racket SVG */}
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                        <circle cx="24" cy="24" r="20" fill="var(--color-primary)" />
+                        <rect x="38" y="38" width="8" height="22" rx="4" fill="var(--color-secondary)" transform="rotate(-45 38 38)" />
+                        <circle cx="50" cy="14" r="6" fill="white" stroke="var(--color-secondary)" strokeWidth="2" />
                     </svg>
-                    <h1 style={{ marginTop: '1rem' }}>Ping Pong Club</h1>
-                    <p style={{ color: 'var(--color-text-muted)' }}>S'inscrire pour jouer</p>
+                    <h1 style={{ marginTop: '1rem', fontSize: '1.5rem' }}>Ping Pong Club</h1>
+                    <p style={{ color: 'var(--color-text-muted)' }}>Connectez-vous pour réserver</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Votre Prénom / Surnom</label>
+                    <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Prénom</label>
                         <input
                             type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Ex: Marco, PingMaster..."
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="Jean"
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid #CCC',
+                                fontSize: '1rem'
+                            }}
+                            required
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nom</label>
+                        <input
+                            type="text"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="Dupont"
                             style={{
                                 width: '100%',
                                 padding: '0.75rem',
@@ -76,6 +95,10 @@ export default function Login() {
                         {isSubmitting ? 'Connexion...' : 'Entrer'}
                     </button>
                 </form>
+
+                <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                    Votre session sera gardée sur cet appareil.
+                </p>
             </div>
         </div>
     )
