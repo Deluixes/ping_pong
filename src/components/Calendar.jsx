@@ -110,11 +110,12 @@ export default function Calendar() {
     }, [user?.id, loadData])
 
     // Setup subscription once on mount
+    // TEMPORARILY DISABLED to test if realtime is causing issues
     useEffect(() => {
         // Subscribe to real-time changes (only once)
-        subscriptionRef.current = storageService.subscribeToReservations(() => {
-            loadData()
-        })
+        // subscriptionRef.current = storageService.subscribeToReservations(() => {
+        //     loadData()
+        // })
 
         // Safety timeout to prevent infinite loading
         const timeout = setTimeout(() => {
