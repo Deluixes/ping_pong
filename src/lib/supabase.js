@@ -14,6 +14,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Expose for debugging
+if (typeof window !== 'undefined') {
+    window.supabase = supabase
+}
+
 // Liste des emails admin (centralisée pour éviter la duplication)
 export const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '')
     .split(',')
