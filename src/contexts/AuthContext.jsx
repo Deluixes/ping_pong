@@ -125,10 +125,18 @@ export const AuthProvider = ({ children }) => {
         setMemberStatus('none')
     }
 
+    // Safety timeout to prevent infinite loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setLoading(false)
+        }, 5000)
+        return () => clearTimeout(timer)
+    }, [])
+
     // Refresh member status (useful after admin approval)
     const refreshMemberStatus = async () => {
         if (user) {
-            await checkMemberStatus(user.id)
+            await checkMemberStatus(user.id, user.isAdmin, user.email, user.name)
         }
     }
 
