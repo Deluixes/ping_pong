@@ -4,9 +4,20 @@ import { storageService } from '../services/storage'
 
 const AuthContext = createContext(null)
 
+// Restore user from cache for instant display
+const getCachedUser = () => {
+    try {
+        const cached = localStorage.getItem('pingpong_user')
+        return cached ? JSON.parse(cached) : null
+    } catch {
+        return null
+    }
+}
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null)
-    const [loading, setLoading] = useState(true)
+    // Initialize from cache for instant display
+    const [user, setUser] = useState(getCachedUser)
+    const [loading, setLoading] = useState(() => !getCachedUser())
     const [authError, setAuthError] = useState(null)
     // Initialize from cache if available to speed up launch
     const [memberStatus, setMemberStatus] = useState(() => {
@@ -50,6 +61,15 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('pingpong_member_status', memberStatus)
     }, [memberStatus])
 
+    // Persist user to cache for instant reload
+    useEffect(() => {
+        if (user) {
+            localStorage.setItem('pingpong_user', JSON.stringify(user))
+        } else {
+            localStorage.removeItem('pingpong_user')
+        }
+    }, [user])
+
     useEffect(() => {
         const checkSession = async () => {
             try {
@@ -60,22 +80,23 @@ export const AuthProvider = ({ children }) => {
                         email: session.user.email,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
                         isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
-                        // Optimistically set admin from cache
                         isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
 
-                    // Show user immediately (optimistic)
                     setUser(userData)
                     setLoading(false)
 
+                    // Check member status in background (don't block UI)
                     const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
-
-                    // Update with confirmed role
                     setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
+                } else {
+                    // No valid session - clear cached user
+                    localStorage.removeItem('pingpong_user')
+                    setUser(null)
+                    setLoading(false)
                 }
             } catch (error) {
                 console.error('Session check error:', error)
-            } finally {
                 setLoading(false)
             }
         }
@@ -149,9 +170,13 @@ export const AuthProvider = ({ children }) => {
     }
 
     const logout = async () => {
-        await supabase.auth.signOut()
+        // Clear cache first for instant feedback
+        localStorage.removeItem('pingpong_user')
+        localStorage.removeItem('pingpong_member_status')
+        localStorage.removeItem('pingpong_is_admin')
         setUser(null)
         setMemberStatus('none')
+        await supabase.auth.signOut()
     }
 
     // Safety timeout to prevent infinite loading
