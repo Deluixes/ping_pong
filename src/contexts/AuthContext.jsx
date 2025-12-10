@@ -11,7 +11,10 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
-    const [memberStatus, setMemberStatus] = useState('none') // 'none' | 'pending' | 'approved'
+    // Initialize from cache if available to speed up launch
+    const [memberStatus, setMemberStatus] = useState(() => {
+        return localStorage.getItem('pingpong_member_status') || 'none'
+    })
 
     const checkMemberStatus = useCallback(async (userId, isAdminEmail, email, name) => {
         try {
@@ -32,6 +35,10 @@ export const AuthProvider = ({ children }) => {
                 }
             }
 
+            // Cache the role too
+            if (role === 'admin') localStorage.setItem('pingpong_is_admin', 'true')
+            else localStorage.removeItem('pingpong_is_admin')
+
             setMemberStatus(status)
             return { status, role }
         } catch (error) {
@@ -40,6 +47,11 @@ export const AuthProvider = ({ children }) => {
             return { status: 'none', role: 'member' }
         }
     }, [])
+
+    // Persist member status to cache
+    useEffect(() => {
+        localStorage.setItem('pingpong_member_status', memberStatus)
+    }, [memberStatus])
 
     useEffect(() => {
         const checkSession = async () => {
@@ -50,11 +62,19 @@ export const AuthProvider = ({ children }) => {
                         id: session.user.id,
                         email: session.user.email,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
+                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
+                        // Optimistically set admin from cache
+                        isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
+
+                    // Show user immediately (optimistic)
+                    setUser(userData)
+                    setLoading(false)
+
                     const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
 
-                    setUser({ ...userData, isAdmin: role === 'admin' })
+                    // Update with confirmed role
+                    setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                 }
             } catch (error) {
                 console.error('Session check error:', error)
@@ -72,11 +92,13 @@ export const AuthProvider = ({ children }) => {
                         id: session.user.id,
                         email: session.user.email,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
+                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
+                        isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
+                    setUser(userData) // Show immediately
                     const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
 
-                    setUser({ ...userData, isAdmin: role === 'admin' })
+                    setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                 } else {
                     setUser(null)
                     setMemberStatus('none')
