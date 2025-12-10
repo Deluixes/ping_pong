@@ -18,7 +18,8 @@ export const AuthProvider = ({ children }) => {
     // Initialize from cache for instant display
     const [user, setUser] = useState(getCachedUser)
     const [loading, setLoading] = useState(() => !getCachedUser())
-    const [sessionReady, setSessionReady] = useState(false) // True when Supabase session is confirmed
+    // If we have cached user, assume session is likely valid (will be verified in background)
+    const [sessionReady, setSessionReady] = useState(() => !!getCachedUser())
     const [authError, setAuthError] = useState(null)
     // Initialize from cache if available to speed up launch
     const [memberStatus, setMemberStatus] = useState(() => {
@@ -73,11 +74,14 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const cachedUser = getCachedUser()
+        console.log('[Auth] Starting validation, cachedUser:', !!cachedUser)
 
         // Always validate session in background, but don't block UI if we have cache
         const validateSession = async () => {
             try {
+                console.log('[Auth] Calling getSession...')
                 const { data: { session } } = await supabase.auth.getSession()
+                console.log('[Auth] getSession result:', !!session?.user)
 
                 if (session?.user) {
                     // Session is valid - update user data (might have changed)
@@ -118,6 +122,7 @@ export const AuthProvider = ({ children }) => {
         // Listen for auth changes (login/logout/initial)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
+                console.log('[Auth] onAuthStateChange event:', event, 'hasSession:', !!session?.user)
                 // Handle session restoration on page load and new sign-ins
                 if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
                     const userData = {
