@@ -281,20 +281,29 @@ export default function Calendar() {
     }
 
     const handleRegister = async () => {
-        if (!selectedSlotId || !selectedDuration) return
+        console.log('[Calendar] handleRegister called', { selectedSlotId, selectedDuration, user: user?.id })
+        if (!selectedSlotId || !selectedDuration) {
+            console.log('[Calendar] Missing data, aborting')
+            return
+        }
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
         const guestNames = guests.filter(g => g.trim()).map(g => g.trim())
 
-        // Register for all slots in the duration
-        for (let i = 0; i < selectedDuration.slots; i++) {
-            const slot = TIME_SLOTS[startIndex + i]
-            await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedTable, selectedDuration.slots, guestNames)
+        try {
+            // Register for all slots in the duration
+            for (let i = 0; i < selectedDuration.slots; i++) {
+                const slot = TIME_SLOTS[startIndex + i]
+                console.log('[Calendar] Registering slot', slot.id)
+                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedTable, selectedDuration.slots, guestNames)
+            }
+            console.log('[Calendar] Registration complete')
+            closeModal()
+            await loadData()
+        } catch (error) {
+            console.error('[Calendar] Registration error:', error)
         }
-
-        closeModal()
-        await loadData()
     }
 
     const handleUnregister = async (slotId) => {
