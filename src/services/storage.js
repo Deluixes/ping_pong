@@ -48,7 +48,7 @@ class StorageService {
         return user
     }
 
-    // Events = { date, slotId, userId }
+    // Events = { date, slotId, userId, tableNumber? }
     async getEvents() {
         await delay(100)
         if (this.useLocalStorage) {
@@ -58,6 +58,48 @@ class StorageService {
         return []
     }
 
+    async registerForSlot(slotId, date, userId, tableNumber = null, duration = 1) {
+        await delay(100)
+        let events = await this.getEvents()
+
+        // Check if user already registered for this slot
+        const existingIndex = events.findIndex(
+            e => e.slotId === slotId && e.date === date && e.userId === userId
+        )
+
+        if (existingIndex >= 0) {
+            // Already registered, do nothing (or could update table)
+            return events
+        }
+
+        // Add new registration with duration
+        events.push({ slotId, date, userId, tableNumber, duration })
+
+        if (this.useLocalStorage) {
+            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+        }
+        return events
+    }
+
+    async unregisterFromSlot(slotId, date, userId) {
+        await delay(100)
+        let events = await this.getEvents()
+
+        const existingIndex = events.findIndex(
+            e => e.slotId === slotId && e.date === date && e.userId === userId
+        )
+
+        if (existingIndex >= 0) {
+            events.splice(existingIndex, 1)
+        }
+
+        if (this.useLocalStorage) {
+            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+        }
+        return events
+    }
+
+    // Legacy toggle (kept for compatibility but prefer register/unregister)
     async toggleEventAttendance(slotId, date, userId) {
         await delay(100)
         let events = await this.getEvents()
@@ -67,11 +109,9 @@ class StorageService {
         )
 
         if (existingIndex >= 0) {
-            // Remove (toggle off)
             events.splice(existingIndex, 1)
         } else {
-            // Add (toggle on)
-            events.push({ slotId, date, userId })
+            events.push({ slotId, date, userId, tableNumber: null })
         }
 
         if (this.useLocalStorage) {

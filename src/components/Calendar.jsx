@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { startOfWeek, addDays, format, isSameDay, parseISO } from 'date-fns'
+import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { Users, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { Users, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
 
 // Generate 30-min slots from 9:00 to 22:00
 const generateTimeSlots = () => {
     const slots = []
     for (let hour = 9; hour < 22; hour++) {
-        slots.push({ id: `${hour}:00`, label: `${hour}:00` })
-        slots.push({ id: `${hour}:30`, label: `${hour}:30` })
+        slots.push({ id: `${hour}:00`, label: `${hour}:00`, hour, minute: 0 })
+        slots.push({ id: `${hour}:30`, label: `${hour}:30`, hour, minute: 30 })
     }
     return slots
 }
 
 const TIME_SLOTS = generateTimeSlots()
+const TOTAL_TABLES = 8
+
+const DURATION_OPTIONS = [
+    { slots: 1, label: '30 min', value: 1 },
+    { slots: 2, label: '1 h', value: 2 },
+    { slots: 3, label: '1 h 30', value: 3 },
+    { slots: 4, label: '2 h', value: 4 }
+]
 
 export default function Calendar() {
     const { user } = useAuth()
@@ -24,8 +32,13 @@ export default function Calendar() {
     const [events, setEvents] = useState([])
     const [usersMap, setUsersMap] = useState({})
     const [loading, setLoading] = useState(true)
+    const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
 
-    // Load data once on mount and after toggle (no auto-polling to avoid resets)
+    // Modal state - 2 steps
+    const [modalStep, setModalStep] = useState(null) // 'duration' | 'table' | null
+    const [selectedSlotId, setSelectedSlotId] = useState(null)
+    const [selectedDuration, setSelectedDuration] = useState(null)
+
     const loadData = useCallback(async () => {
         try {
             const [loadedEvents, loadedUsers] = await Promise.all([
@@ -49,45 +62,367 @@ export default function Calendar() {
     const nextWeek = () => setWeekStart(d => addDays(d, 7))
     const prevWeek = () => setWeekStart(d => addDays(d, -7))
 
-    // Get days of the week
     const weekDays = []
     for (let i = 0; i < 7; i++) {
         weekDays.push(addDays(weekStart, i))
     }
 
-    // Toggle Attendance
-    const handleToggle = async (slotId) => {
+    // Get slot index
+    const getSlotIndex = (slotId) => TIME_SLOTS.findIndex(s => s.id === slotId)
+
+    // Check if a slot has a table available for the user
+    const getSlotEvents = (slotId) => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        await storageService.toggleEventAttendance(slotId, dateStr, user.id)
-        await loadData()
+        return events.filter(e => e.date === dateStr && e.slotId === slotId)
     }
 
-    // Get participants for a slot on the selected date
     const getParticipants = (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        return events
-            .filter(e => e.date === dateStr && e.slotId === slotId)
-            .map(e => usersMap[e.userId])
-            .filter(Boolean)
+        return getSlotEvents(slotId)
+            .map(e => ({ ...usersMap[e.userId], tableNumber: e.tableNumber, duration: e.duration }))
+            .filter(p => p.id)
     }
 
-    // Check if user is participating in a slot
     const isUserParticipating = (slotId) => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         return events.some(e => e.date === dateStr && e.slotId === slotId && e.userId === user.id)
     }
 
-    // Count participants for a day (for the week view badges)
+    const getUserRegistration = (slotId) => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        return events.find(e => e.date === dateStr && e.slotId === slotId && e.userId === user.id)
+    }
+
+    const getOccupiedTables = (slotId) => {
+        return getSlotEvents(slotId)
+            .map(e => e.tableNumber)
+            .filter(t => t !== null)
+    }
+
+    // Check if ALL tables are occupied for a slot
+    const isSlotFullyBooked = (slotId) => {
+        return getOccupiedTables(slotId).length >= TOTAL_TABLES
+    }
+
+    // Calculate available durations from a starting slot
+    const getAvailableDurations = (startSlotId) => {
+        const startIndex = getSlotIndex(startSlotId)
+        if (startIndex === -1) return []
+
+        const available = []
+
+        for (const duration of DURATION_OPTIONS) {
+            let canBook = true
+
+            // Check if we have enough slots remaining
+            if (startIndex + duration.slots > TIME_SLOTS.length) {
+                canBook = false
+            } else {
+                // Check each consecutive slot for this duration
+                for (let i = 0; i < duration.slots; i++) {
+                    const slotToCheck = TIME_SLOTS[startIndex + i]
+                    // A slot is bookable if it has at least one table free
+                    if (isSlotFullyBooked(slotToCheck.id)) {
+                        canBook = false
+                        break
+                    }
+                }
+            }
+
+            if (canBook) {
+                available.push(duration)
+            } else {
+                // Stop checking longer durations if this one failed
+                break
+            }
+        }
+
+        return available
+    }
+
+    // Get tables available across ALL slots for a duration
+    const getTablesAvailableForDuration = (startSlotId, durationSlots) => {
+        const startIndex = getSlotIndex(startSlotId)
+        if (startIndex === -1) return []
+
+        // Start with all tables
+        let availableTables = new Set(Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1))
+
+        // For each slot in the duration, remove occupied tables
+        for (let i = 0; i < durationSlots; i++) {
+            const slotToCheck = TIME_SLOTS[startIndex + i]
+            const occupied = getOccupiedTables(slotToCheck.id)
+            occupied.forEach(t => availableTables.delete(t))
+        }
+
+        return Array.from(availableTables).sort((a, b) => a - b)
+    }
+
     const getDayParticipantCount = (day) => {
         const dateStr = format(day, 'yyyy-MM-dd')
         const dayEvents = events.filter(e => e.date === dateStr)
         return new Set(dayEvents.map(e => e.userId)).size
     }
 
+    // Actions
+    const handleSlotClick = (slotId) => {
+        if (isUserParticipating(slotId)) {
+            handleUnregister(slotId)
+        } else {
+            // Open duration selection modal
+            setSelectedSlotId(slotId)
+            setSelectedDuration(null)
+            setModalStep('duration')
+        }
+    }
+
+    const handleDurationSelect = (duration) => {
+        setSelectedDuration(duration)
+        setModalStep('table')
+    }
+
+    const handleRegister = async (tableNumber) => {
+        if (!selectedSlotId || !selectedDuration) return
+
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        const startIndex = getSlotIndex(selectedSlotId)
+
+        // Register for all slots in the duration
+        for (let i = 0; i < selectedDuration.slots; i++) {
+            const slot = TIME_SLOTS[startIndex + i]
+            await storageService.registerForSlot(slot.id, dateStr, user.id, tableNumber, selectedDuration.slots)
+        }
+
+        closeModal()
+        await loadData()
+    }
+
+    const handleUnregister = async (slotId) => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        const registration = getUserRegistration(slotId)
+
+        if (registration) {
+            // Find all slots that are part of this booking (same table, consecutive)
+            const startIndex = getSlotIndex(slotId)
+            const duration = registration.duration || 1
+
+            for (let i = 0; i < duration; i++) {
+                const slot = TIME_SLOTS[startIndex + i]
+                if (slot) {
+                    await storageService.unregisterFromSlot(slot.id, dateStr, user.id)
+                }
+            }
+        }
+
+        await loadData()
+    }
+
+    const closeModal = () => {
+        setModalStep(null)
+        setSelectedSlotId(null)
+        setSelectedDuration(null)
+    }
+
     if (loading) return <div className="text-center mt-4">Chargement du planning...</div>
+
+    const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
+    const availableTables = (selectedSlotId && selectedDuration)
+        ? getTablesAvailableForDuration(selectedSlotId, selectedDuration.slots)
+        : []
+
+    // Get end time for display
+    const getEndTime = (startSlotId, durationSlots) => {
+        const startIndex = getSlotIndex(startSlotId)
+        const endSlot = TIME_SLOTS[startIndex + durationSlots]
+        if (endSlot) return endSlot.label
+        return '22:00'
+    }
 
     return (
         <div className="calendar-view" style={{ paddingBottom: '2rem' }}>
+            {/* Modal */}
+            {modalStep && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}
+                    onClick={(e) => e.target === e.currentTarget && closeModal()}
+                >
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '1.5rem 1.5rem 0 0',
+                        padding: '1.5rem',
+                        width: '100%',
+                        maxWidth: '500px',
+                        maxHeight: '70vh',
+                        overflow: 'auto',
+                        animation: 'slideUp 0.2s ease-out'
+                    }}>
+                        <style>{`
+              @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+              }
+            `}</style>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Clock size={20} />
+                                {modalStep === 'duration' ? 'Durée de réservation' : 'Choisir une table'}
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            <strong>{selectedSlotId}</strong> - {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                            {selectedDuration && (
+                                <span> → <strong>{getEndTime(selectedSlotId, selectedDuration.slots)}</strong></span>
+                            )}
+                        </p>
+
+                        {/* Step 1: Duration Selection */}
+                        {modalStep === 'duration' && (
+                            <>
+                                {availableDurations.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {availableDurations.map(duration => (
+                                            <button
+                                                key={duration.value}
+                                                onClick={() => handleDurationSelect(duration)}
+                                                style={{
+                                                    padding: '1rem 1.5rem',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: '2px solid var(--color-primary)',
+                                                    background: 'white',
+                                                    color: 'var(--color-primary)',
+                                                    fontWeight: 'bold',
+                                                    fontSize: '1.1rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.75rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '1.5rem' }}>⏱️</span>
+                                                <span>{duration.label}</span>
+                                                <span style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                                    {selectedSlotId} → {getEndTime(selectedSlotId, duration.slots)}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        background: '#FEE2E2',
+                                        border: '1px solid #EF4444',
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: '1rem',
+                                        textAlign: 'center',
+                                        color: '#991B1B'
+                                    }}>
+                                        Aucune durée disponible pour ce créneau.
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* Step 2: Table Selection */}
+                        {modalStep === 'table' && (
+                            <>
+                                <button
+                                    onClick={() => setModalStep('duration')}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--color-primary)',
+                                        cursor: 'pointer',
+                                        marginBottom: '1rem',
+                                        fontSize: '0.9rem',
+                                        padding: 0
+                                    }}
+                                >
+                                    ← Changer la durée
+                                </button>
+
+                                {availableTables.length > 0 ? (
+                                    <>
+                                        <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                            Tables disponibles ({availableTables.length}/{TOTAL_TABLES}) :
+                                        </p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
+                                            {Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1).map(tableNum => {
+                                                const isAvailable = availableTables.includes(tableNum)
+                                                return (
+                                                    <button
+                                                        key={tableNum}
+                                                        onClick={() => isAvailable && handleRegister(tableNum)}
+                                                        disabled={!isAvailable}
+                                                        style={{
+                                                            padding: '1rem',
+                                                            borderRadius: 'var(--radius-md)',
+                                                            border: isAvailable ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
+                                                            background: isAvailable ? 'white' : '#F1F5F9',
+                                                            color: isAvailable ? 'var(--color-primary)' : '#94A3B8',
+                                                            fontWeight: 'bold',
+                                                            fontSize: '1.1rem',
+                                                            cursor: isAvailable ? 'pointer' : 'not-allowed',
+                                                            opacity: isAvailable ? 1 : 0.6
+                                                        }}
+                                                    >
+                                                        {tableNum}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div style={{
+                                        background: '#FEF3C7',
+                                        border: '1px solid #F59E0B',
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: '1rem',
+                                        marginBottom: '1rem',
+                                        textAlign: 'center'
+                                    }}>
+                                        <p style={{ margin: 0, color: '#92400E', fontWeight: '500' }}>
+                                            ⚠️ Aucune table disponible pour cette durée
+                                        </p>
+                                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#92400E' }}>
+                                            Vous pouvez quand même vous inscrire en liste d'attente.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => handleRegister(null)}
+                                    className="btn"
+                                    style={{
+                                        width: '100%',
+                                        background: availableTables.length > 0 ? 'var(--color-bg)' : 'var(--color-primary)',
+                                        color: availableTables.length > 0 ? 'var(--color-text)' : 'white'
+                                    }}
+                                >
+                                    {availableTables.length > 0 ? "S'inscrire sans table" : "S'inscrire (liste d'attente)"}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Week Navigation */}
             <div style={{
                 display: 'flex',
@@ -111,13 +446,15 @@ export default function Calendar() {
                 </button>
             </div>
 
-            {/* Day Selector (Horizontal Scroll) */}
+            {/* Day Selector */}
             <div style={{
                 display: 'flex',
                 gap: '0.5rem',
                 overflowX: 'auto',
-                paddingBottom: '0.5rem',
-                marginBottom: '1rem'
+                padding: '0.5rem',
+                marginBottom: '1rem',
+                marginLeft: '-0.5rem',
+                marginRight: '-0.5rem'
             }}>
                 {weekDays.map(day => {
                     const isSelected = isSameDay(day, selectedDate)
@@ -180,99 +517,141 @@ export default function Calendar() {
                 })}
             </div>
 
-            {/* Selected Day Title */}
-            <h2 style={{
+            {/* Title + Filter */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '1rem',
-                textTransform: 'capitalize',
-                color: 'var(--color-secondary)',
-                fontSize: '1.1rem'
+                gap: '0.5rem',
+                flexWrap: 'wrap'
             }}>
-                {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
-            </h2>
-
-            {/* Time Slots Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {TIME_SLOTS.map(slot => {
-                    const participants = getParticipants(slot.id)
-                    const isParticipating = isUserParticipating(slot.id)
-                    const count = participants.length
-
-                    return (
-                        <div
-                            key={slot.id}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'stretch',
-                                background: 'var(--color-surface)',
-                                borderRadius: 'var(--radius-md)',
-                                overflow: 'hidden',
-                                boxShadow: 'var(--shadow-sm)',
-                                border: isParticipating ? '2px solid var(--color-primary)' : '1px solid #E2E8F0'
-                            }}
-                        >
-                            {/* Time Label */}
-                            <div style={{
-                                width: '70px',
-                                padding: '0.75rem',
-                                background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
-                                color: isParticipating ? 'white' : 'var(--color-text)',
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                {slot.label}
-                            </div>
-
-                            {/* Participants Info */}
-                            <div style={{
-                                flex: 1,
-                                padding: '0.75rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                flexWrap: 'wrap'
-                            }}>
-                                {count > 0 ? (
-                                    <>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-secondary)' }}>
-                                            <Users size={16} />
-                                            <span style={{ fontWeight: 'bold' }}>{count}</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                                            {participants.map(p => p.name).join(', ')}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Aucun inscrit</span>
-                                )}
-                            </div>
-
-                            {/* Toggle Button */}
-                            <button
-                                onClick={() => handleToggle(slot.id)}
-                                style={{
-                                    width: '60px',
-                                    border: 'none',
-                                    background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
-                                    color: isParticipating ? 'white' : 'var(--color-text-muted)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    transition: 'all 0.2s'
-                                }}
-                                title={isParticipating ? 'Annuler' : "J'y vais !"}
-                            >
-                                {isParticipating ? <Check size={24} /> : '+'}
-                            </button>
-                        </div>
-                    )
-                })}
+                <h2 style={{
+                    textTransform: 'capitalize',
+                    color: 'var(--color-secondary)',
+                    fontSize: '1.1rem',
+                    margin: 0
+                }}>
+                    {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                </h2>
+                <button
+                    onClick={() => setShowOnlyOccupied(!showOnlyOccupied)}
+                    className="btn"
+                    style={{
+                        background: showOnlyOccupied ? 'var(--color-secondary)' : 'var(--color-bg)',
+                        color: showOnlyOccupied ? 'white' : 'var(--color-text)',
+                        fontSize: '0.8rem',
+                        padding: '0.5rem 0.75rem'
+                    }}
+                >
+                    {showOnlyOccupied ? '👥 Avec inscrits' : '📋 Tout afficher'}
+                </button>
             </div>
 
-            {/* Manual Refresh Button */}
+            {/* Time Slots */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {TIME_SLOTS
+                    .filter(slot => {
+                        if (!showOnlyOccupied) return true
+                        return getParticipants(slot.id).length > 0
+                    })
+                    .map(slot => {
+                        const participants = getParticipants(slot.id)
+                        const isParticipating = isUserParticipating(slot.id)
+                        const userReg = getUserRegistration(slot.id)
+                        const count = participants.length
+                        const occupiedTables = getOccupiedTables(slot.id)
+                        const isFullyBooked = isSlotFullyBooked(slot.id)
+
+                        return (
+                            <div
+                                key={slot.id}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'stretch',
+                                    background: 'var(--color-surface)',
+                                    borderRadius: 'var(--radius-md)',
+                                    overflow: 'hidden',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    border: isParticipating ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
+                                    opacity: isFullyBooked && !isParticipating ? 0.6 : 1
+                                }}
+                            >
+                                {/* Time Label */}
+                                <div style={{
+                                    width: '60px',
+                                    padding: '0.75rem 0.5rem',
+                                    background: isParticipating ? 'var(--color-primary)' : isFullyBooked ? '#E2E8F0' : 'var(--color-bg)',
+                                    color: isParticipating ? 'white' : 'var(--color-text)',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.85rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.25rem'
+                                }}>
+                                    <span>{slot.label}</span>
+                                    {isParticipating && userReg?.tableNumber && (
+                                        <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>Table {userReg.tableNumber}</span>
+                                    )}
+                                </div>
+
+                                {/* Participants Info */}
+                                <div style={{
+                                    flex: 1,
+                                    padding: '0.5rem 0.75rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    gap: '0.25rem',
+                                    minWidth: 0
+                                }}>
+                                    {count > 0 ? (
+                                        <>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-secondary)' }}>
+                                                    <Users size={14} />
+                                                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{count}</span>
+                                                </div>
+                                                <span style={{ fontSize: '0.75rem', color: isFullyBooked ? '#EF4444' : 'var(--color-text-muted)' }}>
+                                                    {isFullyBooked ? 'COMPLET' : `${occupiedTables.length}/${TOTAL_TABLES} tables`}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {participants.map(p => p.tableNumber ? `${p.name} (T${p.tableNumber})` : p.name).join(', ')}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Disponible</span>
+                                    )}
+                                </div>
+
+                                {/* Toggle Button */}
+                                <button
+                                    onClick={() => handleSlotClick(slot.id)}
+                                    disabled={isFullyBooked && !isParticipating}
+                                    style={{
+                                        width: '50px',
+                                        border: 'none',
+                                        background: isParticipating ? 'var(--color-primary)' : isFullyBooked ? '#E2E8F0' : 'var(--color-bg)',
+                                        color: isParticipating ? 'white' : isFullyBooked ? '#94A3B8' : 'var(--color-text-muted)',
+                                        cursor: isFullyBooked && !isParticipating ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    title={isParticipating ? 'Annuler' : isFullyBooked ? 'Complet' : "S'inscrire"}
+                                >
+                                    {isParticipating ? <X size={20} /> : '+'}
+                                </button>
+                            </div>
+                        )
+                    })}
+            </div>
+
+            {/* Refresh */}
             <button
                 onClick={loadData}
                 className="btn"
@@ -283,7 +662,7 @@ export default function Calendar() {
                     color: 'var(--color-text-muted)'
                 }}
             >
-                🔄 Actualiser les données
+                🔄 Actualiser
             </button>
         </div>
     )
