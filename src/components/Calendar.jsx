@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
@@ -75,8 +75,13 @@ export default function Calendar() {
     // Approved members for guest selection
     const [approvedMembers, setApprovedMembers] = useState([])
 
+    // Ref for subscription to avoid re-subscriptions
+    const subscriptionRef = useRef(null)
+    const userIdRef = useRef(user?.id)
+
     const loadData = useCallback(async () => {
-        if (!user?.id) {
+        const currentUserId = userIdRef.current
+        if (!currentUserId) {
             setLoading(false)
             return
         }
@@ -89,18 +94,25 @@ export default function Calendar() {
 
             // Load members in background (for guest selection)
             const members = await storageService.getMembers()
-            setApprovedMembers(members.approved.filter(m => m.userId !== user.id))
+            setApprovedMembers(members.approved.filter(m => m.userId !== currentUserId))
         } catch (error) {
             console.error('Error loading data:', error)
             setLoading(false)
         }
-    }, [user?.id])
+    }, [])
 
+    // Update userIdRef when user changes
     useEffect(() => {
-        loadData()
+        userIdRef.current = user?.id
+        if (user?.id) {
+            loadData()
+        }
+    }, [user?.id, loadData])
 
-        // Subscribe to real-time changes
-        const subscription = storageService.subscribeToReservations(() => {
+    // Setup subscription once on mount
+    useEffect(() => {
+        // Subscribe to real-time changes (only once)
+        subscriptionRef.current = storageService.subscribeToReservations(() => {
             loadData()
         })
 
@@ -110,7 +122,10 @@ export default function Calendar() {
         }, 10000)
 
         return () => {
-            storageService.unsubscribe(subscription)
+            if (subscriptionRef.current) {
+                storageService.unsubscribe(subscriptionRef.current)
+                subscriptionRef.current = null
+            }
             clearTimeout(timeout)
         }
     }, [loadData])
