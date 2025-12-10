@@ -14,17 +14,24 @@ export const AuthProvider = ({ children }) => {
     const [memberStatus, setMemberStatus] = useState('none') // 'none' | 'pending' | 'approved'
 
     const checkMemberStatus = useCallback(async (userId, isAdmin, email, name) => {
-        let status = await storageService.getMemberStatus(userId)
+        try {
+            let status = await storageService.getMemberStatus(userId)
 
-        // Auto-approve admins
-        if (isAdmin && status !== 'approved') {
-            await storageService.requestAccess(userId, email, name)
-            await storageService.approveMember(userId)
-            status = 'approved'
+            // Auto-approve admins
+            if (isAdmin && status !== 'approved') {
+                await storageService.requestAccess(userId, email, name)
+                await storageService.approveMember(userId)
+                status = 'approved'
+            }
+
+            setMemberStatus(status)
+            return status
+        } catch (error) {
+            console.error('Error checking member status:', error)
+            // Default to 'none' on error so the app doesn't get stuck
+            setMemberStatus('none')
+            return 'none'
         }
-
-        setMemberStatus(status)
-        return status
     }, [])
 
     useEffect(() => {
