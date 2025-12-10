@@ -52,6 +52,10 @@ export default function Calendar() {
     const [approvedMembers, setApprovedMembers] = useState([])
 
     const loadData = useCallback(async () => {
+        if (!user?.id) {
+            setLoading(false)
+            return
+        }
         try {
             const [loadedEvents, members] = await Promise.all([
                 storageService.getEvents(),
@@ -63,7 +67,7 @@ export default function Calendar() {
         } finally {
             setLoading(false)
         }
-    }, [user.id])
+    }, [user?.id])
 
     useEffect(() => {
         loadData()
@@ -73,8 +77,14 @@ export default function Calendar() {
             loadData()
         })
 
+        // Safety timeout to prevent infinite loading
+        const timeout = setTimeout(() => {
+            setLoading(false)
+        }, 10000)
+
         return () => {
             storageService.unsubscribe(subscription)
+            clearTimeout(timeout)
         }
     }, [loadData])
 
@@ -283,7 +293,20 @@ export default function Calendar() {
         setGuests([''])
     }
 
-    if (loading) return <div className="text-center mt-4">Chargement du planning...</div>
+    if (loading) {
+        return (
+            <div className="text-center mt-4">
+                <p>Chargement du planning...</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="btn"
+                    style={{ marginTop: '1rem' }}
+                >
+                    Recharger la page
+                </button>
+            </div>
+        )
+    }
 
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
     const availableTables = (selectedSlotId && selectedDuration)
