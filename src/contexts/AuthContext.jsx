@@ -1,11 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, ADMIN_EMAILS } from '../lib/supabase'
 import { storageService } from '../services/storage'
 
 const AuthContext = createContext(null)
-
-// Admin emails that can approve members
-const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)

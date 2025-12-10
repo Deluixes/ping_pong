@@ -3,10 +3,8 @@ import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
+import { ADMIN_EMAILS } from '../lib/supabase'
 import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus } from 'lucide-react'
-
-// Admin emails (configurable via env var or hardcoded)
-const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
 // Generate 30-min slots from 9:00 to 22:00
 const generateTimeSlots = () => {
@@ -37,7 +35,6 @@ export default function Calendar() {
     const [selectedDate, setSelectedDate] = useState(() => new Date())
     const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
     const [events, setEvents] = useState([])
-    const [usersMap, setUsersMap] = useState({})
     const [loading, setLoading] = useState(true)
     const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
 
@@ -56,15 +53,11 @@ export default function Calendar() {
 
     const loadData = useCallback(async () => {
         try {
-            const [loadedEvents, loadedUsers, members] = await Promise.all([
+            const [loadedEvents, members] = await Promise.all([
                 storageService.getEvents(),
-                storageService.getUsers(),
                 storageService.getMembers()
             ])
             setEvents(loadedEvents)
-            const uMap = {}
-            loadedUsers.forEach(u => { uMap[u.id] = u })
-            setUsersMap(uMap)
             // Filter out current user from invite list
             setApprovedMembers(members.approved.filter(m => m.userId !== user.id))
         } finally {

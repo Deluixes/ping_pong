@@ -223,7 +223,6 @@ class StorageService {
     }
 
     async approveMember(userId) {
-        // ... (rest is same)
         const { error } = await supabase
             .from('members')
             .update({
