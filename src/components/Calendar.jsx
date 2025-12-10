@@ -3,7 +3,10 @@ import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { Users, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
+import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, Shield } from 'lucide-react'
+
+// Admin emails (configurable via env var or hardcoded)
+const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
 // Generate 30-min slots from 9:00 to 22:00
 const generateTimeSlots = () => {
@@ -38,6 +41,9 @@ export default function Calendar() {
     const [modalStep, setModalStep] = useState(null) // 'duration' | 'table' | null
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
+
+    // Admin check
+    const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
 
     const loadData = useCallback(async () => {
         try {
@@ -78,8 +84,12 @@ export default function Calendar() {
 
     const getParticipants = (slotId) => {
         return getSlotEvents(slotId)
-            .map(e => ({ ...usersMap[e.userId], tableNumber: e.tableNumber, duration: e.duration }))
-            .filter(p => p.id)
+            .map(e => ({
+                id: e.userId,
+                name: e.userName || 'Inconnu',
+                tableNumber: e.tableNumber,
+                duration: e.duration
+            }))
     }
 
     const isUserParticipating = (slotId) => {
@@ -189,7 +199,7 @@ export default function Calendar() {
         // Register for all slots in the duration
         for (let i = 0; i < selectedDuration.slots; i++) {
             const slot = TIME_SLOTS[startIndex + i]
-            await storageService.registerForSlot(slot.id, dateStr, user.id, tableNumber, selectedDuration.slots)
+            await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, tableNumber, selectedDuration.slots)
         }
 
         closeModal()
@@ -213,6 +223,16 @@ export default function Calendar() {
             }
         }
 
+        await loadData()
+    }
+
+    // Admin: delete any user's reservation
+    const handleAdminDelete = async (slotId, userId, userName) => {
+        if (!isAdmin) return
+        if (!window.confirm(`Supprimer la réservation de ${userName} ?`)) return
+
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        await storageService.adminDeleteEvent(slotId, dateStr, userId)
         await loadData()
     }
 
@@ -618,8 +638,29 @@ export default function Calendar() {
                                                     {isFullyBooked ? 'COMPLET' : `${occupiedTables.length}/${TOTAL_TABLES} tables`}
                                                 </span>
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {participants.map(p => p.tableNumber ? `${p.name} (T${p.tableNumber})` : p.name).join(', ')}
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                                {participants.map((p, idx) => (
+                                                    <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}>
+                                                        {p.tableNumber ? `${p.name} (T${p.tableNumber})` : p.name}
+                                                        {isAdmin && p.id !== user.id && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleAdminDelete(slot.id, p.id, p.name) }}
+                                                                style={{
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    color: '#EF4444',
+                                                                    cursor: 'pointer',
+                                                                    padding: '0 2px',
+                                                                    display: 'inline-flex'
+                                                                }}
+                                                                title="Supprimer (admin)"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
+                                                        {idx < participants.length - 1 && ', '}
+                                                    </span>
+                                                ))}
                                             </div>
                                         </>
                                     ) : (

@@ -58,7 +58,7 @@ class StorageService {
         return []
     }
 
-    async registerForSlot(slotId, date, userId, tableNumber = null, duration = 1) {
+    async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1) {
         await delay(100)
         let events = await this.getEvents()
 
@@ -72,8 +72,8 @@ class StorageService {
             return events
         }
 
-        // Add new registration with duration
-        events.push({ slotId, date, userId, tableNumber, duration })
+        // Add new registration with userName included
+        events.push({ slotId, date, userId, userName, tableNumber, duration })
 
         if (this.useLocalStorage) {
             localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
@@ -118,6 +118,20 @@ class StorageService {
             localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
         }
         return events
+    }
+
+    // Admin: Delete any event by ID or criteria
+    async adminDeleteEvent(slotId, date, userId) {
+        await delay(100)
+        let events = await this.getEvents()
+
+        const beforeCount = events.length
+        events = events.filter(e => !(e.slotId === slotId && e.date === date && e.userId === userId))
+
+        if (this.useLocalStorage) {
+            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+        }
+        return { deleted: beforeCount - events.length, events }
     }
 }
 
