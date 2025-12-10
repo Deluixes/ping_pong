@@ -1,24 +1,37 @@
-import React, { createContext, useState, useContext, useEffect } from 'react'
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { storageService } from '../services/storage'
 
 const AuthContext = createContext(null)
+
+// Admin emails that can approve members
+const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
+    const [memberStatus, setMemberStatus] = useState('none') // 'none' | 'pending' | 'approved'
+
+    const checkMemberStatus = useCallback(async (userId) => {
+        const status = await storageService.getMemberStatus(userId)
+        setMemberStatus(status)
+        return status
+    }, [])
 
     useEffect(() => {
-        // Check current session
         const checkSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (session?.user) {
-                    setUser({
+                    const userData = {
                         id: session.user.id,
                         email: session.user.email,
-                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur'
-                    })
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
+                        isAdmin: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
+                    }
+                    setUser(userData)
+                    await checkMemberStatus(session.user.id)
                 }
             } catch (error) {
                 console.error('Session check error:', error)
@@ -29,26 +42,28 @@ export const AuthProvider = ({ children }) => {
 
         checkSession()
 
-        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (session?.user) {
-                    setUser({
+                    const userData = {
                         id: session.user.id,
                         email: session.user.email,
-                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur'
-                    })
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
+                        isAdmin: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
+                    }
+                    setUser(userData)
+                    await checkMemberStatus(session.user.id)
                 } else {
                     setUser(null)
+                    setMemberStatus('none')
                 }
                 setLoading(false)
             }
         )
 
         return () => subscription.unsubscribe()
-    }, [])
+    }, [checkMemberStatus])
 
-    // Send magic link to email
     const sendMagicLink = async (email, name) => {
         setAuthError(null)
         try {
@@ -69,7 +84,13 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    // Update user name
+    const requestAccess = async () => {
+        if (!user) return { success: false }
+        const result = await storageService.requestAccess(user.id, user.email, user.name)
+        setMemberStatus(result.status)
+        return { success: true, status: result.status }
+    }
+
     const updateName = async (name) => {
         try {
             const { error } = await supabase.auth.updateUser({
@@ -86,6 +107,14 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         await supabase.auth.signOut()
         setUser(null)
+        setMemberStatus('none')
+    }
+
+    // Refresh member status (useful after admin approval)
+    const refreshMemberStatus = async () => {
+        if (user) {
+            await checkMemberStatus(user.id)
+        }
     }
 
     return (
@@ -93,9 +122,12 @@ export const AuthProvider = ({ children }) => {
             user,
             loading,
             authError,
+            memberStatus,
             sendMagicLink,
+            requestAccess,
             updateName,
-            logout
+            logout,
+            refreshMemberStatus
         }}>
             {children}
         </AuthContext.Provider>

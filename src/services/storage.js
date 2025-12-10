@@ -1,11 +1,13 @@
 /**
  * Storage Service
- * Handles data persistence using window.storage (if available - Claude context) 
- * or falls back to localStorage.
+ * Handles data persistence using localStorage.
  */
 
 const STORAGE_KEY_USERS = 'pingpong_users'
 const STORAGE_KEY_EVENTS = 'pingpong_events'
+const STORAGE_KEY_MEMBERS = 'pingpong_members' // { pending: [], approved: [] }
+
+export const GROUP_NAME = 'Ping-Pong Ramonville'
 
 // Helper to simulate async behavior (since window.storage might be async in reality, or for future backend)
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -58,7 +60,7 @@ class StorageService {
         return []
     }
 
-    async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1) {
+    async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1, guests = []) {
         await delay(100)
         let events = await this.getEvents()
 
@@ -72,8 +74,8 @@ class StorageService {
             return events
         }
 
-        // Add new registration with userName included
-        events.push({ slotId, date, userId, userName, tableNumber, duration })
+        // Add new registration with guests included
+        events.push({ slotId, date, userId, userName, tableNumber, duration, guests })
 
         if (this.useLocalStorage) {
             localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
@@ -133,6 +135,90 @@ class StorageService {
         }
         return { deleted: beforeCount - events.length, events }
     }
+
+    // === MEMBERSHIP MANAGEMENT ===
+
+    async getMembers() {
+        await delay(100)
+        if (this.useLocalStorage) {
+            const data = localStorage.getItem(STORAGE_KEY_MEMBERS)
+            return data ? JSON.parse(data) : { pending: [], approved: [] }
+        }
+        return { pending: [], approved: [] }
+    }
+
+    async saveMembers(members) {
+        await delay(100)
+        if (this.useLocalStorage) {
+            localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(members))
+        }
+        return members
+    }
+
+    async requestAccess(userId, email, name) {
+        const members = await this.getMembers()
+
+        // Check if already a member
+        if (members.approved.some(m => m.userId === userId)) {
+            return { status: 'approved' }
+        }
+        if (members.pending.some(m => m.userId === userId)) {
+            return { status: 'pending' }
+        }
+
+        // Add to pending
+        members.pending.push({
+            userId,
+            email,
+            name,
+            requestedAt: new Date().toISOString()
+        })
+        await this.saveMembers(members)
+        return { status: 'pending' }
+    }
+
+    async getMemberStatus(userId) {
+        const members = await this.getMembers()
+        if (members.approved.some(m => m.userId === userId)) {
+            return 'approved'
+        }
+        if (members.pending.some(m => m.userId === userId)) {
+            return 'pending'
+        }
+        return 'none'
+    }
+
+    async approveMember(userId) {
+        const members = await this.getMembers()
+        const pendingIndex = members.pending.findIndex(m => m.userId === userId)
+
+        if (pendingIndex >= 0) {
+            const member = members.pending[pendingIndex]
+            members.pending.splice(pendingIndex, 1)
+            members.approved.push({
+                ...member,
+                approvedAt: new Date().toISOString()
+            })
+            await this.saveMembers(members)
+            return { success: true }
+        }
+        return { success: false }
+    }
+
+    async rejectMember(userId) {
+        const members = await this.getMembers()
+        members.pending = members.pending.filter(m => m.userId !== userId)
+        await this.saveMembers(members)
+        return { success: true }
+    }
+
+    async removeMember(userId) {
+        const members = await this.getMembers()
+        members.approved = members.approved.filter(m => m.userId !== userId)
+        await this.saveMembers(members)
+        return { success: true }
+    }
 }
 
 export const storageService = new StorageService()
+

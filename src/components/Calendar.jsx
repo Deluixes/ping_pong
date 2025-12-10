@@ -3,7 +3,7 @@ import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, Shield } from 'lucide-react'
+import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus } from 'lucide-react'
 
 // Admin emails (configurable via env var or hardcoded)
 const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
@@ -25,7 +25,11 @@ const DURATION_OPTIONS = [
     { slots: 1, label: '30 min', value: 1 },
     { slots: 2, label: '1 h', value: 2 },
     { slots: 3, label: '1 h 30', value: 3 },
-    { slots: 4, label: '2 h', value: 4 }
+    { slots: 4, label: '2 h', value: 4 },
+    { slots: 5, label: '2 h 30', value: 5 },
+    { slots: 6, label: '3 h', value: 6 },
+    { slots: 7, label: '3 h 30', value: 7 },
+    { slots: 8, label: '4 h', value: 8 }
 ]
 
 export default function Calendar() {
@@ -37,10 +41,12 @@ export default function Calendar() {
     const [loading, setLoading] = useState(true)
     const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
 
-    // Modal state - 2 steps
-    const [modalStep, setModalStep] = useState(null) // 'duration' | 'table' | null
+    // Modal state - 3 steps
+    const [modalStep, setModalStep] = useState(null) // 'duration' | 'table' | 'guests' | null
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
+    const [selectedTable, setSelectedTable] = useState(null)
+    const [guests, setGuests] = useState([''])
 
     // Admin check
     const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
@@ -88,7 +94,8 @@ export default function Calendar() {
                 id: e.userId,
                 name: e.userName || 'Inconnu',
                 tableNumber: e.tableNumber,
-                duration: e.duration
+                duration: e.duration,
+                guests: e.guests || []
             }))
     }
 
@@ -190,16 +197,40 @@ export default function Calendar() {
         setModalStep('table')
     }
 
-    const handleRegister = async (tableNumber) => {
+    const handleTableSelect = (tableNumber) => {
+        setSelectedTable(tableNumber)
+        setGuests([''])
+        setModalStep('guests')
+    }
+
+    const addGuestField = () => {
+        if (guests.length < 3) {
+            setGuests([...guests, ''])
+        }
+    }
+
+    const updateGuest = (index, value) => {
+        const newGuests = [...guests]
+        newGuests[index] = value
+        setGuests(newGuests)
+    }
+
+    const removeGuest = (index) => {
+        const newGuests = guests.filter((_, i) => i !== index)
+        setGuests(newGuests.length > 0 ? newGuests : [''])
+    }
+
+    const handleRegister = async () => {
         if (!selectedSlotId || !selectedDuration) return
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
+        const guestNames = guests.filter(g => g.trim()).map(g => g.trim())
 
         // Register for all slots in the duration
         for (let i = 0; i < selectedDuration.slots; i++) {
             const slot = TIME_SLOTS[startIndex + i]
-            await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, tableNumber, selectedDuration.slots)
+            await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedTable, selectedDuration.slots, guestNames)
         }
 
         closeModal()
@@ -240,6 +271,8 @@ export default function Calendar() {
         setModalStep(null)
         setSelectedSlotId(null)
         setSelectedDuration(null)
+        setSelectedTable(null)
+        setGuests([''])
     }
 
     if (loading) return <div className="text-center mt-4">Chargement du planning...</div>
@@ -388,7 +421,7 @@ export default function Calendar() {
                                                 return (
                                                     <button
                                                         key={tableNum}
-                                                        onClick={() => isAvailable && handleRegister(tableNum)}
+                                                        onClick={() => isAvailable && handleTableSelect(tableNum)}
                                                         disabled={!isAvailable}
                                                         style={{
                                                             padding: '1rem',
@@ -420,14 +453,11 @@ export default function Calendar() {
                                         <p style={{ margin: 0, color: '#92400E', fontWeight: '500' }}>
                                             ⚠️ Aucune table disponible pour cette durée
                                         </p>
-                                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#92400E' }}>
-                                            Vous pouvez quand même vous inscrire en liste d'attente.
-                                        </p>
                                     </div>
                                 )}
 
                                 <button
-                                    onClick={() => handleRegister(null)}
+                                    onClick={() => handleTableSelect(null)}
                                     className="btn"
                                     style={{
                                         width: '100%',
@@ -435,7 +465,108 @@ export default function Calendar() {
                                         color: availableTables.length > 0 ? 'var(--color-text)' : 'white'
                                     }}
                                 >
-                                    {availableTables.length > 0 ? "S'inscrire sans table" : "S'inscrire (liste d'attente)"}
+                                    {availableTables.length > 0 ? "Continuer sans table" : "Continuer (liste d'attente)"}
+                                </button>
+                            </>
+                        )}
+
+                        {/* Step 3: Invite Guests */}
+                        {modalStep === 'guests' && (
+                            <>
+                                <button
+                                    onClick={() => setModalStep('table')}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--color-primary)',
+                                        cursor: 'pointer',
+                                        marginBottom: '1rem',
+                                        fontSize: '0.9rem',
+                                        padding: 0
+                                    }}
+                                >
+                                    ← Changer la table
+                                </button>
+
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    marginBottom: '1rem',
+                                    padding: '0.75rem',
+                                    background: 'var(--color-bg)',
+                                    borderRadius: 'var(--radius-md)'
+                                }}>
+                                    <UserPlus size={18} />
+                                    <span style={{ fontWeight: '500' }}>Inviter des joueurs (optionnel)</span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    {guests.map((guest, idx) => (
+                                        <div key={idx} style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <input
+                                                type="text"
+                                                value={guest}
+                                                onChange={(e) => updateGuest(idx, e.target.value)}
+                                                placeholder={`Nom du joueur ${idx + 1}`}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.75rem',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: '1px solid #DDD',
+                                                    fontSize: '0.95rem'
+                                                }}
+                                            />
+                                            {guests.length > 1 && (
+                                                <button
+                                                    onClick={() => removeGuest(idx)}
+                                                    style={{
+                                                        background: '#FEE2E2',
+                                                        border: 'none',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        padding: '0 0.75rem',
+                                                        color: '#991B1B',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {guests.length < 3 && (
+                                    <button
+                                        onClick={addGuestField}
+                                        className="btn"
+                                        style={{
+                                            width: '100%',
+                                            background: 'var(--color-bg)',
+                                            marginBottom: '1rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.5rem'
+                                        }}
+                                    >
+                                        <UserPlus size={16} />
+                                        Ajouter un joueur
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={handleRegister}
+                                    className="btn btn-primary"
+                                    style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    ✓ Confirmer la réservation
                                 </button>
                             </>
                         )}
@@ -642,6 +773,11 @@ export default function Calendar() {
                                                 {participants.map((p, idx) => (
                                                     <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}>
                                                         {p.tableNumber ? `${p.name} (T${p.tableNumber})` : p.name}
+                                                        {p.guests && p.guests.length > 0 && (
+                                                            <span style={{ color: 'var(--color-secondary)' }}>
+                                                                +{p.guests.join(', ')}
+                                                            </span>
+                                                        )}
                                                         {isAdmin && p.id !== user.id && (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleAdminDelete(slot.id, p.id, p.name) }}
