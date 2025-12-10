@@ -14,6 +14,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Session ready promise - resolves when auth is initialized
+let sessionReadyResolve
+export const sessionReadyPromise = new Promise(resolve => {
+    sessionReadyResolve = resolve
+})
+
+// Listen for auth state changes and resolve when ready
+supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        sessionReadyResolve(session)
+    }
+})
+
 // Expose for debugging
 if (typeof window !== 'undefined') {
     window.supabase = supabase
