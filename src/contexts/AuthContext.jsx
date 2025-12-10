@@ -170,12 +170,10 @@ export const AuthProvider = ({ children }) => {
     }
 
     const logout = async () => {
-        // Clear cache first for instant feedback
+        // Clear user cache but keep memberStatus (user stays member even logged out)
         localStorage.removeItem('pingpong_user')
-        localStorage.removeItem('pingpong_member_status')
         localStorage.removeItem('pingpong_is_admin')
         setUser(null)
-        setMemberStatus('none')
         await supabase.auth.signOut()
     }
 
