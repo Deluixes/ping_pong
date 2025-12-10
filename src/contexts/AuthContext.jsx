@@ -13,8 +13,16 @@ export const AuthProvider = ({ children }) => {
     const [authError, setAuthError] = useState(null)
     const [memberStatus, setMemberStatus] = useState('none') // 'none' | 'pending' | 'approved'
 
-    const checkMemberStatus = useCallback(async (userId) => {
-        const status = await storageService.getMemberStatus(userId)
+    const checkMemberStatus = useCallback(async (userId, isAdmin, email, name) => {
+        let status = await storageService.getMemberStatus(userId)
+
+        // Auto-approve admins
+        if (isAdmin && status !== 'approved') {
+            await storageService.requestAccess(userId, email, name)
+            await storageService.approveMember(userId)
+            status = 'approved'
+        }
+
         setMemberStatus(status)
         return status
     }, [])
@@ -31,7 +39,7 @@ export const AuthProvider = ({ children }) => {
                         isAdmin: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
                     }
                     setUser(userData)
-                    await checkMemberStatus(session.user.id)
+                    await checkMemberStatus(userData.id, userData.isAdmin, userData.email, userData.name)
                 }
             } catch (error) {
                 console.error('Session check error:', error)
@@ -52,7 +60,7 @@ export const AuthProvider = ({ children }) => {
                         isAdmin: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
                     }
                     setUser(userData)
-                    await checkMemberStatus(session.user.id)
+                    await checkMemberStatus(userData.id, userData.isAdmin, userData.email, userData.name)
                 } else {
                     setUser(null)
                     setMemberStatus('none')

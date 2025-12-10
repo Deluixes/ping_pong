@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
@@ -6,7 +6,9 @@ import Calendar from './components/Calendar'
 import Settings from './components/Settings'
 import PendingApproval from './components/PendingApproval'
 import AdminPanel from './components/AdminPanel'
+import SlideMenu from './components/SlideMenu'
 import { GROUP_NAME } from './services/storage'
+import { Menu } from 'lucide-react'
 
 function PrivateRoute({ children, requireApproval = true }) {
     const { user, loading, memberStatus } = useAuth()
@@ -14,7 +16,7 @@ function PrivateRoute({ children, requireApproval = true }) {
     if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
     if (!user) return <Navigate to="/login" />
 
-    // If approval is required and user is not approved (and not admin)
+    // Admins bypass approval requirement
     if (requireApproval && memberStatus !== 'approved' && !user.isAdmin) {
         return <PendingApproval />
     }
@@ -34,63 +36,48 @@ function AdminRoute({ children }) {
 
 function AppContent() {
     const { user, memberStatus } = useAuth()
+    const [menuOpen, setMenuOpen] = useState(false)
     const showMainUI = user && (memberStatus === 'approved' || user?.isAdmin)
 
     return (
         <div className="app-container">
             {showMainUI && (
-                <header style={{
-                    background: 'var(--color-primary)',
-                    color: 'white',
-                    padding: '1rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    boxShadow: 'var(--shadow-md)'
-                }}>
-                    <Link to="/" style={{ textDecoration: 'none', color: 'white' }}>
-                        <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>🏓 {GROUP_NAME}</h2>
-                    </Link>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {user?.isAdmin && (
-                            <Link
-                                to="/admin"
+                <>
+                    <SlideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+
+                    <header style={{
+                        background: 'var(--color-primary)',
+                        color: 'white',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        boxShadow: 'var(--shadow-md)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setMenuOpen(true)}
                                 style={{
                                     background: 'rgba(255,255,255,0.2)',
-                                    color: 'white',
-                                    padding: '0.5rem 0.75rem',
+                                    border: 'none',
                                     borderRadius: 'var(--radius-md)',
-                                    textDecoration: 'none',
-                                    fontSize: '0.8rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem'
+                                    padding: '0.5rem',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex'
                                 }}
                             >
-                                👑 Admin
+                                <Menu size={22} />
+                            </button>
+                            <Link to="/" style={{ textDecoration: 'none', color: 'white' }}>
+                                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>
+                                    🏓 {GROUP_NAME}
+                                </h2>
                             </Link>
-                        )}
-                        <span style={{ fontSize: '0.85rem' }}>{user?.name}</span>
-                        <Link
-                            to="/settings"
-                            style={{
-                                background: 'rgba(255,255,255,0.2)',
-                                color: 'white',
-                                padding: '0.5rem',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                            title="Paramètres"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                        </Link>
-                    </div>
-                </header>
+                        </div>
+                        <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>{user?.name}</span>
+                    </header>
+                </>
             )}
 
             <main className="container" style={{ flex: 1 }}>
