@@ -74,57 +74,15 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const cachedUser = getCachedUser()
-        console.log('[Auth] Starting validation, cachedUser:', !!cachedUser)
+        console.log('[Auth] Starting, cachedUser:', !!cachedUser)
 
-        // Always validate session in background, but don't block UI if we have cache
-        const validateSession = async () => {
-            try {
-                console.log('[Auth] Calling getSession...')
-                const { data: { session } } = await supabase.auth.getSession()
-                console.log('[Auth] getSession result:', !!session?.user)
-
-                if (session?.user) {
-                    // Session is valid - update user data (might have changed)
-                    const userData = {
-                        id: session.user.id,
-                        email: session.user.email,
-                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
-                        isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
-                    }
-                    setUser(userData)
-                    setSessionReady(true)
-                    setLoading(false)
-                } else if (cachedUser) {
-                    // Had cache but session expired - clear everything
-                    localStorage.removeItem('pingpong_user')
-                    localStorage.removeItem('pingpong_member_status')
-                    localStorage.removeItem('pingpong_is_admin')
-                    setUser(null)
-                    setMemberStatus('none')
-                    setSessionReady(false)
-                    setLoading(false)
-                } else {
-                    // No cache, no session
-                    setSessionReady(false)
-                    setLoading(false)
-                }
-            } catch (error) {
-                console.error('Session check error:', error)
-                // On error, trust the cache if we have it
-                setSessionReady(!!cachedUser)
-                setLoading(false)
-            }
-        }
-
-        validateSession()
-
-        // Listen for auth changes (login/logout/initial)
+        // Use onAuthStateChange as the single source of truth
+        // It fires immediately with current session state
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                console.log('[Auth] onAuthStateChange event:', event, 'hasSession:', !!session?.user)
-                // Handle session restoration on page load and new sign-ins
-                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
+                console.log('[Auth] onAuthStateChange:', event, 'hasSession:', !!session?.user)
+
+                if (session?.user) {
                     const userData = {
                         id: session.user.id,
                         email: session.user.email,
@@ -135,8 +93,9 @@ export const AuthProvider = ({ children }) => {
                     setUser(userData)
                     setSessionReady(true)
                     setLoading(false)
+                    console.log('[Auth] Session ready, user set')
 
-                    // Only check member status on actual sign-in, not every refresh
+                    // Only check member status on actual sign-in (not page reload)
                     if (event === 'SIGNED_IN') {
                         const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
                         setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
@@ -147,6 +106,18 @@ export const AuthProvider = ({ children }) => {
                     localStorage.removeItem('pingpong_is_admin')
                     setUser(null)
                     setMemberStatus('none')
+                    setSessionReady(false)
+                    setLoading(false)
+                } else if (event === 'INITIAL_SESSION' && !session) {
+                    // No session on initial load
+                    if (cachedUser) {
+                        // Cache exists but no session - clear cache
+                        localStorage.removeItem('pingpong_user')
+                        localStorage.removeItem('pingpong_member_status')
+                        localStorage.removeItem('pingpong_is_admin')
+                        setUser(null)
+                        setMemberStatus('none')
+                    }
                     setSessionReady(false)
                     setLoading(false)
                 }
