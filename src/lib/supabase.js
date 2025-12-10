@@ -14,15 +14,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Session ready promise - resolves when auth is initialized
+// Store current session globally (updated by onAuthStateChange)
+let currentSession = null
 let sessionReadyResolve
 export const sessionReadyPromise = new Promise(resolve => {
     sessionReadyResolve = resolve
 })
 
-// Listen for auth state changes and resolve when ready
+// Get current session without calling getSession() which can block
+export const getCurrentSession = () => currentSession
+
+// Listen for auth state changes
 supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+    console.log('[Supabase] onAuthStateChange:', event, 'session:', !!session)
+    currentSession = session
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         sessionReadyResolve(session)
     }
 })

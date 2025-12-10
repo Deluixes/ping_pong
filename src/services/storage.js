@@ -3,20 +3,16 @@
  * Centralized data storage with real-time sync
  */
 
-import { supabase, sessionReadyPromise } from '../lib/supabase'
+import { supabase, sessionReadyPromise, getCurrentSession } from '../lib/supabase'
 
 export const GROUP_NAME = 'Ping-Pong Ramonville'
 
-// Wait for session to be ready
+// Wait for session to be ready (never calls getSession which can block)
 const ensureSession = async () => {
     console.log('[Storage] ensureSession: waiting for auth...')
     await sessionReadyPromise
-    console.log('[Storage] ensureSession: promise resolved, checking session...')
-
-    // Now get the actual current session from the client
-    const { data: { session } } = await supabase.auth.getSession()
-    console.log('[Storage] ensureSession:', session ? 'OK' : 'NO SESSION', 'token:', session?.access_token?.substring(0, 20) + '...')
-
+    const session = getCurrentSession()
+    console.log('[Storage] ensureSession:', session ? 'OK' : 'NO SESSION')
     return session
 }
 
