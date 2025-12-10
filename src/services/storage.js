@@ -1,250 +1,267 @@
 /**
- * Storage Service
- * Handles data persistence using localStorage.
+ * Storage Service - Supabase Database
+ * Centralized data storage with real-time sync
  */
 
-const STORAGE_KEY_USERS = 'pingpong_users'
-const STORAGE_KEY_EVENTS = 'pingpong_events'
-const STORAGE_KEY_MEMBERS = 'pingpong_members' // { pending: [], approved: [] }
+import { supabase } from '../lib/supabase'
 
 export const GROUP_NAME = 'Ping-Pong Ramonville'
 
-// Helper to simulate async behavior (since window.storage might be async in reality, or for future backend)
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
-
 class StorageService {
-    constructor() {
-        this.useLocalStorage = true
+    // ==================== RESERVATIONS ====================
 
-        // Check if Claude's window.storage exists (Hypothetical API for this task)
-        if (typeof window !== 'undefined' && window.storage) {
-            this.useLocalStorage = false
-            console.log('Using window.storage for persistence')
-        }
-    }
-
-    async getUsers() {
-        await delay(100)
-        if (this.useLocalStorage) {
-            const data = localStorage.getItem(STORAGE_KEY_USERS)
-            return data ? JSON.parse(data) : []
-        }
-        // Implement window.storage logic here if mapped
-        return []
-    }
-
-    async saveUser(user) {
-        await delay(100)
-        const users = await this.getUsers()
-        // Check if user exists
-        const existingIndex = users.findIndex(u => u.id === user.id)
-        if (existingIndex >= 0) {
-            users[existingIndex] = user
-        } else {
-            users.push(user)
-        }
-
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users))
-        }
-        return user
-    }
-
-    // Events = { date, slotId, userId, tableNumber? }
     async getEvents() {
-        await delay(100)
-        if (this.useLocalStorage) {
-            const data = localStorage.getItem(STORAGE_KEY_EVENTS)
-            return data ? JSON.parse(data) : []
+        const { data, error } = await supabase
+            .from('reservations')
+            .select('*')
+            .order('date', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching reservations:', error)
+            return []
         }
-        return []
+
+        // Map to legacy format for compatibility
+        return data.map(r => ({
+            slotId: r.slot_id,
+            date: r.date,
+            userId: r.user_id,
+            userName: r.user_name,
+            tableNumber: r.table_number,
+            duration: r.duration,
+            guests: r.guests || []
+        }))
     }
 
     async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1, guests = []) {
-        await delay(100)
-        let events = await this.getEvents()
+        const { error } = await supabase
+            .from('reservations')
+            .insert({
+                slot_id: slotId,
+                date: date,
+                user_id: userId,
+                user_name: userName,
+                table_number: tableNumber,
+                duration: duration,
+                guests: guests
+            })
 
-        // Check if user already registered for this slot
-        const existingIndex = events.findIndex(
-            e => e.slotId === slotId && e.date === date && e.userId === userId
-        )
-
-        if (existingIndex >= 0) {
-            // Already registered, do nothing (or could update table)
-            return events
+        if (error) {
+            // Ignore duplicate key errors (user already registered)
+            if (error.code !== '23505') {
+                console.error('Error registering for slot:', error)
+            }
         }
 
-        // Add new registration with guests included
-        events.push({ slotId, date, userId, userName, tableNumber, duration, guests })
-
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
-        }
-        return events
+        return this.getEvents()
     }
 
     async unregisterFromSlot(slotId, date, userId) {
-        await delay(100)
-        let events = await this.getEvents()
+        const { error } = await supabase
+            .from('reservations')
+            .delete()
+            .eq('slot_id', slotId)
+            .eq('date', date)
+            .eq('user_id', userId)
 
-        const existingIndex = events.findIndex(
-            e => e.slotId === slotId && e.date === date && e.userId === userId
-        )
-
-        if (existingIndex >= 0) {
-            events.splice(existingIndex, 1)
+        if (error) {
+            console.error('Error unregistering from slot:', error)
         }
 
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
-        }
-        return events
+        return this.getEvents()
     }
 
-    // Legacy toggle (kept for compatibility but prefer register/unregister)
-    async toggleEventAttendance(slotId, date, userId) {
-        await delay(100)
-        let events = await this.getEvents()
-
-        const existingIndex = events.findIndex(
-            e => e.slotId === slotId && e.date === date && e.userId === userId
-        )
-
-        if (existingIndex >= 0) {
-            events.splice(existingIndex, 1)
-        } else {
-            events.push({ slotId, date, userId, tableNumber: null })
-        }
-
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
-        }
-        return events
-    }
-
-    // Admin: Delete any event by ID or criteria
     async adminDeleteEvent(slotId, date, userId) {
-        await delay(100)
-        let events = await this.getEvents()
+        const { error } = await supabase
+            .from('reservations')
+            .delete()
+            .eq('slot_id', slotId)
+            .eq('date', date)
+            .eq('user_id', userId)
 
-        const beforeCount = events.length
-        events = events.filter(e => !(e.slotId === slotId && e.date === date && e.userId === userId))
-
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+        if (error) {
+            console.error('Error deleting event:', error)
+            return { deleted: 0, events: await this.getEvents() }
         }
-        return { deleted: beforeCount - events.length, events }
+
+        return { deleted: 1, events: await this.getEvents() }
     }
 
-    // Update user name in all their existing reservations
     async updateUserNameInEvents(userId, newName) {
-        await delay(100)
-        let events = await this.getEvents()
-        let updated = 0
+        const { data, error } = await supabase
+            .from('reservations')
+            .update({ user_name: newName })
+            .eq('user_id', userId)
+            .select()
 
-        events = events.map(e => {
-            if (e.userId === userId) {
-                updated++
-                return { ...e, userName: newName }
-            }
-            return e
-        })
-
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+        if (error) {
+            console.error('Error updating user name:', error)
+            return { updated: 0, events: await this.getEvents() }
         }
-        return { updated, events }
+
+        return { updated: data?.length || 0, events: await this.getEvents() }
     }
 
-    // Get pending count for badge
-    async getPendingCount() {
-        const members = await this.getMembers()
-        return members.pending.length
-    }
-
-    // === MEMBERSHIP MANAGEMENT ===
+    // ==================== MEMBERS ====================
 
     async getMembers() {
-        await delay(100)
-        if (this.useLocalStorage) {
-            const data = localStorage.getItem(STORAGE_KEY_MEMBERS)
-            return data ? JSON.parse(data) : { pending: [], approved: [] }
+        const { data, error } = await supabase
+            .from('members')
+            .select('*')
+            .order('requested_at', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching members:', error)
+            return { pending: [], approved: [] }
         }
-        return { pending: [], approved: [] }
+
+        const pending = data
+            .filter(m => m.status === 'pending')
+            .map(m => ({
+                userId: m.user_id,
+                email: m.email,
+                name: m.name,
+                requestedAt: m.requested_at
+            }))
+
+        const approved = data
+            .filter(m => m.status === 'approved')
+            .map(m => ({
+                userId: m.user_id,
+                email: m.email,
+                name: m.name,
+                requestedAt: m.requested_at,
+                approvedAt: m.approved_at
+            }))
+
+        return { pending, approved }
     }
 
-    async saveMembers(members) {
-        await delay(100)
-        if (this.useLocalStorage) {
-            localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(members))
-        }
-        return members
-    }
+    async getPendingCount() {
+        const { count, error } = await supabase
+            .from('members')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending')
 
-    async requestAccess(userId, email, name) {
-        const members = await this.getMembers()
-
-        // Check if already a member
-        if (members.approved.some(m => m.userId === userId)) {
-            return { status: 'approved' }
-        }
-        if (members.pending.some(m => m.userId === userId)) {
-            return { status: 'pending' }
+        if (error) {
+            console.error('Error counting pending:', error)
+            return 0
         }
 
-        // Add to pending
-        members.pending.push({
-            userId,
-            email,
-            name,
-            requestedAt: new Date().toISOString()
-        })
-        await this.saveMembers(members)
-        return { status: 'pending' }
+        return count || 0
     }
 
     async getMemberStatus(userId) {
-        const members = await this.getMembers()
-        if (members.approved.some(m => m.userId === userId)) {
-            return 'approved'
+        const { data, error } = await supabase
+            .from('members')
+            .select('status')
+            .eq('user_id', userId)
+            .single()
+
+        if (error || !data) {
+            return 'none'
         }
-        if (members.pending.some(m => m.userId === userId)) {
-            return 'pending'
+
+        return data.status
+    }
+
+    async requestAccess(userId, email, name) {
+        // Check if already exists
+        const status = await this.getMemberStatus(userId)
+        if (status !== 'none') {
+            return { status }
         }
-        return 'none'
+
+        const { error } = await supabase
+            .from('members')
+            .insert({
+                user_id: userId,
+                email: email,
+                name: name,
+                status: 'pending'
+            })
+
+        if (error) {
+            console.error('Error requesting access:', error)
+            // May already exist
+            return { status: await this.getMemberStatus(userId) }
+        }
+
+        return { status: 'pending' }
     }
 
     async approveMember(userId) {
-        const members = await this.getMembers()
-        const pendingIndex = members.pending.findIndex(m => m.userId === userId)
-
-        if (pendingIndex >= 0) {
-            const member = members.pending[pendingIndex]
-            members.pending.splice(pendingIndex, 1)
-            members.approved.push({
-                ...member,
-                approvedAt: new Date().toISOString()
+        const { error } = await supabase
+            .from('members')
+            .update({
+                status: 'approved',
+                approved_at: new Date().toISOString()
             })
-            await this.saveMembers(members)
-            return { success: true }
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error approving member:', error)
+            return { success: false }
         }
-        return { success: false }
+
+        return { success: true }
     }
 
     async rejectMember(userId) {
-        const members = await this.getMembers()
-        members.pending = members.pending.filter(m => m.userId !== userId)
-        await this.saveMembers(members)
+        const { error } = await supabase
+            .from('members')
+            .delete()
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error rejecting member:', error)
+            return { success: false }
+        }
+
         return { success: true }
     }
 
     async removeMember(userId) {
-        const members = await this.getMembers()
-        members.approved = members.approved.filter(m => m.userId !== userId)
-        await this.saveMembers(members)
-        return { success: true }
+        return this.rejectMember(userId)
+    }
+
+    // ==================== LEGACY (unused but kept for compatibility) ====================
+
+    async getUsers() {
+        return []
+    }
+
+    async saveUser(user) {
+        return user
+    }
+
+    // ==================== REAL-TIME SUBSCRIPTIONS ====================
+
+    subscribeToReservations(callback) {
+        return supabase
+            .channel('reservations-changes')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'reservations' },
+                () => callback()
+            )
+            .subscribe()
+    }
+
+    subscribeToMembers(callback) {
+        return supabase
+            .channel('members-changes')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'members' },
+                () => callback()
+            )
+            .subscribe()
+    }
+
+    unsubscribe(subscription) {
+        if (subscription) {
+            supabase.removeChannel(subscription)
+        }
     }
 }
 
 export const storageService = new StorageService()
-

@@ -74,6 +74,15 @@ export default function Calendar() {
 
     useEffect(() => {
         loadData()
+
+        // Subscribe to real-time changes
+        const subscription = storageService.subscribeToReservations(() => {
+            loadData()
+        })
+
+        return () => {
+            storageService.unsubscribe(subscription)
+        }
     }, [loadData])
 
     // Navigation
