@@ -115,10 +115,11 @@ export const AuthProvider = ({ children }) => {
 
         validateSession()
 
-        // Listen for auth changes (login/logout)
+        // Listen for auth changes (login/logout/initial)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (event === 'SIGNED_IN' && session?.user) {
+                // Handle session restoration on page load and new sign-ins
+                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
                     const userData = {
                         id: session.user.id,
                         email: session.user.email,
@@ -130,8 +131,11 @@ export const AuthProvider = ({ children }) => {
                     setSessionReady(true)
                     setLoading(false)
 
-                    const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
-                    setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
+                    // Only check member status on actual sign-in, not every refresh
+                    if (event === 'SIGNED_IN') {
+                        const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+                        setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
+                    }
                 } else if (event === 'SIGNED_OUT') {
                     localStorage.removeItem('pingpong_user')
                     localStorage.removeItem('pingpong_member_status')
@@ -196,10 +200,14 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.signOut()
     }
 
-    // Safety timeout to prevent infinite loading
+    // Safety timeout to prevent infinite loading/waiting
     useEffect(() => {
         const timer = setTimeout(() => {
             setLoading(false)
+            // If we have a cached user, assume session is ready after timeout
+            if (getCachedUser()) {
+                setSessionReady(true)
+            }
         }, 5000)
         return () => clearTimeout(timer)
     }, [])
