@@ -136,6 +136,32 @@ class StorageService {
         return { deleted: beforeCount - events.length, events }
     }
 
+    // Update user name in all their existing reservations
+    async updateUserNameInEvents(userId, newName) {
+        await delay(100)
+        let events = await this.getEvents()
+        let updated = 0
+
+        events = events.map(e => {
+            if (e.userId === userId) {
+                updated++
+                return { ...e, userName: newName }
+            }
+            return e
+        })
+
+        if (this.useLocalStorage) {
+            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events))
+        }
+        return { updated, events }
+    }
+
+    // Get pending count for badge
+    async getPendingCount() {
+        const members = await this.getMembers()
+        return members.pending.length
+    }
+
     // === MEMBERSHIP MANAGEMENT ===
 
     async getMembers() {

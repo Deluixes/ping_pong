@@ -51,20 +51,26 @@ export default function Calendar() {
     // Admin check
     const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
 
+    // Approved members for guest selection
+    const [approvedMembers, setApprovedMembers] = useState([])
+
     const loadData = useCallback(async () => {
         try {
-            const [loadedEvents, loadedUsers] = await Promise.all([
+            const [loadedEvents, loadedUsers, members] = await Promise.all([
                 storageService.getEvents(),
-                storageService.getUsers()
+                storageService.getUsers(),
+                storageService.getMembers()
             ])
             setEvents(loadedEvents)
             const uMap = {}
             loadedUsers.forEach(u => { uMap[u.id] = u })
             setUsersMap(uMap)
+            // Filter out current user from invite list
+            setApprovedMembers(members.approved.filter(m => m.userId !== user.id))
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [user.id])
 
     useEffect(() => {
         loadData()
@@ -498,61 +504,84 @@ export default function Calendar() {
                                     borderRadius: 'var(--radius-md)'
                                 }}>
                                     <UserPlus size={18} />
-                                    <span style={{ fontWeight: '500' }}>Inviter des joueurs (optionnel)</span>
+                                    <span style={{ fontWeight: '500' }}>Inviter des membres (optionnel)</span>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                                    {guests.map((guest, idx) => (
-                                        <div key={idx} style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <input
-                                                type="text"
-                                                value={guest}
-                                                onChange={(e) => updateGuest(idx, e.target.value)}
-                                                placeholder={`Nom du joueur ${idx + 1}`}
-                                                style={{
-                                                    flex: 1,
-                                                    padding: '0.75rem',
-                                                    borderRadius: 'var(--radius-md)',
-                                                    border: '1px solid #DDD',
-                                                    fontSize: '0.95rem'
-                                                }}
-                                            />
-                                            {guests.length > 1 && (
-                                                <button
-                                                    onClick={() => removeGuest(idx)}
-                                                    style={{
-                                                        background: '#FEE2E2',
-                                                        border: 'none',
-                                                        borderRadius: 'var(--radius-md)',
-                                                        padding: '0 0.75rem',
-                                                        color: '#991B1B',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            )}
+                                {approvedMembers.length > 0 ? (
+                                    <>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                                            {guests.map((guest, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <select
+                                                        value={guest}
+                                                        onChange={(e) => updateGuest(idx, e.target.value)}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.75rem',
+                                                            borderRadius: 'var(--radius-md)',
+                                                            border: '1px solid #DDD',
+                                                            fontSize: '0.95rem',
+                                                            background: 'white'
+                                                        }}
+                                                    >
+                                                        <option value="">-- Choisir un membre --</option>
+                                                        {approvedMembers
+                                                            .filter(m => !guests.includes(m.name) || m.name === guest)
+                                                            .map(m => (
+                                                                <option key={m.userId} value={m.name}>{m.name}</option>
+                                                            ))
+                                                        }
+                                                    </select>
+                                                    {guests.length > 1 && (
+                                                        <button
+                                                            onClick={() => removeGuest(idx)}
+                                                            style={{
+                                                                background: '#FEE2E2',
+                                                                border: 'none',
+                                                                borderRadius: 'var(--radius-md)',
+                                                                padding: '0 0.75rem',
+                                                                color: '#991B1B',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
 
-                                {guests.length < 3 && (
-                                    <button
-                                        onClick={addGuestField}
-                                        className="btn"
-                                        style={{
-                                            width: '100%',
-                                            background: 'var(--color-bg)',
-                                            marginBottom: '1rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.5rem'
-                                        }}
-                                    >
-                                        <UserPlus size={16} />
-                                        Ajouter un joueur
-                                    </button>
+                                        {guests.length < 3 && guests.length < approvedMembers.length && (
+                                            <button
+                                                onClick={addGuestField}
+                                                className="btn"
+                                                style={{
+                                                    width: '100%',
+                                                    background: 'var(--color-bg)',
+                                                    marginBottom: '1rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem'
+                                                }}
+                                            >
+                                                <UserPlus size={16} />
+                                                Ajouter un joueur
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div style={{
+                                        background: 'var(--color-bg)',
+                                        padding: '1rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        marginBottom: '1rem',
+                                        textAlign: 'center',
+                                        color: 'var(--color-text-muted)',
+                                        fontSize: '0.9rem'
+                                    }}>
+                                        Aucun autre membre dans le groupe pour le moment
+                                    </div>
                                 )}
 
                                 <button

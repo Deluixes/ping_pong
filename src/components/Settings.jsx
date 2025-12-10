@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Save, User, Mail, Shield } from 'lucide-react'
+import { storageService } from '../services/storage'
+import { ArrowLeft, Save, User, Mail } from 'lucide-react'
 
 export default function Settings() {
     const { user, updateName, logout } = useAuth()
@@ -16,6 +17,8 @@ export default function Settings() {
 
         setIsSaving(true)
         await updateName(name.trim())
+        // Also update name in existing reservations
+        await storageService.updateUserNameInEvents(user.id, name.trim())
         setIsSaving(false)
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)

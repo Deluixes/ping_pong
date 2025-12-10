@@ -1,12 +1,19 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { X, Calendar, Settings, Users, LogOut, User } from 'lucide-react'
-import { GROUP_NAME } from '../services/storage'
+import { storageService, GROUP_NAME } from '../services/storage'
+import { X, Calendar, Users, LogOut, User } from 'lucide-react'
 
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout } = useAuth()
     const location = useLocation()
+    const [pendingCount, setPendingCount] = useState(0)
+
+    useEffect(() => {
+        if (isOpen && user?.isAdmin) {
+            storageService.getPendingCount().then(setPendingCount)
+        }
+    }, [isOpen, user?.isAdmin])
 
     const handleLogout = async () => {
         await logout()
@@ -179,7 +186,21 @@ export default function SlideMenu({ isOpen, onClose }) {
                             }}
                         >
                             <Users size={20} />
-                            Gestion des membres
+                            <span style={{ flex: 1 }}>Gestion des membres</span>
+                            {pendingCount > 0 && (
+                                <span style={{
+                                    background: '#EF4444',
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '10px',
+                                    minWidth: '20px',
+                                    textAlign: 'center'
+                                }}>
+                                    {pendingCount}
+                                </span>
+                            )}
                         </Link>
                     )}
                 </nav>
