@@ -13,24 +13,31 @@ export const AuthProvider = ({ children }) => {
     const [authError, setAuthError] = useState(null)
     const [memberStatus, setMemberStatus] = useState('none') // 'none' | 'pending' | 'approved'
 
-    const checkMemberStatus = useCallback(async (userId, isAdmin, email, name) => {
+    const checkMemberStatus = useCallback(async (userId, isAdminEmail, email, name) => {
         try {
-            let status = await storageService.getMemberStatus(userId)
+            let { status, role } = await storageService.getMemberStatus(userId)
 
-            // Auto-approve admins
-            if (isAdmin && status !== 'approved') {
-                await storageService.requestAccess(userId, email, name)
-                await storageService.approveMember(userId)
-                status = 'approved'
+            // Auto-approve admins if they are in the ENV list
+            if (isAdminEmail) {
+                if (status !== 'approved') {
+                    // Not a member yet? Create as admin
+                    await storageService.requestAccess(userId, email, name, 'admin')
+                    await storageService.approveMember(userId)
+                    status = 'approved'
+                    role = 'admin'
+                } else if (role !== 'admin') {
+                    // Already member but not admin? Upgrade
+                    await storageService.updateMemberRole(userId, 'admin')
+                    role = 'admin'
+                }
             }
 
             setMemberStatus(status)
-            return status
+            return { status, role }
         } catch (error) {
             console.error('Error checking member status:', error)
-            // Default to 'none' on error so the app doesn't get stuck
             setMemberStatus('none')
-            return 'none'
+            return { status: 'none', role: 'member' }
         }
     }, [])
 
@@ -43,10 +50,11 @@ export const AuthProvider = ({ children }) => {
                         id: session.user.id,
                         email: session.user.email,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                        isAdmin: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
+                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
                     }
-                    setUser(userData)
-                    await checkMemberStatus(userData.id, userData.isAdmin, userData.email, userData.name)
+                    const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+
+                    setUser({ ...userData, isAdmin: role === 'admin' })
                 }
             } catch (error) {
                 console.error('Session check error:', error)
@@ -64,10 +72,11 @@ export const AuthProvider = ({ children }) => {
                         id: session.user.id,
                         email: session.user.email,
                         name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                        isAdmin: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
+                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase())
                     }
-                    setUser(userData)
-                    await checkMemberStatus(userData.id, userData.isAdmin, userData.email, userData.name)
+                    const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+
+                    setUser({ ...userData, isAdmin: role === 'admin' })
                 } else {
                     setUser(null)
                     setMemberStatus('none')
@@ -101,6 +110,7 @@ export const AuthProvider = ({ children }) => {
 
     const requestAccess = async () => {
         if (!user) return { success: false }
+        // Default role is member unless updated later
         const result = await storageService.requestAccess(user.id, user.email, user.name)
         setMemberStatus(result.status)
         return { success: true, status: result.status }
@@ -136,7 +146,11 @@ export const AuthProvider = ({ children }) => {
     // Refresh member status (useful after admin approval)
     const refreshMemberStatus = async () => {
         if (user) {
-            await checkMemberStatus(user.id, user.isAdmin, user.email, user.name)
+            const { role } = await checkMemberStatus(user.id, user.isAdminEmail, user.email, user.name)
+            // Update user role in state if changed
+            if ((role === 'admin') !== user.isAdmin) {
+                setUser(prev => ({ ...prev, isAdmin: role === 'admin' }))
+            }
         }
     }
 

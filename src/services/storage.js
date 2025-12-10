@@ -121,7 +121,9 @@ class StorageService {
                 userId: m.user_id,
                 email: m.email,
                 name: m.name,
-                requestedAt: m.requested_at
+                requestedAt: m.requested_at,
+                // Pending members don't really have a role yet, but default is member
+                role: 'member'
             }))
 
         const approved = data
@@ -131,7 +133,8 @@ class StorageService {
                 email: m.email,
                 name: m.name,
                 requestedAt: m.requested_at,
-                approvedAt: m.approved_at
+                approvedAt: m.approved_at,
+                role: m.role || 'member'
             }))
 
         return { pending, approved }
@@ -151,23 +154,51 @@ class StorageService {
         return count || 0
     }
 
-    async getMemberStatus(userId) {
+    async getMemberRole(userId) {
         const { data, error } = await supabase
             .from('members')
-            .select('status')
+            .select('role')
             .eq('user_id', userId)
             .single()
 
         if (error || !data) {
-            return 'none'
+            return 'member' // Default
         }
 
-        return data.status
+        return data.role || 'member'
     }
 
-    async requestAccess(userId, email, name) {
+    async updateMemberRole(userId, role) {
+        const { error } = await supabase
+            .from('members')
+            .update({ role })
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error updating member role:', error)
+            return { success: false }
+        }
+
+        return { success: true }
+    }
+
+    async getMemberStatus(userId) {
+        const { data, error } = await supabase
+            .from('members')
+            .select('status, role')
+            .eq('user_id', userId)
+            .single()
+
+        if (error || !data) {
+            return { status: 'none', role: 'member' }
+        }
+
+        return { status: data.status, role: data.role || 'member' }
+    }
+
+    async requestAccess(userId, email, name, role = 'member') {
         // Check if already exists
-        const status = await this.getMemberStatus(userId)
+        const { status } = await this.getMemberStatus(userId)
         if (status !== 'none') {
             return { status }
         }
@@ -178,19 +209,21 @@ class StorageService {
                 user_id: userId,
                 email: email,
                 name: name,
-                status: 'pending'
+                status: 'pending',
+                role: role
             })
 
         if (error) {
             console.error('Error requesting access:', error)
             // May already exist
-            return { status: await this.getMemberStatus(userId) }
+            return { status: (await this.getMemberStatus(userId)).status }
         }
 
         return { status: 'pending' }
     }
 
     async approveMember(userId) {
+        // ... (rest is same)
         const { error } = await supabase
             .from('members')
             .update({

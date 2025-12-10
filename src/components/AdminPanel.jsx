@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Shield, ShieldOff } from 'lucide-react'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
@@ -40,6 +40,20 @@ export default function AdminPanel() {
     const handleRemove = async (userId, name) => {
         if (window.confirm(`Retirer ${name} du groupe ?`)) {
             await storageService.removeMember(userId)
+            await loadMembers()
+        }
+    }
+
+    const handlePromote = async (userId, name) => {
+        if (window.confirm(`Nommer ${name} administrateur ?`)) {
+            await storageService.updateMemberRole(userId, 'admin')
+            await loadMembers()
+        }
+    }
+
+    const handleDemote = async (userId, name) => {
+        if (window.confirm(`Retirer les droits d'admin à ${name} ?`)) {
+            await storageService.updateMemberRole(userId, 'member')
             await loadMembers()
         }
     }
@@ -193,11 +207,58 @@ export default function AdminPanel() {
                                 }}
                             >
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '500' }}>{member.name}</div>
+                                    <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {member.name}
+                                        {member.role === 'admin' && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                background: '#DBEAFE',
+                                                color: '#1E40AF',
+                                                padding: '2px 6px',
+                                                borderRadius: '999px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                ADMIN
+                                            </span>
+                                        )}
+                                    </div>
                                     <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {member.email}
                                     </div>
                                 </div>
+
+                                {member.role !== 'admin' ? (
+                                    <button
+                                        onClick={() => handlePromote(member.userId, member.name)}
+                                        style={{
+                                            background: '#DBEAFE',
+                                            color: '#1E40AF',
+                                            border: 'none',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '0.5rem',
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Nommer Admin"
+                                    >
+                                        <Shield size={18} />
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => handleDemote(member.userId, member.name)}
+                                        style={{
+                                            background: '#FEF3C7',
+                                            color: '#B45309',
+                                            border: 'none',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '0.5rem',
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Retirer Admin"
+                                    >
+                                        <ShieldOff size={18} />
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={() => handleRemove(member.userId, member.name)}
                                     style={{
