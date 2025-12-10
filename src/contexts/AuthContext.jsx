@@ -1,51 +1,102 @@
 import React, { createContext, useState, useContext, useEffect } from 'react'
-import { storageService } from '../services/storage'
+import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [authError, setAuthError] = useState(null)
 
     useEffect(() => {
-        // Check local session (could be cached in localStorage for "Remember me")
-        const storedUser = localStorage.getItem('current_user')
-        if (storedUser) {
-            setUser(JSON.parse(storedUser))
+        // Check current session
+        const checkSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    setUser({
+                        id: session.user.id,
+                        email: session.user.email,
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur'
+                    })
+                }
+            } catch (error) {
+                console.error('Session check error:', error)
+            } finally {
+                setLoading(false)
+            }
         }
-        setLoading(false)
+
+        checkSession()
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (session?.user) {
+                    setUser({
+                        id: session.user.id,
+                        email: session.user.email,
+                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur'
+                    })
+                } else {
+                    setUser(null)
+                }
+                setLoading(false)
+            }
+        )
+
+        return () => subscription.unsubscribe()
     }, [])
 
-    const login = async (username) => {
-        // Simple login: Just name for now (as per requirements "Authentification simple")
-        // In a real app we would check password hashes.
+    // Send magic link to email
+    const sendMagicLink = async (email, name) => {
+        setAuthError(null)
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    data: { name },
+                    emailRedirectTo: window.location.origin
+                }
+            })
 
-        // Check if user exists in shared storage, or create them
-        const users = await storageService.getUsers()
-        let foundUser = users.find(u => u.name.toLowerCase() === username.toLowerCase())
-
-        if (!foundUser) {
-            // Create new user automatically for this prototype
-            foundUser = {
-                id: crypto.randomUUID(),
-                name: username,
-                createdAt: new Date().toISOString()
-            }
-            await storageService.saveUser(foundUser)
+            if (error) throw error
+            return { success: true }
+        } catch (error) {
+            console.error('Magic link error:', error)
+            setAuthError(error.message)
+            return { success: false, error: error.message }
         }
-
-        setUser(foundUser)
-        localStorage.setItem('current_user', JSON.stringify(foundUser))
-        return foundUser
     }
 
-    const logout = () => {
+    // Update user name
+    const updateName = async (name) => {
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: { name }
+            })
+            if (!error) {
+                setUser(prev => ({ ...prev, name }))
+            }
+        } catch (error) {
+            console.error('Update name error:', error)
+        }
+    }
+
+    const logout = async () => {
+        await supabase.auth.signOut()
         setUser(null)
-        localStorage.removeItem('current_user')
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{
+            user,
+            loading,
+            authError,
+            sendMagicLink,
+            updateName,
+            logout
+        }}>
             {children}
         </AuthContext.Provider>
     )
