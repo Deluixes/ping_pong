@@ -880,7 +880,7 @@ export default function Calendar() {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isOverbooked ? '#EF4444' : 'var(--color-secondary)' }}>
                                                     <Users size={14} />
                                                     <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                                                        {acceptedCount}
+                                                        {acceptedCount}/{maxPersons}
                                                         {count > acceptedCount && (
                                                             <span style={{ color: '#9CA3AF', fontWeight: 'normal' }}> (+{count - acceptedCount})</span>
                                                         )}
