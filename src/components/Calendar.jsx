@@ -17,7 +17,7 @@ const generateTimeSlots = () => {
 }
 
 const TIME_SLOTS = generateTimeSlots()
-const TOTAL_TABLES = 8
+const DEFAULT_TOTAL_TABLES = 8
 
 const DURATION_OPTIONS = [
     { slots: 1, label: '30 min', value: 1 },
@@ -62,12 +62,15 @@ export default function Calendar() {
     const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
     const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
 
-    // Modal state - 3 steps
-    const [modalStep, setModalStep] = useState(null) // 'duration' | 'table' | 'guests' | null
+    // Modal state - 2 steps (duration -> guests)
+    const [modalStep, setModalStep] = useState(null) // 'duration' | 'guests' | null
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
-    const [selectedTable, setSelectedTable] = useState(null)
     const [guests, setGuests] = useState([''])
+
+    // Settings
+    const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
+    const maxPersons = totalTables * 2
 
     // Admin check
     const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
@@ -86,6 +89,10 @@ export default function Calendar() {
             return
         }
         try {
+            // Load settings
+            const tablesSettings = await storageService.getSetting('total_tables')
+            if (tablesSettings) setTotalTables(parseInt(tablesSettings))
+
             // Load events first (most important), members can wait
             const loadedEvents = await storageService.getEvents()
             setEvents(loadedEvents)
@@ -147,10 +154,14 @@ export default function Calendar() {
             .map(e => ({
                 id: e.userId,
                 name: e.userName || 'Inconnu',
-                tableNumber: e.tableNumber,
                 duration: e.duration,
-                guests: e.guests || []
+                guests: e.guests || [],
+                overbooked: e.overbooked || false
             }))
+    }
+
+    const getSlotParticipantCount = (slotId) => {
+        return getSlotEvents(slotId).length
     }
 
     const isUserParticipating = (slotId) => {
@@ -163,17 +174,6 @@ export default function Calendar() {
         return events.find(e => e.date === dateStr && e.slotId === slotId && e.userId === user.id)
     }
 
-    const getOccupiedTables = (slotId) => {
-        return getSlotEvents(slotId)
-            .map(e => e.tableNumber)
-            .filter(t => t !== null)
-    }
-
-    // Check if ALL tables are occupied for a slot
-    const isSlotFullyBooked = (slotId) => {
-        return getOccupiedTables(slotId).length >= TOTAL_TABLES
-    }
-
     // Calculate available durations from a starting slot
     const getAvailableDurations = (startSlotId) => {
         const startIndex = getSlotIndex(startSlotId)
@@ -182,50 +182,15 @@ export default function Calendar() {
         const available = []
 
         for (const duration of DURATION_OPTIONS) {
-            let canBook = true
-
-            // Check if we have enough slots remaining
-            if (startIndex + duration.slots > TIME_SLOTS.length) {
-                canBook = false
-            } else {
-                // Check each consecutive slot for this duration
-                for (let i = 0; i < duration.slots; i++) {
-                    const slotToCheck = TIME_SLOTS[startIndex + i]
-                    // A slot is bookable if it has at least one table free
-                    if (isSlotFullyBooked(slotToCheck.id)) {
-                        canBook = false
-                        break
-                    }
-                }
-            }
-
-            if (canBook) {
+            // Check if we have enough slots remaining in the day
+            if (startIndex + duration.slots <= TIME_SLOTS.length) {
                 available.push(duration)
             } else {
-                // Stop checking longer durations if this one failed
                 break
             }
         }
 
         return available
-    }
-
-    // Get tables available across ALL slots for a duration
-    const getTablesAvailableForDuration = (startSlotId, durationSlots) => {
-        const startIndex = getSlotIndex(startSlotId)
-        if (startIndex === -1) return []
-
-        // Start with all tables
-        let availableTables = new Set(Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1))
-
-        // For each slot in the duration, remove occupied tables
-        for (let i = 0; i < durationSlots; i++) {
-            const slotToCheck = TIME_SLOTS[startIndex + i]
-            const occupied = getOccupiedTables(slotToCheck.id)
-            occupied.forEach(t => availableTables.delete(t))
-        }
-
-        return Array.from(availableTables).sort((a, b) => a - b)
     }
 
     const getDayParticipantCount = (day) => {
@@ -248,11 +213,6 @@ export default function Calendar() {
 
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
-        setModalStep('table')
-    }
-
-    const handleTableSelect = (tableNumber) => {
-        setSelectedTable(tableNumber)
         setGuests([''])
         setModalStep('guests')
     }
@@ -281,11 +241,15 @@ export default function Calendar() {
         const startIndex = getSlotIndex(selectedSlotId)
         const guestNames = guests.filter(g => g.trim()).map(g => g.trim())
 
+        // Check if slot is overbooked
+        const participantCount = getSlotParticipantCount(selectedSlotId)
+        const isOverbooked = participantCount >= maxPersons
+
         try {
             // Register for all slots in the duration
             for (let i = 0; i < selectedDuration.slots; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
-                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedTable, selectedDuration.slots, guestNames)
+                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, guestNames, isOverbooked)
             }
             closeModal()
             await loadData()
@@ -328,7 +292,6 @@ export default function Calendar() {
         setModalStep(null)
         setSelectedSlotId(null)
         setSelectedDuration(null)
-        setSelectedTable(null)
         setGuests([''])
     }
 
@@ -348,9 +311,10 @@ export default function Calendar() {
     }
 
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
-    const availableTables = (selectedSlotId && selectedDuration)
-        ? getTablesAvailableForDuration(selectedSlotId, selectedDuration.slots)
-        : []
+
+    // Calculate if slot is overbooked for warning display
+    const currentSlotParticipants = selectedSlotId ? getSlotParticipantCount(selectedSlotId) : 0
+    const isCurrentSlotOverbooked = currentSlotParticipants >= maxPersons
 
     // Get end time for display
     const getEndTime = (startSlotId, durationSlots) => {
@@ -398,7 +362,7 @@ export default function Calendar() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h3 style={{ margin: 0, color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Clock size={20} />
-                                {modalStep === 'duration' ? 'Durée de réservation' : 'Choisir une table'}
+                                {modalStep === 'duration' ? 'Durée de réservation' : 'Confirmer la réservation'}
                             </h3>
                             <button
                                 onClick={closeModal}
@@ -462,8 +426,8 @@ export default function Calendar() {
                             </>
                         )}
 
-                        {/* Step 2: Table Selection */}
-                        {modalStep === 'table' && (
+                        {/* Step 2: Invite Guests + Confirmation */}
+                        {modalStep === 'guests' && (
                             <>
                                 <button
                                     onClick={() => setModalStep('duration')}
@@ -480,83 +444,20 @@ export default function Calendar() {
                                     ← Changer la durée
                                 </button>
 
-                                {availableTables.length > 0 ? (
-                                    <>
-                                        <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--color-text-muted)' }}>
-                                            Tables disponibles ({availableTables.length}/{TOTAL_TABLES}) :
-                                        </p>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
-                                            {Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1).map(tableNum => {
-                                                const isAvailable = availableTables.includes(tableNum)
-                                                return (
-                                                    <button
-                                                        key={tableNum}
-                                                        onClick={() => isAvailable && handleTableSelect(tableNum)}
-                                                        disabled={!isAvailable}
-                                                        style={{
-                                                            padding: '1rem',
-                                                            borderRadius: 'var(--radius-md)',
-                                                            border: isAvailable ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
-                                                            background: isAvailable ? 'white' : '#F1F5F9',
-                                                            color: isAvailable ? 'var(--color-primary)' : '#94A3B8',
-                                                            fontWeight: 'bold',
-                                                            fontSize: '1.1rem',
-                                                            cursor: isAvailable ? 'pointer' : 'not-allowed',
-                                                            opacity: isAvailable ? 1 : 0.6
-                                                        }}
-                                                    >
-                                                        {tableNum}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </>
-                                ) : (
+                                {/* Warning if overbooked */}
+                                {isCurrentSlotOverbooked && (
                                     <div style={{
                                         background: '#FEF3C7',
                                         border: '1px solid #F59E0B',
                                         borderRadius: 'var(--radius-md)',
                                         padding: '1rem',
-                                        marginBottom: '1rem',
-                                        textAlign: 'center'
+                                        marginBottom: '1rem'
                                     }}>
                                         <p style={{ margin: 0, color: '#92400E', fontWeight: '500' }}>
-                                            ⚠️ Aucune table disponible pour cette durée
+                                            ⚠️ Attention : il n'y a que {totalTables} tables disponibles et {currentSlotParticipants} personnes sont déjà inscrites. Êtes-vous sûr de ce créneau ?
                                         </p>
                                     </div>
                                 )}
-
-                                <button
-                                    onClick={() => handleTableSelect(null)}
-                                    className="btn"
-                                    style={{
-                                        width: '100%',
-                                        background: availableTables.length > 0 ? 'var(--color-bg)' : 'var(--color-primary)',
-                                        color: availableTables.length > 0 ? 'var(--color-text)' : 'white'
-                                    }}
-                                >
-                                    {availableTables.length > 0 ? "Continuer sans table" : "Continuer (liste d'attente)"}
-                                </button>
-                            </>
-                        )}
-
-                        {/* Step 3: Invite Guests */}
-                        {modalStep === 'guests' && (
-                            <>
-                                <button
-                                    onClick={() => setModalStep('table')}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--color-primary)',
-                                        cursor: 'pointer',
-                                        marginBottom: '1rem',
-                                        fontSize: '0.9rem',
-                                        padding: 0
-                                    }}
-                                >
-                                    ← Changer la table
-                                </button>
 
                                 <div style={{
                                     display: 'flex',
@@ -802,10 +703,8 @@ export default function Calendar() {
                     .map(slot => {
                         const participants = getParticipants(slot.id)
                         const isParticipating = isUserParticipating(slot.id)
-                        const userReg = getUserRegistration(slot.id)
                         const count = participants.length
-                        const occupiedTables = getOccupiedTables(slot.id)
-                        const isFullyBooked = isSlotFullyBooked(slot.id)
+                        const isOverbooked = count >= maxPersons
 
                         return (
                             <div
@@ -817,15 +716,14 @@ export default function Calendar() {
                                     borderRadius: 'var(--radius-md)',
                                     overflow: 'hidden',
                                     boxShadow: 'var(--shadow-sm)',
-                                    border: isParticipating ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
-                                    opacity: isFullyBooked && !isParticipating ? 0.6 : 1
+                                    border: isParticipating ? '2px solid var(--color-primary)' : '1px solid #E2E8F0'
                                 }}
                             >
                                 {/* Time Label */}
                                 <div style={{
                                     width: '60px',
                                     padding: '0.75rem 0.5rem',
-                                    background: isParticipating ? 'var(--color-primary)' : isFullyBooked ? '#E2E8F0' : 'var(--color-bg)',
+                                    background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
                                     color: isParticipating ? 'white' : 'var(--color-text)',
                                     fontWeight: 'bold',
                                     fontSize: '0.85rem',
@@ -836,9 +734,6 @@ export default function Calendar() {
                                     gap: '0.25rem'
                                 }}>
                                     <span>{slot.label}</span>
-                                    {isParticipating && userReg?.tableNumber && (
-                                        <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>Table {userReg.tableNumber}</span>
-                                    )}
                                 </div>
 
                                 {/* Participants Info */}
@@ -854,20 +749,30 @@ export default function Calendar() {
                                     {count > 0 ? (
                                         <>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-secondary)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isOverbooked ? '#EF4444' : 'var(--color-secondary)' }}>
                                                     <Users size={14} />
                                                     <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{count}</span>
                                                 </div>
-                                                <span style={{ fontSize: '0.75rem', color: isFullyBooked ? '#EF4444' : 'var(--color-text-muted)' }}>
-                                                    {isFullyBooked ? 'COMPLET' : `${occupiedTables.length}/${TOTAL_TABLES} tables`}
-                                                </span>
+                                                {isOverbooked && (
+                                                    <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '500' }}>
+                                                        ⚠️ Surbooké
+                                                    </span>
+                                                )}
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                                                 {participants.map((p, idx) => (
-                                                    <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}>
-                                                        {p.tableNumber ? `${p.name} (T${p.tableNumber})` : p.name}
+                                                    <span
+                                                        key={p.id}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.15rem',
+                                                            color: p.overbooked ? '#EF4444' : 'inherit'
+                                                        }}
+                                                    >
+                                                        {p.name}
                                                         {p.guests && p.guests.length > 0 && (
-                                                            <span style={{ color: 'var(--color-secondary)' }}>
+                                                            <span style={{ color: p.overbooked ? '#EF4444' : 'var(--color-secondary)' }}>
                                                                 +{p.guests.join(', ')}
                                                             </span>
                                                         )}
@@ -900,19 +805,18 @@ export default function Calendar() {
                                 {/* Toggle Button */}
                                 <button
                                     onClick={() => handleSlotClick(slot.id)}
-                                    disabled={isFullyBooked && !isParticipating}
                                     style={{
                                         width: '50px',
                                         border: 'none',
-                                        background: isParticipating ? 'var(--color-primary)' : isFullyBooked ? '#E2E8F0' : 'var(--color-bg)',
-                                        color: isParticipating ? 'white' : isFullyBooked ? '#94A3B8' : 'var(--color-text-muted)',
-                                        cursor: isFullyBooked && !isParticipating ? 'not-allowed' : 'pointer',
+                                        background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
+                                        color: isParticipating ? 'white' : 'var(--color-text-muted)',
+                                        cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         transition: 'all 0.2s'
                                     }}
-                                    title={isParticipating ? 'Annuler' : isFullyBooked ? 'Complet' : "S'inscrire"}
+                                    title={isParticipating ? 'Annuler' : "S'inscrire"}
                                 >
                                     {isParticipating ? <X size={20} /> : '+'}
                                 </button>

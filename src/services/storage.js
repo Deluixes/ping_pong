@@ -27,13 +27,13 @@ class StorageService {
             date: r.date,
             userId: r.user_id,
             userName: r.user_name,
-            tableNumber: r.table_number,
             duration: r.duration,
-            guests: r.guests || []
+            guests: r.guests || [],
+            overbooked: r.overbooked || false
         }))
     }
 
-    async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1, guests = []) {
+    async registerForSlot(slotId, date, userId, userName, duration = 1, guests = [], overbooked = false) {
         const { error } = await supabase
             .from('reservations')
             .insert({
@@ -41,9 +41,9 @@ class StorageService {
                 date: date,
                 user_id: userId,
                 user_name: userName,
-                table_number: tableNumber,
                 duration: duration,
-                guests: guests
+                guests: guests,
+                overbooked: overbooked
             })
 
         if (error && error.code !== '23505') {
@@ -256,14 +256,35 @@ class StorageService {
         return this.rejectMember(userId)
     }
 
-    // ==================== LEGACY (unused but kept for compatibility) ====================
+    // ==================== SETTINGS ====================
 
-    async getUsers() {
-        return []
+    async getSetting(key) {
+        const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', key)
+            .single()
+
+        if (error) {
+            console.error('Error fetching setting:', error)
+            return null
+        }
+
+        return data?.value
     }
 
-    async saveUser(user) {
-        return user
+    async updateSetting(key, value) {
+        const { error } = await supabase
+            .from('settings')
+            .update({ value, updated_at: new Date().toISOString() })
+            .eq('key', key)
+
+        if (error) {
+            console.error('Error updating setting:', error)
+            return { success: false }
+        }
+
+        return { success: true }
     }
 
     // ==================== REAL-TIME SUBSCRIPTIONS ====================
