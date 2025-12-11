@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
@@ -7,9 +7,10 @@ import Settings from './components/Settings'
 import PendingApproval from './components/PendingApproval'
 import AdminPanel from './components/AdminPanel'
 import PlanningSettings from './components/PlanningSettings'
+import MyInvitations from './components/MyInvitations'
 import SlideMenu from './components/SlideMenu'
-import { GROUP_NAME } from './services/storage'
-import { Menu } from 'lucide-react'
+import { GROUP_NAME, storageService } from './services/storage'
+import { Menu, Bell } from 'lucide-react'
 
 function PrivateRoute({ children, requireApproval = true }) {
     const { user, loading, memberStatus } = useAuth()
@@ -38,7 +39,14 @@ function AdminRoute({ children }) {
 function AppContent() {
     const { user, memberStatus } = useAuth()
     const [menuOpen, setMenuOpen] = useState(false)
+    const [notificationCount, setNotificationCount] = useState(0)
     const showMainUI = user && (memberStatus === 'approved' || user?.isAdmin)
+
+    useEffect(() => {
+        if (user) {
+            storageService.getPendingInvitationsCount(user.id).then(setNotificationCount)
+        }
+    }, [user])
 
     return (
         <div className="app-container">
@@ -76,7 +84,29 @@ function AppContent() {
                                 </h2>
                             </Link>
                         </div>
-                        <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>{user?.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Link to="/invitations" style={{ position: 'relative', color: 'white', display: 'flex' }}>
+                                <Bell size={20} />
+                                {notificationCount > 0 && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '-5px',
+                                        right: '-5px',
+                                        background: '#EF4444',
+                                        color: 'white',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 'bold',
+                                        padding: '2px 5px',
+                                        borderRadius: '10px',
+                                        minWidth: '16px',
+                                        textAlign: 'center'
+                                    }}>
+                                        {notificationCount}
+                                    </span>
+                                )}
+                            </Link>
+                            <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>{user?.name}</span>
+                        </div>
                     </header>
                 </>
             )}
@@ -87,6 +117,11 @@ function AppContent() {
                     <Route path="/settings" element={
                         <PrivateRoute requireApproval={false}>
                             <Settings />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/invitations" element={
+                        <PrivateRoute>
+                            <MyInvitations />
                         </PrivateRoute>
                     } />
                     <Route path="/admin" element={

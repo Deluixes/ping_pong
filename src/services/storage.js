@@ -56,6 +56,18 @@ class StorageService {
     }
 
     async unregisterFromSlot(slotId, date, userId) {
+        // D'abord récupérer la réservation pour voir s'il y a des invités
+        const { data: reservation } = await supabase
+            .from('reservations')
+            .select('guests')
+            .eq('slot_id', slotId)
+            .eq('date', date)
+            .eq('user_id', userId)
+            .single()
+
+        const guests = reservation?.guests || []
+
+        // Supprimer la réservation
         const { error } = await supabase
             .from('reservations')
             .delete()
@@ -65,6 +77,30 @@ class StorageService {
 
         if (error) {
             console.error('Error unregistering from slot:', error)
+        }
+
+        // Si des invités existent, les transférer à une autre réservation du même créneau
+        if (guests.length > 0) {
+            const { data: otherReservations } = await supabase
+                .from('reservations')
+                .select('*')
+                .eq('slot_id', slotId)
+                .eq('date', date)
+                .limit(1)
+
+            if (otherReservations && otherReservations.length > 0) {
+                // Transférer les invités à la première autre réservation trouvée
+                const existingGuests = otherReservations[0].guests || []
+                const mergedGuests = [...existingGuests, ...guests]
+
+                await supabase
+                    .from('reservations')
+                    .update({ guests: mergedGuests })
+                    .eq('slot_id', slotId)
+                    .eq('date', date)
+                    .eq('user_id', otherReservations[0].user_id)
+            }
+            // Si pas d'autre réservation, les invités sont perdus
         }
 
         return this.getEvents()
@@ -254,6 +290,98 @@ class StorageService {
 
     async removeMember(userId) {
         return this.rejectMember(userId)
+    }
+
+    // ==================== INVITATIONS ====================
+
+    async getPendingInvitations(userId) {
+        const { data, error } = await supabase
+            .from('reservations')
+            .select('*')
+
+        if (error) return []
+
+        // Filtrer côté client car JSONB contains ne supporte pas bien les sous-objets
+        const invitations = []
+        data.forEach(r => {
+            const guests = r.guests || []
+            const myInvite = guests.find(g => g.odId === userId && g.status === 'pending')
+            if (myInvite) {
+                invitations.push({
+                    slotId: r.slot_id,
+                    date: r.date,
+                    reservationUserId: r.user_id,
+                    reservationUserName: r.user_name
+                })
+            }
+        })
+        return invitations
+    }
+
+    async getPendingInvitationsCount(userId) {
+        const invitations = await this.getPendingInvitations(userId)
+        return invitations.length
+    }
+
+    async acceptInvitation(slotId, date, guestUserId) {
+        // Récupérer toutes les réservations de ce créneau
+        const { data } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('slot_id', slotId)
+            .eq('date', date)
+
+        if (!data) return { success: false }
+
+        // Trouver la réservation qui contient cet invité
+        for (const reservation of data) {
+            const guests = reservation.guests || []
+            const guestIndex = guests.findIndex(g => g.odId === guestUserId && g.status === 'pending')
+
+            if (guestIndex !== -1) {
+                guests[guestIndex].status = 'accepted'
+
+                const { error } = await supabase
+                    .from('reservations')
+                    .update({ guests })
+                    .eq('slot_id', slotId)
+                    .eq('date', date)
+                    .eq('user_id', reservation.user_id)
+
+                return { success: !error }
+            }
+        }
+        return { success: false }
+    }
+
+    async declineInvitation(slotId, date, guestUserId) {
+        // Récupérer toutes les réservations de ce créneau
+        const { data } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('slot_id', slotId)
+            .eq('date', date)
+
+        if (!data) return { success: false }
+
+        for (const reservation of data) {
+            const guests = reservation.guests || []
+            const guestIndex = guests.findIndex(g => g.odId === guestUserId)
+
+            if (guestIndex !== -1) {
+                const updatedGuests = guests.filter(g => g.odId !== guestUserId)
+
+                const { error } = await supabase
+                    .from('reservations')
+                    .update({ guests: updatedGuests })
+                    .eq('slot_id', slotId)
+                    .eq('date', date)
+                    .eq('user_id', reservation.user_id)
+
+                return { success: !error }
+            }
+        }
+        return { success: false }
     }
 
     // ==================== SETTINGS ====================

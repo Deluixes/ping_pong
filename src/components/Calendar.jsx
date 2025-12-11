@@ -66,7 +66,7 @@ export default function Calendar() {
     const [modalStep, setModalStep] = useState(null) // 'duration' | 'guests' | null
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
-    const [guests, setGuests] = useState([''])
+    const [guests, setGuests] = useState([{ odId: '', name: '' }])
 
     // Settings
     const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
@@ -150,18 +150,66 @@ export default function Calendar() {
     }
 
     const getParticipants = (slotId) => {
-        return getSlotEvents(slotId)
-            .map(e => ({
+        const slotEvents = getSlotEvents(slotId)
+        const participants = []
+
+        slotEvents.forEach(e => {
+            // Le owner (toujours "accepté")
+            participants.push({
                 id: e.userId,
                 name: e.userName || 'Inconnu',
-                duration: e.duration,
-                guests: e.guests || [],
-                overbooked: e.overbooked || false
-            }))
+                isGuest: false,
+                status: 'accepted',
+                duration: e.duration
+            })
+
+            // Les guests
+            if (e.guests && e.guests.length > 0) {
+                e.guests.forEach(g => {
+                    // Support ancien format (string) et nouveau format (object)
+                    if (typeof g === 'string') {
+                        participants.push({
+                            id: null,
+                            name: g,
+                            isGuest: true,
+                            status: 'accepted' // Ancien format = accepté par défaut
+                        })
+                    } else {
+                        participants.push({
+                            id: g.odId,
+                            name: g.name,
+                            isGuest: true,
+                            status: g.status || 'pending'
+                        })
+                    }
+                })
+            }
+        })
+
+        return participants
+    }
+
+    // Compte uniquement les participants acceptés (pour le calcul de surcharge)
+    const getAcceptedParticipantCount = (slotId) => {
+        const participants = getParticipants(slotId)
+        return participants.filter(p => p.status === 'accepted').length
     }
 
     const getSlotParticipantCount = (slotId) => {
-        return getSlotEvents(slotId).length
+        return getParticipants(slotId).length
+    }
+
+    // Détermine la couleur d'un participant
+    const getParticipantColor = (participant, slotId) => {
+        const acceptedCount = getAcceptedParticipantCount(slotId)
+        const isSlotOverbooked = acceptedCount > maxPersons
+
+        if (participant.isGuest && participant.status === 'pending') {
+            return '#9CA3AF' // Gris - en attente
+        }
+
+        // Accepté (ou owner)
+        return isSlotOverbooked ? '#EF4444' : '#10B981' // Rouge ou Vert
     }
 
     const isUserParticipating = (slotId) => {
@@ -213,25 +261,26 @@ export default function Calendar() {
 
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
-        setGuests([''])
+        setGuests([{ odId: '', name: '' }])
         setModalStep('guests')
     }
 
     const addGuestField = () => {
         if (guests.length < 3) {
-            setGuests([...guests, ''])
+            setGuests([...guests, { odId: '', name: '' }])
         }
     }
 
-    const updateGuest = (index, value) => {
+    const updateGuest = (index, odId) => {
+        const member = approvedMembers.find(m => m.userId === odId)
         const newGuests = [...guests]
-        newGuests[index] = value
+        newGuests[index] = { odId, name: member?.name || '' }
         setGuests(newGuests)
     }
 
     const removeGuest = (index) => {
         const newGuests = guests.filter((_, i) => i !== index)
-        setGuests(newGuests.length > 0 ? newGuests : [''])
+        setGuests(newGuests.length > 0 ? newGuests : [{ odId: '', name: '' }])
     }
 
     const handleRegister = async () => {
@@ -239,17 +288,26 @@ export default function Calendar() {
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
-        const guestNames = guests.filter(g => g.trim()).map(g => g.trim())
 
-        // Check if slot is overbooked
-        const participantCount = getSlotParticipantCount(selectedSlotId)
-        const isOverbooked = participantCount >= maxPersons
+        // Nouveau format des guests avec odId et status
+        const guestData = guests
+            .filter(g => g.odId) // Seulement ceux sélectionnés
+            .map(g => ({
+                odId: g.odId,
+                name: g.name,
+                status: 'pending'
+            }))
+
+        // Calculer overbooked en comptant SEULEMENT les acceptés
+        const currentAccepted = getAcceptedParticipantCount(selectedSlotId)
+        const totalAfter = currentAccepted + 1 // +1 pour le nouveau réservant
+        const isOverbooked = totalAfter > maxPersons
 
         try {
             // Register for all slots in the duration
             for (let i = 0; i < selectedDuration.slots; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
-                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, guestNames, isOverbooked)
+                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, guestData, isOverbooked)
             }
             closeModal()
             await loadData()
@@ -292,7 +350,7 @@ export default function Calendar() {
         setModalStep(null)
         setSelectedSlotId(null)
         setSelectedDuration(null)
-        setGuests([''])
+        setGuests([{ odId: '', name: '' }])
     }
 
     if (loading) {
@@ -312,9 +370,9 @@ export default function Calendar() {
 
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
 
-    // Calculate if slot is overbooked for warning display
-    const currentSlotParticipants = selectedSlotId ? getSlotParticipantCount(selectedSlotId) : 0
-    const isCurrentSlotOverbooked = currentSlotParticipants >= maxPersons
+    // Calculate if slot is overbooked for warning display (only accepted count)
+    const currentSlotAccepted = selectedSlotId ? getAcceptedParticipantCount(selectedSlotId) : 0
+    const isCurrentSlotOverbooked = currentSlotAccepted >= maxPersons
 
     // Get end time for display
     const getEndTime = (startSlotId, durationSlots) => {
@@ -454,7 +512,7 @@ export default function Calendar() {
                                         marginBottom: '1rem'
                                     }}>
                                         <p style={{ margin: 0, color: '#92400E', fontWeight: '500' }}>
-                                            ⚠️ Attention : il n'y a que {totalTables} tables disponibles et {currentSlotParticipants} personnes sont déjà inscrites. Êtes-vous sûr de ce créneau ?
+                                            ⚠️ Attention : il n'y a que {totalTables} tables disponibles et {currentSlotAccepted} personnes confirmées. Êtes-vous sûr de ce créneau ?
                                         </p>
                                     </div>
                                 )}
@@ -474,11 +532,24 @@ export default function Calendar() {
 
                                 {approvedMembers.length > 0 ? (
                                     <>
+                                        {/* Info sur les invitations */}
+                                        {guests.filter(g => g.odId).length > 0 && (
+                                            <div style={{
+                                                background: '#E0F2FE',
+                                                padding: '0.75rem',
+                                                borderRadius: 'var(--radius-md)',
+                                                marginBottom: '1rem',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                <strong>Info :</strong> {guests.filter(g => g.odId).length} personne(s) invitée(s) devront accepter l'invitation.
+                                            </div>
+                                        )}
+
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                                             {guests.map((guest, idx) => (
                                                 <div key={idx} style={{ display: 'flex', gap: '0.5rem' }}>
                                                     <select
-                                                        value={guest}
+                                                        value={guest.odId}
                                                         onChange={(e) => updateGuest(idx, e.target.value)}
                                                         style={{
                                                             flex: 1,
@@ -491,9 +562,9 @@ export default function Calendar() {
                                                     >
                                                         <option value="">-- Choisir un membre --</option>
                                                         {approvedMembers
-                                                            .filter(m => !guests.includes(m.name) || m.name === guest)
+                                                            .filter(m => !guests.some(g => g.odId === m.userId) || m.userId === guest.odId)
                                                             .map(m => (
-                                                                <option key={m.userId} value={m.name}>{m.name}</option>
+                                                                <option key={m.userId} value={m.userId}>{m.name}</option>
                                                             ))
                                                         }
                                                     </select>
@@ -704,7 +775,8 @@ export default function Calendar() {
                         const participants = getParticipants(slot.id)
                         const isParticipating = isUserParticipating(slot.id)
                         const count = participants.length
-                        const isOverbooked = count >= maxPersons
+                        const acceptedCount = getAcceptedParticipantCount(slot.id)
+                        const isOverbooked = acceptedCount > maxPersons
 
                         return (
                             <div
@@ -751,7 +823,12 @@ export default function Calendar() {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isOverbooked ? '#EF4444' : 'var(--color-secondary)' }}>
                                                     <Users size={14} />
-                                                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{count}</span>
+                                                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                                        {acceptedCount}
+                                                        {count > acceptedCount && (
+                                                            <span style={{ color: '#9CA3AF', fontWeight: 'normal' }}> (+{count - acceptedCount})</span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                                 {isOverbooked && (
                                                     <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '500' }}>
@@ -759,24 +836,23 @@ export default function Calendar() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                                                 {participants.map((p, idx) => (
                                                     <span
-                                                        key={p.id}
+                                                        key={`${p.id || p.name}-${idx}`}
                                                         style={{
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
                                                             gap: '0.15rem',
-                                                            color: p.overbooked ? '#EF4444' : 'inherit'
+                                                            color: getParticipantColor(p, slot.id),
+                                                            fontWeight: p.status === 'pending' ? '400' : '500'
                                                         }}
                                                     >
                                                         {p.name}
-                                                        {p.guests && p.guests.length > 0 && (
-                                                            <span style={{ color: p.overbooked ? '#EF4444' : 'var(--color-secondary)' }}>
-                                                                +{p.guests.join(', ')}
-                                                            </span>
+                                                        {p.status === 'pending' && (
+                                                            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>(en attente)</span>
                                                         )}
-                                                        {isAdmin && p.id !== user.id && (
+                                                        {isAdmin && p.id && p.id !== user.id && !p.isGuest && (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleAdminDelete(slot.id, p.id, p.name) }}
                                                                 style={{
