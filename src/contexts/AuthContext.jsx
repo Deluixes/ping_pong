@@ -87,8 +87,8 @@ export const AuthProvider = ({ children }) => {
                     setUser(userData)
                     setLoading(false)
 
-                    // Only check member status on actual sign-in (not page reload)
-                    if (event === 'SIGNED_IN') {
+                    // Check member status on sign-in AND page reload to ensure session is valid
+                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                         const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
                         setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                     }
