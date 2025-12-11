@@ -81,6 +81,9 @@ export default function Calendar() {
     // Invitations pour la date sélectionnée
     const [invitations, setInvitations] = useState([])
 
+    // Créneaux bloqués (entraînements)
+    const [blockedSlots, setBlockedSlots] = useState([])
+
     // Ref for subscription to avoid re-subscriptions
     const subscriptionRef = useRef(null)
     const invitationsSubscriptionRef = useRef(null)
@@ -118,6 +121,11 @@ export default function Calendar() {
             const members = await storageService.getMembers()
             if (!isMountedRef.current) return
             setApprovedMembers(members.approved.filter(m => m.userId !== currentUserId))
+
+            // Load blocked slots
+            const blocked = await storageService.getBlockedSlots()
+            if (!isMountedRef.current) return
+            setBlockedSlots(blocked.filter(s => s.enabled))
         } catch (error) {
             console.error('Error loading data:', error)
             if (isMountedRef.current) setLoading(false)
@@ -281,6 +289,20 @@ export default function Calendar() {
         const dateStr = format(day, 'yyyy-MM-dd')
         const dayEvents = events.filter(e => e.date === dateStr)
         return new Set(dayEvents.map(e => e.userId)).size
+    }
+
+    // Vérifie si un créneau est bloqué par un entraînement
+    const getBlockedSlotInfo = (slotId) => {
+        const dayOfWeek = selectedDate.getDay()
+        const [hour, minute] = slotId.split(':').map(Number)
+        const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+
+        return blockedSlots.find(b => {
+            if (b.dayOfWeek !== dayOfWeek) return false
+            const startTime = b.startTime.slice(0, 5)
+            const endTime = b.endTime.slice(0, 5)
+            return slotTime >= startTime && slotTime < endTime
+        })
     }
 
     // Actions
@@ -839,9 +861,81 @@ export default function Calendar() {
                 {TIME_SLOTS
                     .filter(slot => {
                         if (!showOnlyOccupied) return true
-                        return getParticipants(slot.id).length > 0
+                        // Afficher aussi les créneaux bloqués dans le filtre "Avec inscrits"
+                        const isBlocked = getBlockedSlotInfo(slot.id) !== undefined
+                        return getParticipants(slot.id).length > 0 || isBlocked
                     })
                     .map(slot => {
+                        const blockedInfo = getBlockedSlotInfo(slot.id)
+
+                        // Si le créneau est bloqué, afficher différemment
+                        if (blockedInfo) {
+                            return (
+                                <div
+                                    key={slot.id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'stretch',
+                                        background: '#F3F4F6',
+                                        borderRadius: 'var(--radius-md)',
+                                        overflow: 'hidden',
+                                        boxShadow: 'var(--shadow-sm)',
+                                        border: '1px solid #E2E8F0',
+                                        opacity: 0.8
+                                    }}
+                                >
+                                    {/* Time Label */}
+                                    <div style={{
+                                        width: '60px',
+                                        padding: '0.75rem 0.5rem',
+                                        background: '#9CA3AF',
+                                        color: 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.85rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.25rem'
+                                    }}>
+                                        <span>{slot.label}</span>
+                                    </div>
+
+                                    {/* Blocked Slot Info */}
+                                    <div style={{
+                                        flex: 1,
+                                        padding: '0.5rem 0.75rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        gap: '0.15rem',
+                                        minWidth: 0
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6B7280' }}>
+                                            <span style={{ fontSize: '1rem' }}>🏓</span>
+                                            <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{blockedInfo.name}</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                                            {blockedInfo.coach}
+                                            {blockedInfo.group && <span style={{ marginLeft: '0.5rem', background: '#E5E7EB', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{blockedInfo.group}</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Blocked indicator */}
+                                    <div style={{
+                                        width: '50px',
+                                        background: '#E5E7EB',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#9CA3AF'
+                                    }}>
+                                        🔒
+                                    </div>
+                                </div>
+                            )
+                        }
+
                         const participants = getParticipants(slot.id)
                         const isParticipating = isUserParticipating(slot.id)
                         const count = participants.length
