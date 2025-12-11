@@ -283,6 +283,16 @@ export default function SlideMenu({ isOpen, onClose }) {
                         Se déconnecter
                     </button>
                 </div>
+
+                {/* Copyright */}
+                <div style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'center',
+                    fontSize: '0.75rem',
+                    color: 'var(--color-text-muted)'
+                }}>
+                    © {new Date().getFullYear()} Jérôme Daulion
+                </div>
             </div>
         </>
     )
