@@ -17,7 +17,7 @@ const getCachedUser = () => {
 export const AuthProvider = ({ children }) => {
     // Initialize from cache for instant display
     const [user, setUser] = useState(getCachedUser)
-    const [loading, setLoading] = useState(() => !getCachedUser())
+    const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
     // Initialize from cache if available to speed up launch
     const [memberStatus, setMemberStatus] = useState(() => {
