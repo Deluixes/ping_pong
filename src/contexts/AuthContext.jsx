@@ -18,8 +18,6 @@ export const AuthProvider = ({ children }) => {
     // Initialize from cache for instant display
     const [user, setUser] = useState(getCachedUser)
     const [loading, setLoading] = useState(() => !getCachedUser())
-    // If we have cached user, assume session is likely valid (will be verified in background)
-    const [sessionReady, setSessionReady] = useState(() => !!getCachedUser())
     const [authError, setAuthError] = useState(null)
     // Initialize from cache if available to speed up launch
     const [memberStatus, setMemberStatus] = useState(() => {
@@ -74,14 +72,10 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const cachedUser = getCachedUser()
-        console.log('[Auth] Starting, cachedUser:', !!cachedUser)
 
         // Use onAuthStateChange as the single source of truth
-        // It fires immediately with current session state
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                console.log('[Auth] onAuthStateChange:', event, 'hasSession:', !!session?.user)
-
                 if (session?.user) {
                     const userData = {
                         id: session.user.id,
@@ -91,9 +85,7 @@ export const AuthProvider = ({ children }) => {
                         isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
                     }
                     setUser(userData)
-                    setSessionReady(true)
                     setLoading(false)
-                    console.log('[Auth] Session ready, user set')
 
                     // Only check member status on actual sign-in (not page reload)
                     if (event === 'SIGNED_IN') {
@@ -106,19 +98,16 @@ export const AuthProvider = ({ children }) => {
                     localStorage.removeItem('pingpong_is_admin')
                     setUser(null)
                     setMemberStatus('none')
-                    setSessionReady(false)
                     setLoading(false)
                 } else if (event === 'INITIAL_SESSION' && !session) {
-                    // No session on initial load
+                    // No session on initial load - clear stale cache
                     if (cachedUser) {
-                        // Cache exists but no session - clear cache
                         localStorage.removeItem('pingpong_user')
                         localStorage.removeItem('pingpong_member_status')
                         localStorage.removeItem('pingpong_is_admin')
                         setUser(null)
                         setMemberStatus('none')
                     }
-                    setSessionReady(false)
                     setLoading(false)
                 }
             }
@@ -176,18 +165,6 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.signOut()
     }
 
-    // Safety timeout to prevent infinite loading/waiting
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false)
-            // If we have a cached user, assume session is ready after timeout
-            if (getCachedUser()) {
-                setSessionReady(true)
-            }
-        }, 5000)
-        return () => clearTimeout(timer)
-    }, [])
-
     // Refresh member status (useful after admin approval)
     const refreshMemberStatus = async () => {
         if (user) {
@@ -203,7 +180,6 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={{
             user,
             loading,
-            sessionReady,
             authError,
             memberStatus,
             sendMagicLink,

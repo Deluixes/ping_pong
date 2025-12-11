@@ -14,30 +14,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Store current session globally (updated by onAuthStateChange)
-let currentSession = null
-let sessionReadyResolve
-export const sessionReadyPromise = new Promise(resolve => {
-    sessionReadyResolve = resolve
-})
-
-// Get current session without calling getSession() which can block
-export const getCurrentSession = () => currentSession
-
-// Listen for auth state changes
-supabase.auth.onAuthStateChange((event, session) => {
-    console.log('[Supabase] onAuthStateChange:', event, 'session:', !!session)
-    currentSession = session
-    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        sessionReadyResolve(session)
-    }
-})
-
-// Expose for debugging
-if (typeof window !== 'undefined') {
-    window.supabase = supabase
-}
-
 // Liste des emails admin (centralisée pour éviter la duplication)
 export const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '')
     .split(',')

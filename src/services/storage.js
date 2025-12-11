@@ -3,18 +3,9 @@
  * Centralized data storage with real-time sync
  */
 
-import { supabase, sessionReadyPromise, getCurrentSession } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 export const GROUP_NAME = 'Ping-Pong Ramonville'
-
-// Wait for session to be ready (never calls getSession which can block)
-const ensureSession = async () => {
-    console.log('[Storage] ensureSession: waiting for auth...')
-    await sessionReadyPromise
-    const session = getCurrentSession()
-    console.log('[Storage] ensureSession:', session ? 'OK' : 'NO SESSION')
-    return session
-}
 
 class StorageService {
     // ==================== RESERVATIONS ====================
@@ -43,15 +34,6 @@ class StorageService {
     }
 
     async registerForSlot(slotId, date, userId, userName, tableNumber = null, duration = 1, guests = []) {
-        console.log('[Storage] registerForSlot starting', { slotId, date, userId })
-
-        // Force session refresh to ensure auth headers are set
-        const session = await ensureSession()
-        if (!session) {
-            console.error('[Storage] No session available for insert')
-            return { success: false, error: 'No session' }
-        }
-
         const { error } = await supabase
             .from('reservations')
             .insert({
@@ -64,13 +46,9 @@ class StorageService {
                 guests: guests
             })
 
-        console.log('[Storage] insert completed', { error: error?.message || 'none' })
-
-        if (error) {
+        if (error && error.code !== '23505') {
             // Ignore duplicate key errors (user already registered)
-            if (error.code !== '23505') {
-                console.error('Error registering for slot:', error)
-            }
+            console.error('Error registering for slot:', error)
         }
 
         // Don't re-fetch events here, let caller handle it

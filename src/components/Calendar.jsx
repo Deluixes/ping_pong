@@ -110,24 +110,17 @@ export default function Calendar() {
     }, [user?.id, loadData])
 
     // Setup subscription once on mount
-    // TEMPORARILY DISABLED to test if realtime is causing issues
     useEffect(() => {
         // Subscribe to real-time changes (only once)
-        // subscriptionRef.current = storageService.subscribeToReservations(() => {
-        //     loadData()
-        // })
-
-        // Safety timeout to prevent infinite loading
-        const timeout = setTimeout(() => {
-            setLoading(false)
-        }, 10000)
+        subscriptionRef.current = storageService.subscribeToReservations(() => {
+            loadData()
+        })
 
         return () => {
             if (subscriptionRef.current) {
                 storageService.unsubscribe(subscriptionRef.current)
                 subscriptionRef.current = null
             }
-            clearTimeout(timeout)
         }
     }, [loadData])
 
@@ -282,11 +275,7 @@ export default function Calendar() {
     }
 
     const handleRegister = async () => {
-        console.log('[Calendar] handleRegister called', { selectedSlotId, selectedDuration, user: user?.id })
-        if (!selectedSlotId || !selectedDuration) {
-            console.log('[Calendar] Missing data, aborting')
-            return
-        }
+        if (!selectedSlotId || !selectedDuration) return
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
@@ -296,14 +285,12 @@ export default function Calendar() {
             // Register for all slots in the duration
             for (let i = 0; i < selectedDuration.slots; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
-                console.log('[Calendar] Registering slot', slot.id)
                 await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedTable, selectedDuration.slots, guestNames)
             }
-            console.log('[Calendar] Registration complete')
             closeModal()
             await loadData()
         } catch (error) {
-            console.error('[Calendar] Registration error:', error)
+            console.error('Registration error:', error)
         }
     }
 
