@@ -54,15 +54,16 @@ export const AuthProvider = ({ children }) => {
                     isAdmin: false
                 }
                 setUser(userData)
-                setLoading(false)
 
-                // Vérifier le statut membre si demandé
+                // Vérifier le statut membre si demandé (AVANT de mettre loading à false)
                 if (shouldCheckMember) {
                     const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
                     if (isMounted) {
                         setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                     }
                 }
+
+                setLoading(false)
             } else {
                 setUser(null)
                 setMemberStatus('none')
