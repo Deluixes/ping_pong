@@ -212,9 +212,18 @@ export default function Calendar() {
         return isSlotOverbooked ? '#EF4444' : '#10B981' // Rouge ou Vert
     }
 
+    // Vérifie si l'utilisateur participe au créneau (owner OU invité accepté)
     const isUserParticipating = (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        return events.some(e => e.date === dateStr && e.slotId === slotId && e.userId === user.id)
+        const participants = getParticipants(slotId)
+        // Participe si owner (isGuest=false) ou invité accepté
+        return participants.some(p => p.id === user.id && (p.status === 'accepted' || !p.isGuest))
+    }
+
+    // Vérifie si l'utilisateur est présent sur le créneau (owner, invité pending OU accepté)
+    // Pour bloquer l'inscription s'il est déjà invité (même pending)
+    const isUserOnSlot = (slotId) => {
+        const participants = getParticipants(slotId)
+        return participants.some(p => p.id === user.id)
     }
 
     const getUserRegistration = (slotId) => {
@@ -249,14 +258,28 @@ export default function Calendar() {
 
     // Actions
     const handleSlotClick = (slotId) => {
-        if (isUserParticipating(slotId)) {
+        const userReg = getUserRegistration(slotId)
+
+        if (userReg) {
+            // L'utilisateur est owner d'une réservation
             handleUnregister(slotId)
+        } else if (isUserOnSlot(slotId)) {
+            // L'utilisateur est invité (pas owner)
+            handleGuestUnregister(slotId)
         } else {
-            // Open duration selection modal
+            // Pas sur le créneau, ouvrir le modal d'inscription
             setSelectedSlotId(slotId)
             setSelectedDuration(null)
             setModalStep('duration')
         }
+    }
+
+    const handleGuestUnregister = async (slotId) => {
+        if (!window.confirm('Annuler votre participation à ce créneau ?')) return
+
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
+        await loadData()
     }
 
     const handleDurationSelect = (duration) => {

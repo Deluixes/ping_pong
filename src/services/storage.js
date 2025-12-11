@@ -384,6 +384,37 @@ class StorageService {
         return { success: false }
     }
 
+    // Retirer un invité (accepté ou pending) d'un créneau
+    async removeGuestFromSlot(slotId, date, guestUserId) {
+        // Récupérer toutes les réservations de ce créneau
+        const { data } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('slot_id', slotId)
+            .eq('date', date)
+
+        if (!data) return { success: false }
+
+        for (const reservation of data) {
+            const guests = reservation.guests || []
+            const guestIndex = guests.findIndex(g => g.odId === guestUserId)
+
+            if (guestIndex !== -1) {
+                const updatedGuests = guests.filter(g => g.odId !== guestUserId)
+
+                const { error } = await supabase
+                    .from('reservations')
+                    .update({ guests: updatedGuests })
+                    .eq('slot_id', slotId)
+                    .eq('date', date)
+                    .eq('user_id', reservation.user_id)
+
+                return { success: !error }
+            }
+        }
+        return { success: false }
+    }
+
     // ==================== SETTINGS ====================
 
     async getSetting(key) {
