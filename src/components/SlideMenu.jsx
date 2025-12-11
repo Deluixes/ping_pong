@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { X, Calendar, Users, LogOut, User } from 'lucide-react'
+import { X, Calendar, Users, LogOut, User, Settings } from 'lucide-react'
 
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout } = useAuth()
@@ -171,37 +171,56 @@ export default function SlideMenu({ isOpen, onClose }) {
                     </Link>
 
                     {user?.isAdmin && (
-                        <Link
-                            to="/admin"
-                            onClick={onClose}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                padding: '0.875rem 1rem',
-                                textDecoration: 'none',
-                                color: isActive('/admin') ? 'var(--color-primary)' : 'var(--color-text)',
-                                background: isActive('/admin') ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
-                                fontWeight: isActive('/admin') ? '500' : '400'
-                            }}
-                        >
-                            <Users size={20} />
-                            <span style={{ flex: 1 }}>Gestion des membres</span>
-                            {pendingCount > 0 && (
-                                <span style={{
-                                    background: '#EF4444',
-                                    color: 'white',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 'bold',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '10px',
-                                    minWidth: '20px',
-                                    textAlign: 'center'
-                                }}>
-                                    {pendingCount}
-                                </span>
-                            )}
-                        </Link>
+                        <>
+                            <Link
+                                to="/admin"
+                                onClick={onClose}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.875rem 1rem',
+                                    textDecoration: 'none',
+                                    color: isActive('/admin') ? 'var(--color-primary)' : 'var(--color-text)',
+                                    background: isActive('/admin') ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
+                                    fontWeight: isActive('/admin') ? '500' : '400'
+                                }}
+                            >
+                                <Users size={20} />
+                                <span style={{ flex: 1 }}>Gestion des membres</span>
+                                {pendingCount > 0 && (
+                                    <span style={{
+                                        background: '#EF4444',
+                                        color: 'white',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: '10px',
+                                        minWidth: '20px',
+                                        textAlign: 'center'
+                                    }}>
+                                        {pendingCount}
+                                    </span>
+                                )}
+                            </Link>
+                            <Link
+                                to="/admin/planning"
+                                onClick={onClose}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.875rem 1rem',
+                                    textDecoration: 'none',
+                                    color: isActive('/admin/planning') ? 'var(--color-primary)' : 'var(--color-text)',
+                                    background: isActive('/admin/planning') ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
+                                    fontWeight: isActive('/admin/planning') ? '500' : '400'
+                                }}
+                            >
+                                <Settings size={20} />
+                                Gestion du planning
+                            </Link>
+                        </>
                     )}
                 </nav>
 

@@ -6,6 +6,7 @@ import Calendar from './components/Calendar'
 import Settings from './components/Settings'
 import PendingApproval from './components/PendingApproval'
 import AdminPanel from './components/AdminPanel'
+import PlanningSettings from './components/PlanningSettings'
 import SlideMenu from './components/SlideMenu'
 import { GROUP_NAME } from './services/storage'
 import { Menu } from 'lucide-react'
@@ -91,6 +92,11 @@ function AppContent() {
                     <Route path="/admin" element={
                         <AdminRoute>
                             <AdminPanel />
+                        </AdminRoute>
+                    } />
+                    <Route path="/admin/planning" element={
+                        <AdminRoute>
+                            <PlanningSettings />
                         </AdminRoute>
                     } />
                     <Route path="/" element={
