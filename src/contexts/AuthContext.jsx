@@ -71,50 +71,66 @@ export const AuthProvider = ({ children }) => {
     }, [user])
 
     useEffect(() => {
-        const cachedUser = getCachedUser()
+        let isMounted = true
 
-        // Use onAuthStateChange as the single source of truth
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (session?.user) {
-                    const userData = {
-                        id: session.user.id,
-                        email: session.user.email,
-                        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                        isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
-                        isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
-                    }
-                    setUser(userData)
-                    setLoading(false)
+        // Fonction pour traiter la session
+        const handleSession = async (session, shouldCheckMember = false) => {
+            if (!isMounted) return
 
-                    // Check member status on sign-in AND page reload to ensure session is valid
-                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-                        const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+            if (session?.user) {
+                const userData = {
+                    id: session.user.id,
+                    email: session.user.email,
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
+                    isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
+                    isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
+                }
+                setUser(userData)
+                setLoading(false)
+
+                // Vérifier le statut membre si demandé
+                if (shouldCheckMember) {
+                    const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+                    if (isMounted) {
                         setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                     }
-                } else if (event === 'SIGNED_OUT') {
-                    localStorage.removeItem('pingpong_user')
-                    localStorage.removeItem('pingpong_member_status')
-                    localStorage.removeItem('pingpong_is_admin')
-                    setUser(null)
-                    setMemberStatus('none')
-                    setLoading(false)
-                } else if (event === 'INITIAL_SESSION' && !session) {
-                    // No session on initial load - clear stale cache
-                    if (cachedUser) {
-                        localStorage.removeItem('pingpong_user')
-                        localStorage.removeItem('pingpong_member_status')
-                        localStorage.removeItem('pingpong_is_admin')
-                        setUser(null)
-                        setMemberStatus('none')
-                    }
-                    setLoading(false)
                 }
+            } else {
+                // Pas de session - nettoyer le cache
+                localStorage.removeItem('pingpong_user')
+                localStorage.removeItem('pingpong_member_status')
+                localStorage.removeItem('pingpong_is_admin')
+                setUser(null)
+                setMemberStatus('none')
+                setLoading(false)
+            }
+        }
+
+        // 1. Récupérer la session initiale explicitement (plus fiable que INITIAL_SESSION)
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            handleSession(session, true)
+        })
+
+        // 2. Écouter les changements ultérieurs
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (event === 'SIGNED_IN') {
+                    handleSession(session, true)
+                } else if (event === 'SIGNED_OUT') {
+                    handleSession(null)
+                } else if (event === 'TOKEN_REFRESHED') {
+                    // Session rafraîchie, pas besoin de re-vérifier le membre
+                    handleSession(session, false)
+                }
+                // Ignorer INITIAL_SESSION car on utilise getSession()
             }
         )
 
-        return () => subscription.unsubscribe()
-    }, [checkMemberStatus])
+        return () => {
+            isMounted = false
+            subscription.unsubscribe()
+        }
+    }, [])
 
     const sendMagicLink = async (email, name) => {
         setAuthError(null)
