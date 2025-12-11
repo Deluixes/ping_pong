@@ -585,7 +585,18 @@ export default function Calendar() {
                                                     >
                                                         <option value="">-- Choisir un membre --</option>
                                                         {approvedMembers
-                                                            .filter(m => !guests.some(g => g.odId === m.userId) || m.userId === guest.odId)
+                                                            .filter(m => {
+                                                                // Exclure si déjà sélectionné dans un autre champ guest
+                                                                if (guests.some(g => g.odId === m.userId) && m.userId !== guest.odId) {
+                                                                    return false
+                                                                }
+                                                                // Exclure si déjà participant sur ce créneau (owner ou invité)
+                                                                const slotParticipants = getParticipants(selectedSlotId)
+                                                                if (slotParticipants.some(p => p.id === m.userId)) {
+                                                                    return false
+                                                                }
+                                                                return true
+                                                            })
                                                             .map(m => (
                                                                 <option key={m.userId} value={m.userId}>{m.name}</option>
                                                             ))
@@ -610,7 +621,15 @@ export default function Calendar() {
                                             ))}
                                         </div>
 
-                                        {guests.length < 3 && guests.length < approvedMembers.length && (
+                                        {(() => {
+                                            // Calculer les membres disponibles (non sur le créneau et non déjà sélectionnés)
+                                            const slotParticipants = getParticipants(selectedSlotId)
+                                            const availableMembers = approvedMembers.filter(m =>
+                                                !slotParticipants.some(p => p.id === m.userId) &&
+                                                !guests.some(g => g.odId === m.userId)
+                                            )
+                                            return guests.length < 3 && availableMembers.length > 0
+                                        })() && (
                                             <button
                                                 onClick={addGuestField}
                                                 className="btn"
