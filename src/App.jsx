@@ -51,13 +51,13 @@ function AppContent() {
     useEffect(() => {
         refreshNotificationCount()
 
-        // S'abonner aux changements des réservations pour mettre à jour le compteur
-        const subscription = storageService.subscribeToReservations(() => {
+        // S'abonner aux changements des invitations pour mettre à jour le compteur
+        const invitationsSub = storageService.subscribeToInvitations(() => {
             refreshNotificationCount()
         })
 
         return () => {
-            storageService.unsubscribe(subscription)
+            storageService.unsubscribe(invitationsSub)
         }
     }, [user])
 

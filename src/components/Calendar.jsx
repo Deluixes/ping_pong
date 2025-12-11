@@ -78,8 +78,12 @@ export default function Calendar() {
     // Approved members for guest selection
     const [approvedMembers, setApprovedMembers] = useState([])
 
+    // Invitations pour la date sélectionnée
+    const [invitations, setInvitations] = useState([])
+
     // Ref for subscription to avoid re-subscriptions
     const subscriptionRef = useRef(null)
+    const invitationsSubscriptionRef = useRef(null)
     const userIdRef = useRef(user?.id)
 
     const loadData = useCallback(async () => {
@@ -108,6 +112,18 @@ export default function Calendar() {
         }
     }, [])
 
+    // Charger les invitations quand la date change
+    const loadInvitations = useCallback(async () => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        const loadedInvitations = await storageService.getAllInvitationsForDate(dateStr)
+        setInvitations(loadedInvitations)
+    }, [selectedDate])
+
+    // Recharger les invitations quand la date change
+    useEffect(() => {
+        loadInvitations()
+    }, [loadInvitations])
+
     // Update userIdRef when user changes
     useEffect(() => {
         userIdRef.current = user?.id
@@ -123,13 +139,21 @@ export default function Calendar() {
             loadData()
         })
 
+        invitationsSubscriptionRef.current = storageService.subscribeToInvitations(() => {
+            loadInvitations()
+        })
+
         return () => {
             if (subscriptionRef.current) {
                 storageService.unsubscribe(subscriptionRef.current)
                 subscriptionRef.current = null
             }
+            if (invitationsSubscriptionRef.current) {
+                storageService.unsubscribe(invitationsSubscriptionRef.current)
+                invitationsSubscriptionRef.current = null
+            }
         }
-    }, [loadData])
+    }, [loadData, loadInvitations])
 
     // Navigation
     const nextWeek = () => setWeekStart(d => addDays(d, 7))
@@ -153,8 +177,8 @@ export default function Calendar() {
         const slotEvents = getSlotEvents(slotId)
         const participants = []
 
+        // Les owners (réservations directes)
         slotEvents.forEach(e => {
-            // Le owner (toujours "accepté")
             participants.push({
                 id: e.userId,
                 name: e.userName || 'Inconnu',
@@ -162,28 +186,17 @@ export default function Calendar() {
                 status: 'accepted',
                 duration: e.duration
             })
+        })
 
-            // Les guests
-            if (e.guests && e.guests.length > 0) {
-                e.guests.forEach(g => {
-                    // Support ancien format (string) et nouveau format (object)
-                    if (typeof g === 'string') {
-                        participants.push({
-                            id: null,
-                            name: g,
-                            isGuest: true,
-                            status: 'accepted' // Ancien format = accepté par défaut
-                        })
-                    } else {
-                        participants.push({
-                            id: g.odId,
-                            name: g.name,
-                            isGuest: true,
-                            status: g.status || 'pending'
-                        })
-                    }
-                })
-            }
+        // Les invités (depuis la table slot_invitations)
+        const slotInvitations = invitations.filter(inv => inv.slotId === slotId)
+        slotInvitations.forEach(inv => {
+            participants.push({
+                id: inv.odId,
+                name: inv.name,
+                isGuest: true,
+                status: inv.status
+            })
         })
 
         return participants
@@ -277,7 +290,7 @@ export default function Calendar() {
     const handleGuestUnregister = async (slotId) => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
-        await loadData()
+        await loadInvitations()
     }
 
     const handleDurationSelect = (duration) => {
@@ -310,15 +323,6 @@ export default function Calendar() {
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
 
-        // Nouveau format des guests avec odId et status
-        const guestData = guests
-            .filter(g => g.odId) // Seulement ceux sélectionnés
-            .map(g => ({
-                odId: g.odId,
-                name: g.name,
-                status: 'pending'
-            }))
-
         // Calculer overbooked en comptant SEULEMENT les acceptés
         const currentAccepted = getAcceptedParticipantCount(selectedSlotId)
         const totalAfter = currentAccepted + 1 // +1 pour le nouveau réservant
@@ -328,10 +332,16 @@ export default function Calendar() {
             // Register for all slots in the duration
             for (let i = 0; i < selectedDuration.slots; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
-                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, guestData, isOverbooked)
+                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, isOverbooked)
+
+                // Créer les invitations pour chaque slot
+                for (const guest of guests.filter(g => g.odId)) {
+                    await storageService.inviteToSlot(slot.id, dateStr, guest.odId, guest.name, user.id)
+                }
             }
             closeModal()
             await loadData()
+            await loadInvitations()
         } catch (error) {
             console.error('Registration error:', error)
         }
