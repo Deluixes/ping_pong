@@ -355,6 +355,17 @@ class StorageService {
         return this.declineInvitation(slotId, date, userId)
     }
 
+    async adminDeleteInvitation(slotId, date, userId) {
+        const { error } = await supabase
+            .from('slot_invitations')
+            .delete()
+            .eq('slot_id', slotId)
+            .eq('date', date)
+            .eq('user_id', userId)
+
+        return { success: !error }
+    }
+
     // ==================== SETTINGS ====================
 
     async getSetting(key) {

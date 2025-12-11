@@ -367,14 +367,20 @@ export default function Calendar() {
         await loadData()
     }
 
-    // Admin: delete any user's reservation
-    const handleAdminDelete = async (slotId, userId, userName) => {
+    // Admin: delete any user's reservation or invitation
+    const handleAdminDelete = async (slotId, participantId, participantName, isGuest) => {
         if (!isAdmin) return
-        if (!window.confirm(`Supprimer la réservation de ${userName} ?`)) return
+        if (!window.confirm(`Supprimer ${participantName} de ce créneau ?`)) return
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        await storageService.adminDeleteEvent(slotId, dateStr, userId)
-        await loadData()
+
+        if (isGuest) {
+            await storageService.adminDeleteInvitation(slotId, dateStr, participantId)
+            await loadInvitations()
+        } else {
+            await storageService.adminDeleteEvent(slotId, dateStr, participantId)
+            await loadData()
+        }
     }
 
     const closeModal = () => {
@@ -902,9 +908,9 @@ export default function Calendar() {
                                                         {p.status === 'pending' && (
                                                             <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>(en attente)</span>
                                                         )}
-                                                        {isAdmin && p.id && p.id !== user.id && !p.isGuest && (
+                                                        {isAdmin && p.id && p.id !== user.id && (
                                                             <button
-                                                                onClick={(e) => { e.stopPropagation(); handleAdminDelete(slot.id, p.id, p.name) }}
+                                                                onClick={(e) => { e.stopPropagation(); handleAdminDelete(slot.id, p.id, p.name, p.isGuest) }}
                                                                 style={{
                                                                     background: 'none',
                                                                     border: 'none',
