@@ -84,6 +84,9 @@ export default function Calendar() {
     // Créneaux bloqués (entraînements)
     const [blockedSlots, setBlockedSlots] = useState([])
 
+    // Plages horaires d'ouverture
+    const [openingHours, setOpeningHours] = useState([])
+
     // Ref for subscription to avoid re-subscriptions
     const subscriptionRef = useRef(null)
     const invitationsSubscriptionRef = useRef(null)
@@ -126,6 +129,11 @@ export default function Calendar() {
             const blocked = await storageService.getBlockedSlots()
             if (!isMountedRef.current) return
             setBlockedSlots(blocked.filter(s => s.enabled))
+
+            // Load opening hours
+            const hours = await storageService.getOpeningHours()
+            if (!isMountedRef.current) return
+            setOpeningHours(hours.filter(h => h.enabled))
         } catch (error) {
             console.error('Error loading data:', error)
             if (isMountedRef.current) setLoading(false)
@@ -301,6 +309,27 @@ export default function Calendar() {
             if (b.dayOfWeek !== dayOfWeek) return false
             const startTime = b.startTime.slice(0, 5)
             const endTime = b.endTime.slice(0, 5)
+            return slotTime >= startTime && slotTime < endTime
+        })
+    }
+
+    // Vérifie si un créneau est dans les heures d'ouverture
+    const isSlotInOpeningHours = (slotId) => {
+        // Si aucune plage définie, tout est ouvert
+        if (openingHours.length === 0) return true
+
+        const dayOfWeek = selectedDate.getDay()
+        const [hour, minute] = slotId.split(':').map(Number)
+        const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+
+        // Si aucune plage définie pour ce jour, le jour est fermé
+        const dayHours = openingHours.filter(h => h.dayOfWeek === dayOfWeek)
+        if (dayHours.length === 0) return false
+
+        // Vérifier si le créneau est dans une des plages
+        return dayHours.some(h => {
+            const startTime = h.startTime.slice(0, 5)
+            const endTime = h.endTime.slice(0, 5)
             return slotTime >= startTime && slotTime < endTime
         })
     }
@@ -860,9 +889,12 @@ export default function Calendar() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {TIME_SLOTS
                     .filter(slot => {
-                        if (!showOnlyOccupied) return true
-                        // Afficher aussi les créneaux bloqués dans le filtre "Avec inscrits"
+                        // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
                         const isBlocked = getBlockedSlotInfo(slot.id) !== undefined
+                        if (!isBlocked && !isSlotInOpeningHours(slot.id)) return false
+
+                        // 2. Filtre "Avec inscrits"
+                        if (!showOnlyOccupied) return true
                         return getParticipants(slot.id).length > 0 || isBlocked
                     })
                     .map(slot => {

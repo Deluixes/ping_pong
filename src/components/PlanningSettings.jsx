@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storageService } from '../services/storage'
-import { ArrowLeft, Check, RefreshCw, Settings, Calendar, Plus, Edit2, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, RefreshCw, Settings, Calendar, Clock, Plus, Edit2, Trash2, X } from 'lucide-react'
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
 export default function PlanningSettings() {
     const navigate = useNavigate()
-    const [activeTab, setActiveTab] = useState('tables') // 'tables' | 'schedule'
+    const [activeTab, setActiveTab] = useState('tables') // 'tables' | 'schedule' | 'hours'
     const [loading, setLoading] = useState(true)
 
     // Settings state
@@ -30,14 +30,28 @@ export default function PlanningSettings() {
     })
     const [saving, setSaving] = useState(false)
 
+    // Opening hours state
+    const [openingHours, setOpeningHours] = useState([])
+    const [togglingHour, setTogglingHour] = useState(null)
+    const [showHourModal, setShowHourModal] = useState(false)
+    const [editingHour, setEditingHour] = useState(null)
+    const [hourFormData, setHourFormData] = useState({
+        dayOfWeek: 1,
+        startTime: '09:00',
+        endTime: '22:00'
+    })
+    const [savingHour, setSavingHour] = useState(false)
+
     useEffect(() => {
         const loadData = async () => {
-            const [tables, blocked] = await Promise.all([
+            const [tables, blocked, hours] = await Promise.all([
                 storageService.getSetting('total_tables'),
-                storageService.getBlockedSlots()
+                storageService.getBlockedSlots(),
+                storageService.getOpeningHours()
             ])
             if (tables) setTotalTables(parseInt(tables))
             setBlockedSlots(blocked)
+            setOpeningHours(hours)
             setLoading(false)
         }
         loadData()
@@ -124,6 +138,70 @@ export default function PlanningSettings() {
         return acc
     }, {})
 
+    // Opening hours handlers
+    const handleAddHour = () => {
+        setEditingHour(null)
+        setHourFormData({
+            dayOfWeek: 1,
+            startTime: '09:00',
+            endTime: '22:00'
+        })
+        setShowHourModal(true)
+    }
+
+    const handleEditHour = (hour) => {
+        setEditingHour(hour)
+        setHourFormData({
+            dayOfWeek: hour.dayOfWeek,
+            startTime: hour.startTime.slice(0, 5),
+            endTime: hour.endTime.slice(0, 5)
+        })
+        setShowHourModal(true)
+    }
+
+    const handleSaveHour = async () => {
+        if (!hourFormData.startTime || !hourFormData.endTime) return
+        setSavingHour(true)
+
+        if (editingHour) {
+            await storageService.updateOpeningHour(editingHour.id, hourFormData)
+            setOpeningHours(prev => prev.map(h =>
+                h.id === editingHour.id ? { ...h, ...hourFormData } : h
+            ))
+        } else {
+            const result = await storageService.createOpeningHour(hourFormData)
+            if (result.success) {
+                const updated = await storageService.getOpeningHours()
+                setOpeningHours(updated)
+            }
+        }
+
+        setSavingHour(false)
+        setShowHourModal(false)
+    }
+
+    const handleDeleteHour = async (hour) => {
+        if (!window.confirm(`Supprimer cette plage horaire ?`)) return
+        await storageService.deleteOpeningHour(hour.id)
+        setOpeningHours(prev => prev.filter(h => h.id !== hour.id))
+    }
+
+    const handleToggleHour = async (hour) => {
+        setTogglingHour(hour.id)
+        await storageService.toggleOpeningHour(hour.id, !hour.enabled)
+        setOpeningHours(prev => prev.map(h =>
+            h.id === hour.id ? { ...h, enabled: !h.enabled } : h
+        ))
+        setTogglingHour(null)
+    }
+
+    // Grouper les horaires par jour
+    const hoursByDay = openingHours.reduce((acc, hour) => {
+        if (!acc[hour.dayOfWeek]) acc[hour.dayOfWeek] = []
+        acc[hour.dayOfWeek].push(hour)
+        return acc
+    }, {})
+
     if (loading) {
         return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
     }
@@ -199,6 +277,28 @@ export default function PlanningSettings() {
                 >
                     <Calendar size={16} />
                     Planning
+                </button>
+                <button
+                    onClick={() => setActiveTab('hours')}
+                    style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        background: activeTab === 'hours' ? 'white' : 'transparent',
+                        color: activeTab === 'hours' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                        fontWeight: activeTab === 'hours' ? '600' : '400',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        boxShadow: activeTab === 'hours' ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <Clock size={16} />
+                    Horaires
                 </button>
             </div>
 
@@ -467,7 +567,162 @@ export default function PlanningSettings() {
                 </div>
             )}
 
-            {/* Modal création/édition */}
+            {/* Onglet Horaires */}
+            {activeTab === 'hours' && (
+                <div>
+                    {/* Header avec bouton Ajouter */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1rem'
+                    }}>
+                        <h2 style={{
+                            fontSize: '1rem',
+                            margin: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            color: 'var(--color-primary)'
+                        }}>
+                            <Clock size={18} />
+                            Plages horaires
+                        </h2>
+                        <button
+                            onClick={handleAddHour}
+                            className="btn btn-primary"
+                            style={{
+                                padding: '0.5rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <Plus size={18} />
+                            Ajouter
+                        </button>
+                    </div>
+
+                    <p style={{
+                        color: 'var(--color-text-muted)',
+                        fontSize: '0.85rem',
+                        marginBottom: '1rem'
+                    }}>
+                        Définissez les plages horaires où les réservations sont possibles.
+                        Les créneaux hors de ces plages ne seront pas affichés (sauf les entraînements).
+                    </p>
+
+                    {/* Liste des plages horaires par jour */}
+                    {openingHours.length === 0 ? (
+                        <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+                            <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+                                Aucune plage horaire configurée.<br />
+                                <span style={{ fontSize: '0.85rem' }}>Tous les créneaux seront affichés.</span>
+                            </p>
+                        </div>
+                    ) : (
+                        Object.entries(hoursByDay)
+                            .sort(([a], [b]) => Number(a) - Number(b))
+                            .map(([day, hours]) => (
+                                <div key={day} style={{ marginBottom: '1rem' }}>
+                                    <h3 style={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: '600',
+                                        color: 'var(--color-secondary)',
+                                        marginBottom: '0.5rem',
+                                        paddingLeft: '0.5rem'
+                                    }}>
+                                        {DAYS[day]}
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {hours.map(hour => (
+                                            <div
+                                                key={hour.id}
+                                                className="card"
+                                                style={{
+                                                    padding: '0.75rem 1rem',
+                                                    opacity: hour.enabled ? 1 : 0.5,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.75rem'
+                                                }}
+                                            >
+                                                {/* Toggle */}
+                                                <button
+                                                    onClick={() => handleToggleHour(hour)}
+                                                    disabled={togglingHour === hour.id}
+                                                    style={{
+                                                        width: '44px',
+                                                        height: '24px',
+                                                        borderRadius: '12px',
+                                                        border: 'none',
+                                                        background: hour.enabled ? 'var(--color-primary)' : '#CBD5E1',
+                                                        cursor: 'pointer',
+                                                        position: 'relative',
+                                                        transition: 'background 0.2s',
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        top: '2px',
+                                                        left: hour.enabled ? '22px' : '2px',
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        borderRadius: '50%',
+                                                        background: 'white',
+                                                        transition: 'left 0.2s',
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                    }} />
+                                                </button>
+
+                                                {/* Info */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{
+                                                        fontWeight: '500',
+                                                        fontSize: '0.95rem'
+                                                    }}>
+                                                        {formatTime(hour.startTime)} → {formatTime(hour.endTime)}
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                    <button
+                                                        onClick={() => handleEditHour(hour)}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: 'var(--color-text-muted)',
+                                                            cursor: 'pointer',
+                                                            padding: '0.5rem'
+                                                        }}
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteHour(hour)}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#EF4444',
+                                                            cursor: 'pointer',
+                                                            padding: '0.5rem'
+                                                        }}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                    )}
+                </div>
+            )}
+
+            {/* Modal création/édition créneaux bloqués */}
             {showModal && (
                 <>
                     <div
@@ -662,6 +917,149 @@ export default function PlanningSettings() {
                                         <RefreshCw size={18} className="spin" />
                                     ) : (
                                         editingSlot ? 'Modifier' : 'Créer'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Modal création/édition plages horaires */}
+            {showHourModal && (
+                <>
+                    <div
+                        onClick={() => setShowHourModal(false)}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.5)',
+                            zIndex: 1000
+                        }}
+                    />
+                    <div style={{
+                        position: 'fixed',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'white',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.5rem',
+                        width: '90%',
+                        maxWidth: '400px',
+                        maxHeight: '90vh',
+                        overflow: 'auto',
+                        zIndex: 1001,
+                        boxShadow: 'var(--shadow-lg)'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+                                {editingHour ? 'Modifier la plage' : 'Nouvelle plage horaire'}
+                            </h3>
+                            <button
+                                onClick={() => setShowHourModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0.25rem'
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {/* Jour */}
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                                    Jour
+                                </label>
+                                <select
+                                    value={hourFormData.dayOfWeek}
+                                    onChange={(e) => setHourFormData({ ...hourFormData, dayOfWeek: parseInt(e.target.value) })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid #DDD',
+                                        fontSize: '1rem'
+                                    }}
+                                >
+                                    {DAYS.map((day, i) => (
+                                        <option key={i} value={i}>{day}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Heures */}
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                                        Début
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={hourFormData.startTime}
+                                        onChange={(e) => setHourFormData({ ...hourFormData, startTime: e.target.value })}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid #DDD',
+                                            fontSize: '1rem'
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                                        Fin
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={hourFormData.endTime}
+                                        onChange={(e) => setHourFormData({ ...hourFormData, endTime: e.target.value })}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid #DDD',
+                                            fontSize: '1rem'
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Boutons */}
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    onClick={() => setShowHourModal(false)}
+                                    className="btn"
+                                    style={{
+                                        flex: 1,
+                                        background: 'var(--color-bg)'
+                                    }}
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    onClick={handleSaveHour}
+                                    className="btn btn-primary"
+                                    style={{ flex: 1 }}
+                                    disabled={savingHour || !hourFormData.startTime || !hourFormData.endTime}
+                                >
+                                    {savingHour ? (
+                                        <RefreshCw size={18} className="spin" />
+                                    ) : (
+                                        editingHour ? 'Modifier' : 'Créer'
                                     )}
                                 </button>
                             </div>
