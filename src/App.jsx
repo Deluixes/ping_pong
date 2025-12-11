@@ -42,9 +42,22 @@ function AppContent() {
     const [notificationCount, setNotificationCount] = useState(0)
     const showMainUI = user && (memberStatus === 'approved' || user?.isAdmin)
 
-    useEffect(() => {
+    const refreshNotificationCount = () => {
         if (user) {
             storageService.getPendingInvitationsCount(user.id).then(setNotificationCount)
+        }
+    }
+
+    useEffect(() => {
+        refreshNotificationCount()
+
+        // S'abonner aux changements des réservations pour mettre à jour le compteur
+        const subscription = storageService.subscribeToReservations(() => {
+            refreshNotificationCount()
+        })
+
+        return () => {
+            storageService.unsubscribe(subscription)
         }
     }, [user])
 
