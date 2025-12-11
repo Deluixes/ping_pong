@@ -4,25 +4,11 @@ import { storageService } from '../services/storage'
 
 const AuthContext = createContext(null)
 
-// Restore user from cache for instant display
-const getCachedUser = () => {
-    try {
-        const cached = localStorage.getItem('pingpong_user')
-        return cached ? JSON.parse(cached) : null
-    } catch {
-        return null
-    }
-}
-
 export const AuthProvider = ({ children }) => {
-    // Initialize from cache for instant display
-    const [user, setUser] = useState(getCachedUser)
+    const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
-    // Initialize from cache if available to speed up launch
-    const [memberStatus, setMemberStatus] = useState(() => {
-        return localStorage.getItem('pingpong_member_status') || 'none'
-    })
+    const [memberStatus, setMemberStatus] = useState('none')
 
     const checkMemberStatus = useCallback(async (userId, isAdminEmail, email, name) => {
         try {
@@ -43,10 +29,6 @@ export const AuthProvider = ({ children }) => {
                 }
             }
 
-            // Cache the role too
-            if (role === 'admin') localStorage.setItem('pingpong_is_admin', 'true')
-            else localStorage.removeItem('pingpong_is_admin')
-
             setMemberStatus(status)
             return { status, role }
         } catch (error) {
@@ -55,20 +37,6 @@ export const AuthProvider = ({ children }) => {
             return { status: 'none', role: 'member' }
         }
     }, [])
-
-    // Persist member status to cache
-    useEffect(() => {
-        localStorage.setItem('pingpong_member_status', memberStatus)
-    }, [memberStatus])
-
-    // Persist user to cache for instant reload
-    useEffect(() => {
-        if (user) {
-            localStorage.setItem('pingpong_user', JSON.stringify(user))
-        } else {
-            localStorage.removeItem('pingpong_user')
-        }
-    }, [user])
 
     useEffect(() => {
         let isMounted = true
@@ -83,7 +51,7 @@ export const AuthProvider = ({ children }) => {
                     email: session.user.email,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
                     isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
-                    isAdmin: localStorage.getItem('pingpong_is_admin') === 'true'
+                    isAdmin: false
                 }
                 setUser(userData)
                 setLoading(false)
@@ -96,10 +64,6 @@ export const AuthProvider = ({ children }) => {
                     }
                 }
             } else {
-                // Pas de session - nettoyer le cache
-                localStorage.removeItem('pingpong_user')
-                localStorage.removeItem('pingpong_member_status')
-                localStorage.removeItem('pingpong_is_admin')
                 setUser(null)
                 setMemberStatus('none')
                 setLoading(false)
@@ -174,9 +138,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     const logout = async () => {
-        // Clear user cache but keep memberStatus (user stays member even logged out)
-        localStorage.removeItem('pingpong_user')
-        localStorage.removeItem('pingpong_is_admin')
         setUser(null)
         await supabase.auth.signOut()
     }
