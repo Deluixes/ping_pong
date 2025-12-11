@@ -275,8 +275,6 @@ export default function Calendar() {
     }
 
     const handleGuestUnregister = async (slotId) => {
-        if (!window.confirm('Annuler votre participation à ce créneau ?')) return
-
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
         await loadData()
