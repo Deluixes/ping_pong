@@ -10,7 +10,12 @@ export default function Login() {
     const [step, setStep] = useState('form') // 'form' | 'sent'
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState(null)
-    const { user, sendMagicLink, authError } = useAuth()
+    const { user, loading, sendMagicLink, authError } = useAuth()
+
+    // Attendre que le chargement soit terminé avant de décider quoi afficher
+    if (loading) {
+        return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+    }
 
     if (user) {
         return <Navigate to="/" replace />
