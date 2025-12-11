@@ -85,6 +85,15 @@ export default function Calendar() {
     const subscriptionRef = useRef(null)
     const invitationsSubscriptionRef = useRef(null)
     const userIdRef = useRef(user?.id)
+    const isMountedRef = useRef(true)
+
+    // Cleanup au démontage
+    useEffect(() => {
+        isMountedRef.current = true
+        return () => {
+            isMountedRef.current = false
+        }
+    }, [])
 
     const loadData = useCallback(async () => {
         const currentUserId = userIdRef.current
@@ -95,20 +104,23 @@ export default function Calendar() {
         try {
             // Load settings
             const tablesSettings = await storageService.getSetting('total_tables')
+            if (!isMountedRef.current) return
             if (tablesSettings) setTotalTables(parseInt(tablesSettings))
 
             // Load events first (most important), members can wait
             const loadedEvents = await storageService.getEvents()
+            if (!isMountedRef.current) return
             setEvents(loadedEvents)
             setCachedEvents(loadedEvents)
             setLoading(false)
 
             // Load members in background (for guest selection)
             const members = await storageService.getMembers()
+            if (!isMountedRef.current) return
             setApprovedMembers(members.approved.filter(m => m.userId !== currentUserId))
         } catch (error) {
             console.error('Error loading data:', error)
-            setLoading(false)
+            if (isMountedRef.current) setLoading(false)
         }
     }, [])
 
@@ -116,7 +128,9 @@ export default function Calendar() {
     const loadInvitations = useCallback(async () => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const loadedInvitations = await storageService.getAllInvitationsForDate(dateStr)
-        setInvitations(loadedInvitations)
+        if (isMountedRef.current) {
+            setInvitations(loadedInvitations)
+        }
     }, [selectedDate])
 
     // Recharger les invitations quand la date change

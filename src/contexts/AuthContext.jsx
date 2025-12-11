@@ -53,27 +53,41 @@ export const AuthProvider = ({ children }) => {
                     isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
                     isAdmin: false
                 }
+
+                if (!isMounted) return
                 setUser(userData)
 
                 // Vérifier le statut membre si demandé (AVANT de mettre loading à false)
                 if (shouldCheckMember) {
                     const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
-                    if (isMounted) {
-                        setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
-                    }
+                    if (!isMounted) return
+                    setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
                 }
 
+                if (!isMounted) return
                 setLoading(false)
             } else {
+                if (!isMounted) return
                 setUser(null)
                 setMemberStatus('none')
                 setLoading(false)
             }
         }
 
+        // Timeout de sécurité - si auth prend plus de 10s, débloquer
+        const timeoutId = setTimeout(() => {
+            if (isMounted) {
+                console.warn('Auth timeout - forcing loading to false')
+                setLoading(false)
+            }
+        }, 10000)
+
         // 1. Récupérer la session initiale explicitement (plus fiable que INITIAL_SESSION)
         supabase.auth.getSession().then(({ data: { session } }) => {
             handleSession(session, true)
+        }).catch(err => {
+            console.error('Session error:', err)
+            if (isMounted) setLoading(false)
         })
 
         // 2. Écouter les changements ultérieurs
@@ -93,6 +107,7 @@ export const AuthProvider = ({ children }) => {
 
         return () => {
             isMounted = false
+            clearTimeout(timeoutId)
             subscription.unsubscribe()
         }
     }, [])
