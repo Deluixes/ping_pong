@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Shield, ShieldOff } from 'lucide-react'
+import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Shield, ShieldOff, Edit2, Award } from 'lucide-react'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
     const [members, setMembers] = useState({ pending: [], approved: [] })
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
+
+    // Modal d'édition
+    const [editingMember, setEditingMember] = useState(null)
+    const [editForm, setEditForm] = useState({ name: '', licenseType: null })
+    const [savingEdit, setSavingEdit] = useState(false)
 
     const loadData = async () => {
         const data = await storageService.getMembers()
@@ -56,6 +61,36 @@ export default function AdminPanel() {
             await storageService.updateMemberRole(userId, 'member')
             await loadData()
         }
+    }
+
+    const openEditModal = (member) => {
+        setEditingMember(member)
+        setEditForm({
+            name: member.name,
+            licenseType: member.licenseType
+        })
+    }
+
+    const closeEditModal = () => {
+        setEditingMember(null)
+        setEditForm({ name: '', licenseType: null })
+    }
+
+    const handleSaveEdit = async () => {
+        if (!editForm.name.trim()) return
+        setSavingEdit(true)
+
+        // Mettre à jour le nom si modifié
+        if (editForm.name !== editingMember.name) {
+            await storageService.updateMemberName(editingMember.userId, editForm.name.trim())
+        }
+
+        // Mettre à jour la licence
+        await storageService.updateMemberLicense(editingMember.userId, editForm.licenseType)
+
+        await loadData()
+        setSavingEdit(false)
+        closeEditModal()
     }
 
     if (loading) {
@@ -207,8 +242,20 @@ export default function AdminPanel() {
                                 }}
                             >
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                         {member.name}
+                                        {member.licenseType && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                background: member.licenseType === 'C' ? '#FEF3C7' : '#E0F2FE',
+                                                color: member.licenseType === 'C' ? '#B45309' : '#0369A1',
+                                                padding: '2px 6px',
+                                                borderRadius: '999px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                {member.licenseType === 'C' ? 'Compét.' : 'Loisir'}
+                                            </span>
+                                        )}
                                         {member.role === 'admin' && (
                                             <span style={{
                                                 fontSize: '0.7rem',
@@ -226,6 +273,21 @@ export default function AdminPanel() {
                                         {member.email}
                                     </div>
                                 </div>
+
+                                <button
+                                    onClick={() => openEditModal(member)}
+                                    style={{
+                                        background: '#F3F4F6',
+                                        color: '#374151',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: '0.5rem',
+                                        cursor: 'pointer'
+                                    }}
+                                    title="Modifier"
+                                >
+                                    <Edit2 size={18} />
+                                </button>
 
                                 {member.role !== 'admin' ? (
                                     <button
@@ -278,6 +340,135 @@ export default function AdminPanel() {
                     </div>
                 )}
             </div>
+
+            {/* Modal d'édition */}
+            {editingMember && (
+                <>
+                    <div
+                        onClick={closeEditModal}
+                        style={{
+                            position: 'fixed',
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'rgba(0,0,0,0.5)',
+                            zIndex: 1000
+                        }}
+                    />
+                    <div style={{
+                        position: 'fixed',
+                        top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'white',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.5rem',
+                        width: '90%',
+                        maxWidth: '400px',
+                        zIndex: 1001,
+                        boxShadow: 'var(--shadow-lg)'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Modifier le membre</h3>
+                            <button
+                                onClick={closeEditModal}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: '500',
+                                fontSize: '0.9rem'
+                            }}>
+                                Prénom Nom
+                            </label>
+                            <input
+                                type="text"
+                                value={editForm.name}
+                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid #DDD',
+                                    fontSize: '1rem'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: '500',
+                                fontSize: '0.9rem'
+                            }}>
+                                <Award size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                Type de licence
+                            </label>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditForm({ ...editForm, licenseType: 'L' })}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: `2px solid ${editForm.licenseType === 'L' ? 'var(--color-primary)' : '#DDD'}`,
+                                        background: editForm.licenseType === 'L' ? '#EFF6FF' : 'white',
+                                        cursor: 'pointer',
+                                        fontWeight: editForm.licenseType === 'L' ? '600' : '400',
+                                        color: editForm.licenseType === 'L' ? 'var(--color-primary)' : 'var(--color-text)'
+                                    }}
+                                >
+                                    Loisir (L)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditForm({ ...editForm, licenseType: 'C' })}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: `2px solid ${editForm.licenseType === 'C' ? 'var(--color-primary)' : '#DDD'}`,
+                                        background: editForm.licenseType === 'C' ? '#EFF6FF' : 'white',
+                                        cursor: 'pointer',
+                                        fontWeight: editForm.licenseType === 'C' ? '600' : '400',
+                                        color: editForm.licenseType === 'C' ? 'var(--color-primary)' : 'var(--color-text)'
+                                    }}
+                                >
+                                    Compétition (C)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={closeEditModal}
+                                className="btn"
+                                style={{ flex: 1, background: 'var(--color-bg)' }}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                className="btn btn-primary"
+                                style={{ flex: 1 }}
+                                disabled={savingEdit || !editForm.name.trim()}
+                            >
+                                {savingEdit ? 'Enregistrement...' : 'Enregistrer'}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

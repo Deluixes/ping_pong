@@ -134,7 +134,8 @@ class StorageService {
                 name: m.name,
                 requestedAt: m.requested_at,
                 // Pending members don't really have a role yet, but default is member
-                role: 'member'
+                role: 'member',
+                licenseType: m.license_type || null
             }))
 
         const approved = data
@@ -145,7 +146,8 @@ class StorageService {
                 name: m.name,
                 requestedAt: m.requested_at,
                 approvedAt: m.approved_at,
-                role: m.role || 'member'
+                role: m.role || 'member',
+                licenseType: m.license_type || null
             }))
 
         return { pending, approved }
@@ -191,6 +193,55 @@ class StorageService {
         }
 
         return { success: true }
+    }
+
+    async updateMemberLicense(userId, licenseType) {
+        const { error } = await supabase
+            .from('members')
+            .update({ license_type: licenseType })
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error updating member license:', error)
+            return { success: false }
+        }
+
+        return { success: true }
+    }
+
+    async updateMemberName(userId, name) {
+        const { error } = await supabase
+            .from('members')
+            .update({ name })
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error updating member name:', error)
+            return { success: false }
+        }
+
+        return { success: true }
+    }
+
+    async getMemberProfile(userId) {
+        const { data, error } = await supabase
+            .from('members')
+            .select('user_id, email, name, status, role, license_type')
+            .eq('user_id', userId)
+            .single()
+
+        if (error || !data) {
+            return null
+        }
+
+        return {
+            userId: data.user_id,
+            email: data.email,
+            name: data.name,
+            status: data.status,
+            role: data.role || 'member',
+            licenseType: data.license_type || null
+        }
     }
 
     async getMemberStatus(userId) {

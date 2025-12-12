@@ -1,15 +1,29 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService } from '../services/storage'
-import { ArrowLeft, Save, User, Mail } from 'lucide-react'
+import { ArrowLeft, Save, User, Mail, Award } from 'lucide-react'
 
 export default function Settings() {
     const { user, updateName, logout } = useAuth()
     const navigate = useNavigate()
     const [name, setName] = useState(user?.name || '')
+    const [licenseType, setLicenseType] = useState(null)
     const [isSaving, setIsSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+
+    // Charger le profil pour récupérer le type de licence
+    useEffect(() => {
+        const loadProfile = async () => {
+            if (user?.id) {
+                const profile = await storageService.getMemberProfile(user.id)
+                if (profile) {
+                    setLicenseType(profile.licenseType)
+                }
+            }
+        }
+        loadProfile()
+    }, [user?.id])
 
     const handleSave = async (e) => {
         e.preventDefault()
@@ -19,6 +33,10 @@ export default function Settings() {
         await updateName(name.trim())
         // Also update name in existing reservations
         await storageService.updateUserNameInEvents(user.id, name.trim())
+        // Update license type
+        if (licenseType) {
+            await storageService.updateMemberLicense(user.id, licenseType)
+        }
         setIsSaving(false)
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
@@ -73,7 +91,7 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
                             Prénom Nom
                         </label>
@@ -91,6 +109,47 @@ export default function Settings() {
                             }}
                             required
                         />
+                    </div>
+
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                            <Award size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                            Type de licence
+                        </label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setLicenseType('L')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: `2px solid ${licenseType === 'L' ? 'var(--color-primary)' : '#DDD'}`,
+                                    background: licenseType === 'L' ? '#EFF6FF' : 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: licenseType === 'L' ? '600' : '400',
+                                    color: licenseType === 'L' ? 'var(--color-primary)' : 'var(--color-text)'
+                                }}
+                            >
+                                Loisir (L)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLicenseType('C')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: `2px solid ${licenseType === 'C' ? 'var(--color-primary)' : '#DDD'}`,
+                                    background: licenseType === 'C' ? '#EFF6FF' : 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: licenseType === 'C' ? '600' : '400',
+                                    color: licenseType === 'C' ? 'var(--color-primary)' : 'var(--color-text)'
+                                }}
+                            >
+                                Compétition (C)
+                            </button>
+                        </div>
                     </div>
 
                     <button
