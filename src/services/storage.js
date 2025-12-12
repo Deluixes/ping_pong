@@ -8,6 +8,20 @@ import { supabase } from '../lib/supabase'
 export const GROUP_NAME = 'Ping-Pong Ramonville'
 
 class StorageService {
+    // ==================== UTILS ====================
+
+    // Convertit une heure au format "HH:MM" ou "HH:MM:SS" en minutes
+    _timeToMinutes(time) {
+        const [hours, minutes] = time.split(':').map(Number)
+        return hours * 60 + minutes
+    }
+
+    // Convertit un slot_id au format "H:MM" ou "HH:MM" en minutes
+    _slotIdToMinutes(slotId) {
+        const [hours, minutes] = slotId.split(':').map(Number)
+        return hours * 60 + minutes
+    }
+
     // ==================== RESERVATIONS ====================
 
     async getEvents() {
@@ -571,6 +585,478 @@ class StorageService {
 
         if (error) {
             console.error('Error deleting opening hour:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    // ==================== WEEK TEMPLATES ====================
+
+    async getTemplates() {
+        const { data, error } = await supabase
+            .from('week_templates')
+            .select('*')
+            .order('name', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching templates:', error)
+            return []
+        }
+        return data
+    }
+
+    async createTemplate(name) {
+        const { data, error } = await supabase
+            .from('week_templates')
+            .insert({ name })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error creating template:', error)
+            return { success: false, error }
+        }
+        return { success: true, template: data }
+    }
+
+    async updateTemplate(id, name) {
+        const { error } = await supabase
+            .from('week_templates')
+            .update({ name })
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error updating template:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    async deleteTemplate(id) {
+        const { error } = await supabase
+            .from('week_templates')
+            .delete()
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error deleting template:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    async getTemplateSlots(templateId) {
+        const { data, error } = await supabase
+            .from('template_slots')
+            .select('*')
+            .eq('template_id', templateId)
+            .order('day_of_week', { ascending: true })
+            .order('start_time', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching template slots:', error)
+            return []
+        }
+
+        return data.map(s => ({
+            id: s.id,
+            templateId: s.template_id,
+            dayOfWeek: s.day_of_week,
+            startTime: s.start_time,
+            endTime: s.end_time,
+            name: s.name,
+            coach: s.coach,
+            group: s.group_name,
+            isBlocking: s.is_blocking
+        }))
+    }
+
+    async createTemplateSlot(templateId, slot) {
+        const { data, error } = await supabase
+            .from('template_slots')
+            .insert({
+                template_id: templateId,
+                day_of_week: slot.dayOfWeek,
+                start_time: slot.startTime,
+                end_time: slot.endTime,
+                name: slot.name,
+                coach: slot.coach || null,
+                group_name: slot.group || null,
+                is_blocking: slot.isBlocking !== false
+            })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error creating template slot:', error)
+            return { success: false, error }
+        }
+        return { success: true, slot: data }
+    }
+
+    async updateTemplateSlot(id, slot) {
+        const { error } = await supabase
+            .from('template_slots')
+            .update({
+                day_of_week: slot.dayOfWeek,
+                start_time: slot.startTime,
+                end_time: slot.endTime,
+                name: slot.name,
+                coach: slot.coach || null,
+                group_name: slot.group || null,
+                is_blocking: slot.isBlocking !== false
+            })
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error updating template slot:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    async deleteTemplateSlot(id) {
+        const { error } = await supabase
+            .from('template_slots')
+            .delete()
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error deleting template slot:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    async getTemplateHours(templateId) {
+        const { data, error } = await supabase
+            .from('template_hours')
+            .select('*')
+            .eq('template_id', templateId)
+            .order('day_of_week', { ascending: true })
+            .order('start_time', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching template hours:', error)
+            return []
+        }
+
+        return data.map(h => ({
+            id: h.id,
+            templateId: h.template_id,
+            dayOfWeek: h.day_of_week,
+            startTime: h.start_time,
+            endTime: h.end_time
+        }))
+    }
+
+    async createTemplateHour(templateId, hour) {
+        const { data, error } = await supabase
+            .from('template_hours')
+            .insert({
+                template_id: templateId,
+                day_of_week: hour.dayOfWeek,
+                start_time: hour.startTime,
+                end_time: hour.endTime
+            })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error creating template hour:', error)
+            return { success: false, error }
+        }
+        return { success: true, hour: data }
+    }
+
+    async updateTemplateHour(id, hour) {
+        const { error } = await supabase
+            .from('template_hours')
+            .update({
+                day_of_week: hour.dayOfWeek,
+                start_time: hour.startTime,
+                end_time: hour.endTime
+            })
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error updating template hour:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    async deleteTemplateHour(id) {
+        const { error } = await supabase
+            .from('template_hours')
+            .delete()
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error deleting template hour:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    // ==================== WEEK CONFIGS ====================
+
+    async getWeekConfig(weekStart) {
+        // weekStart doit être au format 'YYYY-MM-DD' (lundi de la semaine)
+        const { data: config, error } = await supabase
+            .from('week_configs')
+            .select('*')
+            .eq('week_start', weekStart)
+            .single()
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching week config:', error)
+            return null
+        }
+
+        if (!config) return null
+
+        // Charger les slots et hours associés
+        const [slotsResult, hoursResult] = await Promise.all([
+            supabase.from('week_slots').select('*').eq('week_config_id', config.id).order('date').order('start_time'),
+            supabase.from('week_hours').select('*').eq('week_config_id', config.id).order('date').order('start_time')
+        ])
+
+        return {
+            id: config.id,
+            weekStart: config.week_start,
+            templateName: config.template_name,
+            slots: (slotsResult.data || []).map(s => ({
+                id: s.id,
+                date: s.date,
+                startTime: s.start_time,
+                endTime: s.end_time,
+                name: s.name,
+                coach: s.coach,
+                group: s.group_name,
+                isBlocking: s.is_blocking
+            })),
+            hours: (hoursResult.data || []).map(h => ({
+                id: h.id,
+                date: h.date,
+                startTime: h.start_time,
+                endTime: h.end_time
+            }))
+        }
+    }
+
+    async isWeekConfigured(weekStart) {
+        const { data, error } = await supabase
+            .from('week_configs')
+            .select('id')
+            .eq('week_start', weekStart)
+            .single()
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error checking week config:', error)
+            return false
+        }
+
+        return !!data
+    }
+
+    async getConfiguredWeeks(startDate, endDate) {
+        const { data, error } = await supabase
+            .from('week_configs')
+            .select('week_start, template_name')
+            .gte('week_start', startDate)
+            .lte('week_start', endDate)
+            .order('week_start', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching configured weeks:', error)
+            return []
+        }
+        return data
+    }
+
+    async applyTemplateToWeeks(templateId, weekStarts) {
+        // 1. Récupérer les données du template
+        const [templateResult, slotsResult, hoursResult] = await Promise.all([
+            supabase.from('week_templates').select('name').eq('id', templateId).single(),
+            this.getTemplateSlots(templateId),
+            this.getTemplateHours(templateId)
+        ])
+
+        if (!templateResult.data) {
+            return { success: false, error: 'Template not found' }
+        }
+
+        const templateName = templateResult.data.name
+        const templateSlots = slotsResult
+        const templateHours = hoursResult
+
+        let totalDeleted = 0
+
+        for (const weekStart of weekStarts) {
+            // 2. Créer ou récupérer la week_config
+            let configId
+            const existing = await this.getWeekConfig(weekStart)
+
+            if (existing) {
+                // Supprimer les anciens slots et hours
+                await Promise.all([
+                    supabase.from('week_slots').delete().eq('week_config_id', existing.id),
+                    supabase.from('week_hours').delete().eq('week_config_id', existing.id)
+                ])
+                configId = existing.id
+
+                // Mettre à jour le nom du template
+                await supabase.from('week_configs').update({ template_name: templateName }).eq('id', configId)
+            } else {
+                const { data: newConfig, error } = await supabase
+                    .from('week_configs')
+                    .insert({ week_start: weekStart, template_name: templateName })
+                    .select()
+                    .single()
+
+                if (error) {
+                    console.error('Error creating week config:', error)
+                    continue
+                }
+                configId = newConfig.id
+            }
+
+            // 3. Calculer les dates de la semaine (lundi à dimanche)
+            const weekStartDate = new Date(weekStart)
+            const dates = []
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(weekStartDate)
+                d.setDate(d.getDate() + i)
+                dates.push(d.toISOString().split('T')[0])
+            }
+
+            // 4. Créer les nouveaux slots
+            const newSlots = []
+            for (const slot of templateSlots) {
+                // dayOfWeek: 0=dimanche, 1=lundi, etc.
+                // dates[0] = lundi, dates[6] = dimanche
+                const dateIndex = slot.dayOfWeek === 0 ? 6 : slot.dayOfWeek - 1
+                newSlots.push({
+                    week_config_id: configId,
+                    date: dates[dateIndex],
+                    start_time: slot.startTime,
+                    end_time: slot.endTime,
+                    name: slot.name,
+                    coach: slot.coach || null,
+                    group_name: slot.group || null,
+                    is_blocking: slot.isBlocking
+                })
+            }
+
+            if (newSlots.length > 0) {
+                await supabase.from('week_slots').insert(newSlots)
+            }
+
+            // 5. Créer les nouvelles plages horaires
+            const newHours = []
+            for (const hour of templateHours) {
+                const dateIndex = hour.dayOfWeek === 0 ? 6 : hour.dayOfWeek - 1
+                newHours.push({
+                    week_config_id: configId,
+                    date: dates[dateIndex],
+                    start_time: hour.startTime,
+                    end_time: hour.endTime
+                })
+            }
+
+            if (newHours.length > 0) {
+                await supabase.from('week_hours').insert(newHours)
+            }
+
+            // 6. Supprimer les réservations qui chevauchent les créneaux bloquants
+            const blockingSlots = newSlots.filter(s => s.is_blocking)
+            for (const slot of blockingSlots) {
+                // Récupérer toutes les réservations de cette date
+                const { data: dayReservations } = await supabase
+                    .from('reservations')
+                    .select('id, slot_id')
+                    .eq('date', slot.date)
+
+                if (dayReservations && dayReservations.length > 0) {
+                    // Convertir les heures du slot en minutes pour comparaison
+                    const slotStartMinutes = this._timeToMinutes(slot.start_time)
+                    const slotEndMinutes = this._timeToMinutes(slot.end_time)
+
+                    // Filtrer les réservations qui chevauchent le créneau bloquant
+                    const conflicting = dayReservations.filter(r => {
+                        const resMinutes = this._slotIdToMinutes(r.slot_id)
+                        return resMinutes >= slotStartMinutes && resMinutes < slotEndMinutes
+                    })
+
+                    if (conflicting.length > 0) {
+                        const ids = conflicting.map(r => r.id)
+                        await supabase.from('reservations').delete().in('id', ids)
+                        totalDeleted += conflicting.length
+                    }
+                }
+            }
+        }
+
+        return { success: true, deletedReservations: totalDeleted }
+    }
+
+    async deleteWeekSlot(id) {
+        const { error } = await supabase
+            .from('week_slots')
+            .delete()
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error deleting week slot:', error)
+            return { success: false }
+        }
+        return { success: true }
+    }
+
+    async addWeekSlot(weekConfigId, slot) {
+        const { data, error } = await supabase
+            .from('week_slots')
+            .insert({
+                week_config_id: weekConfigId,
+                date: slot.date,
+                start_time: slot.startTime,
+                end_time: slot.endTime,
+                name: slot.name,
+                coach: slot.coach || null,
+                group_name: slot.group || null,
+                is_blocking: slot.isBlocking !== false
+            })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error adding week slot:', error)
+            return { success: false, error }
+        }
+        return { success: true, slot: data }
+    }
+
+    async getWeekSlots(weekStart) {
+        const config = await this.getWeekConfig(weekStart)
+        if (!config) return []
+        return config.slots
+    }
+
+    async getWeekHours(weekStart) {
+        const config = await this.getWeekConfig(weekStart)
+        if (!config) return []
+        return config.hours
+    }
+
+    async deleteWeekConfig(weekStart) {
+        const { error } = await supabase
+            .from('week_configs')
+            .delete()
+            .eq('week_start', weekStart)
+
+        if (error) {
+            console.error('Error deleting week config:', error)
             return { success: false }
         }
         return { success: true }

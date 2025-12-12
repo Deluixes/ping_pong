@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { startOfWeek, addDays, format, isSameDay } from 'date-fns'
+import { startOfWeek, addDays, format, isSameDay, isSameWeek, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
 import { ADMIN_EMAILS } from '../lib/supabase'
-import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus } from 'lucide-react'
+import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus, Edit3, Lock, Info } from 'lucide-react'
 
-// Generate 30-min slots from 9:00 to 22:00
+// Generate 30-min slots from 8:00 to 23:00 (for unconfigured weeks)
 const generateTimeSlots = () => {
     const slots = []
-    for (let hour = 9; hour < 22; hour++) {
+    for (let hour = 8; hour < 23; hour++) {
         slots.push({ id: `${hour}:00`, label: `${hour}:00`, hour, minute: 0 })
         slots.push({ id: `${hour}:30`, label: `${hour}:30`, hour, minute: 30 })
     }
@@ -81,11 +81,14 @@ export default function Calendar() {
     // Invitations pour la date sélectionnée
     const [invitations, setInvitations] = useState([])
 
-    // Créneaux bloqués (entraînements)
-    const [blockedSlots, setBlockedSlots] = useState([])
+    // Week configuration (remplace blockedSlots et openingHours)
+    const [weekConfig, setWeekConfig] = useState(null)
+    const [weekSlots, setWeekSlots] = useState([])
+    const [weekHours, setWeekHours] = useState([])
+    const [isWeekConfigured, setIsWeekConfigured] = useState(false)
 
-    // Plages horaires d'ouverture
-    const [openingHours, setOpeningHours] = useState([])
+    // Mode édition admin pour modifier les créneaux
+    const [editMode, setEditMode] = useState(false)
 
     // Ref for subscription to avoid re-subscriptions
     const subscriptionRef = useRef(null)
@@ -124,21 +127,39 @@ export default function Calendar() {
             const members = await storageService.getMembers()
             if (!isMountedRef.current) return
             setApprovedMembers(members.approved.filter(m => m.userId !== currentUserId))
-
-            // Load blocked slots
-            const blocked = await storageService.getBlockedSlots()
-            if (!isMountedRef.current) return
-            setBlockedSlots(blocked.filter(s => s.enabled))
-
-            // Load opening hours
-            const hours = await storageService.getOpeningHours()
-            if (!isMountedRef.current) return
-            setOpeningHours(hours.filter(h => h.enabled))
         } catch (error) {
             console.error('Error loading data:', error)
             if (isMountedRef.current) setLoading(false)
         }
     }, [])
+
+    // Charger la configuration de la semaine quand weekStart change
+    const loadWeekConfig = useCallback(async () => {
+        const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+
+        try {
+            const config = await storageService.getWeekConfig(weekStartStr)
+            if (!isMountedRef.current) return
+
+            if (config) {
+                setWeekConfig(config)
+                setWeekSlots(config.slots || [])
+                setWeekHours(config.hours || [])
+                setIsWeekConfigured(true)
+            } else {
+                setWeekConfig(null)
+                setWeekSlots([])
+                setWeekHours([])
+                setIsWeekConfigured(false)
+            }
+        } catch (error) {
+            console.error('Error loading week config:', error)
+            setWeekConfig(null)
+            setWeekSlots([])
+            setWeekHours([])
+            setIsWeekConfigured(false)
+        }
+    }, [weekStart])
 
     // Charger les invitations quand la date change
     const loadInvitations = useCallback(async () => {
@@ -153,6 +174,11 @@ export default function Calendar() {
     useEffect(() => {
         loadInvitations()
     }, [loadInvitations])
+
+    // Recharger la config de la semaine quand la date change
+    useEffect(() => {
+        loadWeekConfig()
+    }, [loadWeekConfig])
 
     // Update userIdRef when user changes
     useEffect(() => {
@@ -283,10 +309,23 @@ export default function Calendar() {
 
         for (const duration of DURATION_OPTIONS) {
             // Check if we have enough slots remaining in the day
-            if (startIndex + duration.slots <= TIME_SLOTS.length) {
-                available.push(duration)
-            } else {
+            if (startIndex + duration.slots > TIME_SLOTS.length) {
                 break
+            }
+
+            // Check if any slot in this duration overlaps with a blocking slot
+            let hasBlockingSlot = false
+            for (let i = 0; i < duration.slots; i++) {
+                const slot = TIME_SLOTS[startIndex + i]
+                const blockedInfo = getBlockedSlotInfo(slot.id)
+                if (blockedInfo && blockedInfo.isBlocking !== false) {
+                    hasBlockingSlot = true
+                    break
+                }
+            }
+
+            if (!hasBlockingSlot) {
+                available.push(duration)
             }
         }
 
@@ -299,34 +338,49 @@ export default function Calendar() {
         return new Set(dayEvents.map(e => e.userId)).size
     }
 
-    // Vérifie si un créneau est bloqué par un entraînement
+    // Vérifie si la semaine affichée est la semaine courante
+    const isCurrentWeek = () => {
+        const today = startOfDay(new Date())
+        return isSameWeek(selectedDate, today, { weekStartsOn: 1 })
+    }
+
+    // Vérifie si les réservations sont autorisées pour cette semaine
+    const canReserveOnWeek = () => {
+        // Si semaine configurée, on peut réserver
+        if (isWeekConfigured) return true
+        // Sinon, seulement si c'est la semaine en cours
+        return isCurrentWeek()
+    }
+
+    // Vérifie si un créneau est bloqué par un entraînement (utilise weekSlots)
     const getBlockedSlotInfo = (slotId) => {
-        const dayOfWeek = selectedDate.getDay()
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const [hour, minute] = slotId.split(':').map(Number)
         const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 
-        return blockedSlots.find(b => {
-            if (b.dayOfWeek !== dayOfWeek) return false
-            const startTime = b.startTime.slice(0, 5)
-            const endTime = b.endTime.slice(0, 5)
+        return weekSlots.find(slot => {
+            if (slot.date !== dateStr) return false
+            const startTime = slot.startTime.slice(0, 5)
+            const endTime = slot.endTime.slice(0, 5)
             return slotTime >= startTime && slotTime < endTime
         })
     }
 
-    // Vérifie si un créneau est dans les heures d'ouverture
+    // Vérifie si un créneau est dans les heures d'ouverture (utilise weekHours)
     const isSlotInOpeningHours = (slotId) => {
-        // Si aucune plage définie, tout est ouvert
-        if (openingHours.length === 0) return true
-
-        const dayOfWeek = selectedDate.getDay()
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const [hour, minute] = slotId.split(':').map(Number)
         const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 
-        // Si aucune plage définie pour ce jour, le jour est fermé
-        const dayHours = openingHours.filter(h => h.dayOfWeek === dayOfWeek)
-        if (dayHours.length === 0) return false
+        // Filtrer les heures pour cette date
+        const dayHours = weekHours.filter(h => h.date === dateStr)
 
-        // Vérifier si le créneau est dans une des plages
+        // Si semaine non configurée, plage par défaut 8h-23h
+        if (!isWeekConfigured || dayHours.length === 0) {
+            return slotTime >= '08:00' && slotTime < '23:00'
+        }
+
+        // Vérifier si le créneau est dans une des plages configurées
         return dayHours.some(h => {
             const startTime = h.startTime.slice(0, 5)
             const endTime = h.endTime.slice(0, 5)
@@ -336,6 +390,12 @@ export default function Calendar() {
 
     // Actions
     const handleSlotClick = (slotId) => {
+        // Vérifier si les réservations sont autorisées pour cette semaine
+        if (!canReserveOnWeek()) {
+            alert('Les réservations ne sont pas encore ouvertes pour cette semaine.')
+            return
+        }
+
         const userReg = getUserRegistration(slotId)
 
         if (userReg) {
@@ -350,6 +410,15 @@ export default function Calendar() {
             setSelectedDuration(null)
             setModalStep('duration')
         }
+    }
+
+    // Admin: supprimer un créneau de la semaine
+    const handleDeleteWeekSlot = async (slotId) => {
+        if (!isAdmin || !editMode) return
+        if (!window.confirm('Supprimer ce créneau de cette semaine ?')) return
+
+        await storageService.deleteWeekSlot(slotId)
+        await loadWeekConfig()
     }
 
     const handleGuestUnregister = async (slotId) => {
@@ -387,6 +456,17 @@ export default function Calendar() {
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
+
+        // Vérifier que la durée ne chevauche pas un créneau bloquant
+        for (let i = 0; i < selectedDuration.slots; i++) {
+            const slot = TIME_SLOTS[startIndex + i]
+            if (!slot) continue
+            const blockedInfo = getBlockedSlotInfo(slot.id)
+            if (blockedInfo && blockedInfo.isBlocking !== false) {
+                alert(`La durée sélectionnée chevauche un créneau bloqué (${blockedInfo.name}). Veuillez réduire la durée.`)
+                return
+            }
+        }
 
         // Calculer overbooked en comptant SEULEMENT les acceptés
         const currentAccepted = getAcceptedParticipantCount(selectedSlotId)
@@ -854,7 +934,27 @@ export default function Calendar() {
                 })}
             </div>
 
-            {/* Title + Filter */}
+            {/* Warning if week not configured and not current week */}
+            {!isWeekConfigured && !isCurrentWeek() && (
+                <div style={{
+                    background: '#FEF3C7',
+                    border: '1px solid #F59E0B',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem 1rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: '#92400E'
+                }}>
+                    <Info size={18} />
+                    <span style={{ fontSize: '0.9rem' }}>
+                        Cette semaine n'est pas encore configurée. Les réservations ne sont pas ouvertes.
+                    </span>
+                </div>
+            )}
+
+            {/* Title + Filter + Edit Mode */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -871,18 +971,39 @@ export default function Calendar() {
                 }}>
                     {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
                 </h2>
-                <button
-                    onClick={() => setShowOnlyOccupied(!showOnlyOccupied)}
-                    className="btn"
-                    style={{
-                        background: showOnlyOccupied ? 'var(--color-secondary)' : 'var(--color-bg)',
-                        color: showOnlyOccupied ? 'white' : 'var(--color-text)',
-                        fontSize: '0.8rem',
-                        padding: '0.5rem 0.75rem'
-                    }}
-                >
-                    {showOnlyOccupied ? '👥 Avec inscrits' : '📋 Tout afficher'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {/* Admin Edit Mode Toggle */}
+                    {isAdmin && isWeekConfigured && (
+                        <button
+                            onClick={() => setEditMode(!editMode)}
+                            className="btn"
+                            style={{
+                                background: editMode ? '#DC2626' : 'var(--color-bg)',
+                                color: editMode ? 'white' : 'var(--color-text)',
+                                fontSize: '0.8rem',
+                                padding: '0.5rem 0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                            }}
+                        >
+                            <Edit3 size={14} />
+                            {editMode ? 'Édition' : 'Modifier'}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setShowOnlyOccupied(!showOnlyOccupied)}
+                        className="btn"
+                        style={{
+                            background: showOnlyOccupied ? 'var(--color-secondary)' : 'var(--color-bg)',
+                            color: showOnlyOccupied ? 'white' : 'var(--color-text)',
+                            fontSize: '0.8rem',
+                            padding: '0.5rem 0.75rem'
+                        }}
+                    >
+                        {showOnlyOccupied ? '👥 Avec inscrits' : '📋 Tout afficher'}
+                    </button>
+                </div>
             </div>
 
             {/* Time Slots */}
@@ -900,27 +1021,32 @@ export default function Calendar() {
                     .map(slot => {
                         const blockedInfo = getBlockedSlotInfo(slot.id)
 
-                        // Si le créneau est bloqué, afficher différemment
+                        // Si le créneau est bloqué/indicatif, afficher différemment
                         if (blockedInfo) {
+                            const isBlocking = blockedInfo.isBlocking !== false // Par défaut bloquant
+                            const bgColor = isBlocking ? '#F3F4F6' : '#EFF6FF'
+                            const timeColor = isBlocking ? '#9CA3AF' : '#3B82F6'
+                            const textColor = isBlocking ? '#6B7280' : '#1D4ED8'
+
                             return (
                                 <div
                                     key={slot.id}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'stretch',
-                                        background: '#F3F4F6',
+                                        background: bgColor,
                                         borderRadius: 'var(--radius-md)',
                                         overflow: 'hidden',
                                         boxShadow: 'var(--shadow-sm)',
-                                        border: '1px solid #E2E8F0',
-                                        opacity: 0.8
+                                        border: isBlocking ? '1px solid #E2E8F0' : '1px solid #93C5FD',
+                                        opacity: isBlocking ? 0.8 : 1
                                     }}
                                 >
                                     {/* Time Label */}
                                     <div style={{
                                         width: '60px',
                                         padding: '0.75rem 0.5rem',
-                                        background: '#9CA3AF',
+                                        background: timeColor,
                                         color: 'white',
                                         fontWeight: 'bold',
                                         fontSize: '0.85rem',
@@ -943,9 +1069,20 @@ export default function Calendar() {
                                         gap: '0.15rem',
                                         minWidth: 0
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6B7280' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: textColor }}>
                                             <span style={{ fontSize: '1rem' }}>🏓</span>
                                             <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{blockedInfo.name}</span>
+                                            {!isBlocking && (
+                                                <span style={{
+                                                    fontSize: '0.7rem',
+                                                    background: '#DBEAFE',
+                                                    color: '#1D4ED8',
+                                                    padding: '0.1rem 0.4rem',
+                                                    borderRadius: '4px'
+                                                }}>
+                                                    Info
+                                                </span>
+                                            )}
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
                                             {blockedInfo.coach}
@@ -953,17 +1090,55 @@ export default function Calendar() {
                                         </div>
                                     </div>
 
-                                    {/* Blocked indicator */}
-                                    <div style={{
-                                        width: '50px',
-                                        background: '#E5E7EB',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#9CA3AF'
-                                    }}>
-                                        🔒
-                                    </div>
+                                    {/* Action/indicator */}
+                                    {editMode && isAdmin ? (
+                                        <button
+                                            onClick={() => handleDeleteWeekSlot(blockedInfo.id)}
+                                            style={{
+                                                width: '50px',
+                                                background: '#FEE2E2',
+                                                border: 'none',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#DC2626',
+                                                cursor: 'pointer'
+                                            }}
+                                            title="Supprimer ce créneau"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    ) : isBlocking ? (
+                                        <div style={{
+                                            width: '50px',
+                                            background: '#E5E7EB',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#9CA3AF'
+                                        }}>
+                                            <Lock size={18} />
+                                        </div>
+                                    ) : (
+                                        // Créneau indicatif : on peut cliquer pour réserver
+                                        <button
+                                            onClick={() => canReserveOnWeek() && handleSlotClick(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: '#DBEAFE',
+                                                color: '#3B82F6',
+                                                cursor: canReserveOnWeek() ? 'pointer' : 'not-allowed',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                opacity: canReserveOnWeek() ? 1 : 0.5
+                                            }}
+                                            disabled={!canReserveOnWeek()}
+                                        >
+                                            +
+                                        </button>
+                                    )}
                                 </div>
                             )
                         }
@@ -1070,7 +1245,9 @@ export default function Calendar() {
                                             </div>
                                         </>
                                     ) : (
-                                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Disponible</span>
+                                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                                            {canReserveOnWeek() ? 'Disponible' : 'Fermé'}
+                                        </span>
                                     )}
                                 </div>
 
@@ -1082,13 +1259,15 @@ export default function Calendar() {
                                         border: 'none',
                                         background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
                                         color: isParticipating ? 'white' : 'var(--color-text-muted)',
-                                        cursor: 'pointer',
+                                        cursor: canReserveOnWeek() || isParticipating ? 'pointer' : 'not-allowed',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        transition: 'all 0.2s'
+                                        transition: 'all 0.2s',
+                                        opacity: canReserveOnWeek() || isParticipating ? 1 : 0.5
                                     }}
-                                    title={isParticipating ? 'Annuler' : "S'inscrire"}
+                                    title={!canReserveOnWeek() && !isParticipating ? 'Réservations fermées' : (isParticipating ? 'Annuler' : "S'inscrire")}
+                                    disabled={!canReserveOnWeek() && !isParticipating}
                                 >
                                     {isParticipating ? <X size={20} /> : '+'}
                                 </button>
@@ -1099,7 +1278,7 @@ export default function Calendar() {
 
             {/* Refresh */}
             <button
-                onClick={loadData}
+                onClick={() => { loadData(); loadWeekConfig(); }}
                 className="btn"
                 style={{
                     marginTop: '1.5rem',
@@ -1108,7 +1287,7 @@ export default function Calendar() {
                     color: 'var(--color-text-muted)'
                 }}
             >
-                🔄 Actualiser
+                Actualiser
             </button>
         </div>
     )
