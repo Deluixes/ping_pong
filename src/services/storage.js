@@ -22,6 +22,22 @@ class StorageService {
         return hours * 60 + minutes
     }
 
+    // Vérifie si deux créneaux se chevauchent (même jour + heures qui se superposent)
+    _slotsOverlap(slot1, slot2) {
+        // Comparer les jours (soit dayOfWeek soit date)
+        const day1 = slot1.date || slot1.dayOfWeek
+        const day2 = slot2.date || slot2.dayOfWeek
+        if (day1 !== day2) return false
+
+        // Comparer les heures : start1 < end2 AND start2 < end1
+        const start1 = this._timeToMinutes(slot1.startTime || slot1.start_time)
+        const end1 = this._timeToMinutes(slot1.endTime || slot1.end_time)
+        const start2 = this._timeToMinutes(slot2.startTime || slot2.start_time)
+        const end2 = this._timeToMinutes(slot2.endTime || slot2.end_time)
+
+        return start1 < end2 && start2 < end1
+    }
+
     // ==================== RESERVATIONS ====================
 
     async getEvents() {
@@ -852,6 +868,91 @@ class StorageService {
 
     // ==================== WEEK CONFIGS ====================
 
+    async analyzeTemplateConflicts(templateId, weekStarts) {
+        // Récupérer les données du template
+        const [templateResult, templateSlots] = await Promise.all([
+            supabase.from('week_templates').select('name').eq('id', templateId).single(),
+            this.getTemplateSlots(templateId)
+        ])
+
+        if (!templateResult.data) {
+            return { success: false, error: 'Template not found' }
+        }
+
+        const result = {
+            templateName: templateResult.data.name,
+            configuredWeeks: [], // Semaines déjà configurées
+            conflicts: [] // Créneaux en conflit par semaine
+        }
+
+        for (const weekStart of weekStarts) {
+            const existingConfig = await this.getWeekConfig(weekStart)
+
+            if (existingConfig) {
+                result.configuredWeeks.push({
+                    weekStart,
+                    templateName: existingConfig.templateName
+                })
+
+                // Calculer les dates de la semaine pour le nouveau template
+                const weekStartDate = new Date(weekStart)
+                const dates = []
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(weekStartDate)
+                    d.setDate(d.getDate() + i)
+                    dates.push(d.toISOString().split('T')[0])
+                }
+
+                // Convertir les slots du template en slots avec dates
+                const newSlots = templateSlots.map(slot => {
+                    const dateIndex = slot.dayOfWeek === 0 ? 6 : slot.dayOfWeek - 1
+                    return {
+                        date: dates[dateIndex],
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        name: slot.name,
+                        dayOfWeek: slot.dayOfWeek
+                    }
+                })
+
+                // Trouver les chevauchements
+                const weekConflicts = []
+                for (const newSlot of newSlots) {
+                    for (const existingSlot of existingConfig.slots) {
+                        if (this._slotsOverlap(newSlot, existingSlot)) {
+                            weekConflicts.push({
+                                weekStart,
+                                newSlot: {
+                                    date: newSlot.date,
+                                    startTime: newSlot.startTime,
+                                    endTime: newSlot.endTime,
+                                    name: newSlot.name
+                                },
+                                existingSlot: {
+                                    date: existingSlot.date,
+                                    startTime: existingSlot.startTime,
+                                    endTime: existingSlot.endTime,
+                                    name: existingSlot.name
+                                }
+                            })
+                            break // Un seul conflit par slot suffit
+                        }
+                    }
+                }
+
+                if (weekConflicts.length > 0) {
+                    result.conflicts.push(...weekConflicts)
+                }
+            }
+        }
+
+        return {
+            success: true,
+            hasConfiguredWeeks: result.configuredWeeks.length > 0,
+            ...result
+        }
+    }
+
     async getWeekConfig(weekStart) {
         // weekStart doit être au format 'YYYY-MM-DD' (lundi de la semaine)
         const { data: config, error } = await supabase
@@ -926,7 +1027,9 @@ class StorageService {
         return data
     }
 
-    async applyTemplateToWeeks(templateId, weekStarts) {
+    async applyTemplateToWeeks(templateId, weekStarts, mode = 'overwrite') {
+        // mode: 'overwrite' = remplacer complètement | 'merge' = fusionner (garder existants si conflit)
+
         // 1. Récupérer les données du template
         const [templateResult, slotsResult, hoursResult] = await Promise.all([
             supabase.from('week_templates').select('name').eq('id', templateId).single(),
@@ -943,22 +1046,32 @@ class StorageService {
         const templateHours = hoursResult
 
         let totalDeleted = 0
+        let skippedSlots = 0
 
         for (const weekStart of weekStarts) {
             // 2. Créer ou récupérer la week_config
             let configId
             const existing = await this.getWeekConfig(weekStart)
+            let existingSlots = []
+            let existingHours = []
 
             if (existing) {
-                // Supprimer les anciens slots et hours
-                await Promise.all([
-                    supabase.from('week_slots').delete().eq('week_config_id', existing.id),
-                    supabase.from('week_hours').delete().eq('week_config_id', existing.id)
-                ])
                 configId = existing.id
+                existingSlots = existing.slots || []
+                existingHours = existing.hours || []
 
-                // Mettre à jour le nom du template
-                await supabase.from('week_configs').update({ template_name: templateName }).eq('id', configId)
+                if (mode === 'overwrite') {
+                    // Mode écraser : supprimer les anciens slots et hours
+                    await Promise.all([
+                        supabase.from('week_slots').delete().eq('week_config_id', existing.id),
+                        supabase.from('week_hours').delete().eq('week_config_id', existing.id)
+                    ])
+                    existingSlots = []
+                    existingHours = []
+                    // Mettre à jour le nom du template
+                    await supabase.from('week_configs').update({ template_name: templateName }).eq('id', configId)
+                }
+                // En mode merge, on garde les slots/hours existants et on n'ajoute que les non-conflictuels
             } else {
                 const { data: newConfig, error } = await supabase
                     .from('week_configs')
@@ -982,13 +1095,11 @@ class StorageService {
                 dates.push(d.toISOString().split('T')[0])
             }
 
-            // 4. Créer les nouveaux slots
+            // 4. Créer les nouveaux slots (en filtrant les conflits en mode merge)
             const newSlots = []
             for (const slot of templateSlots) {
-                // dayOfWeek: 0=dimanche, 1=lundi, etc.
-                // dates[0] = lundi, dates[6] = dimanche
                 const dateIndex = slot.dayOfWeek === 0 ? 6 : slot.dayOfWeek - 1
-                newSlots.push({
+                const newSlot = {
                     week_config_id: configId,
                     date: dates[dateIndex],
                     start_time: slot.startTime,
@@ -997,44 +1108,72 @@ class StorageService {
                     coach: slot.coach || null,
                     group_name: slot.group || null,
                     is_blocking: slot.isBlocking
-                })
+                }
+
+                // En mode merge, vérifier s'il y a un conflit avec un slot existant
+                if (mode === 'merge' && existingSlots.length > 0) {
+                    const hasConflict = existingSlots.some(existingSlot =>
+                        this._slotsOverlap(
+                            { date: newSlot.date, startTime: newSlot.start_time, endTime: newSlot.end_time },
+                            existingSlot
+                        )
+                    )
+                    if (hasConflict) {
+                        skippedSlots++
+                        continue // Ne pas ajouter ce slot
+                    }
+                }
+
+                newSlots.push(newSlot)
             }
 
             if (newSlots.length > 0) {
                 await supabase.from('week_slots').insert(newSlots)
             }
 
-            // 5. Créer les nouvelles plages horaires
+            // 5. Créer les nouvelles plages horaires (en filtrant les conflits en mode merge)
             const newHours = []
             for (const hour of templateHours) {
                 const dateIndex = hour.dayOfWeek === 0 ? 6 : hour.dayOfWeek - 1
-                newHours.push({
+                const newHour = {
                     week_config_id: configId,
                     date: dates[dateIndex],
                     start_time: hour.startTime,
                     end_time: hour.endTime
-                })
+                }
+
+                // En mode merge, vérifier s'il y a un conflit avec une plage existante
+                if (mode === 'merge' && existingHours.length > 0) {
+                    const hasConflict = existingHours.some(existingHour =>
+                        this._slotsOverlap(
+                            { date: newHour.date, startTime: newHour.start_time, endTime: newHour.end_time },
+                            existingHour
+                        )
+                    )
+                    if (hasConflict) {
+                        continue // Ne pas ajouter cette plage
+                    }
+                }
+
+                newHours.push(newHour)
             }
 
             if (newHours.length > 0) {
                 await supabase.from('week_hours').insert(newHours)
             }
 
-            // 6. Supprimer les réservations qui chevauchent les créneaux bloquants
+            // 6. Supprimer les réservations qui chevauchent les créneaux bloquants UNIQUEMENT
             const blockingSlots = newSlots.filter(s => s.is_blocking)
             for (const slot of blockingSlots) {
-                // Récupérer toutes les réservations de cette date
                 const { data: dayReservations } = await supabase
                     .from('reservations')
                     .select('id, slot_id')
                     .eq('date', slot.date)
 
                 if (dayReservations && dayReservations.length > 0) {
-                    // Convertir les heures du slot en minutes pour comparaison
                     const slotStartMinutes = this._timeToMinutes(slot.start_time)
                     const slotEndMinutes = this._timeToMinutes(slot.end_time)
 
-                    // Filtrer les réservations qui chevauchent le créneau bloquant
                     const conflicting = dayReservations.filter(r => {
                         const resMinutes = this._slotIdToMinutes(r.slot_id)
                         return resMinutes >= slotStartMinutes && resMinutes < slotEndMinutes
@@ -1049,7 +1188,7 @@ class StorageService {
             }
         }
 
-        return { success: true, deletedReservations: totalDeleted }
+        return { success: true, deletedReservations: totalDeleted, skippedSlots }
     }
 
     async deleteWeekSlot(id) {
