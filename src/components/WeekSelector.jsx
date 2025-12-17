@@ -449,16 +449,10 @@ export default function WeekSelector({ templates, onClose }) {
                                     style={{
                                         background: '#FEE2E2',
                                         color: '#991B1B',
-                                        padding: '0.75rem 1rem',
-                                        textAlign: 'left',
-                                        flexDirection: 'column',
-                                        alignItems: 'flex-start'
+                                        padding: '0.75rem 1rem'
                                     }}
                                 >
-                                    <div style={{ fontWeight: '600' }}>Écraser</div>
-                                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.8 }}>
-                                        Remplacer complètement les configurations existantes
-                                    </div>
+                                    Écraser
                                 </button>
 
                                 <button
@@ -473,9 +467,9 @@ export default function WeekSelector({ templates, onClose }) {
                                         alignItems: 'flex-start'
                                     }}
                                 >
-                                    <div style={{ fontWeight: '600' }}>Fusionner (garder existants)</div>
+                                    <div style={{ fontWeight: '600' }}>Fusionner (garder anciens)</div>
                                     <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.8 }}>
-                                        Ajouter les nouveaux créneaux (garder les existants si conflit)
+                                        Ajoute les créneaux, garde les anciens si conflit
                                     </div>
                                 </button>
 
@@ -493,7 +487,7 @@ export default function WeekSelector({ templates, onClose }) {
                                 >
                                     <div style={{ fontWeight: '600' }}>Fusionner (garder nouveaux)</div>
                                     <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.8 }}>
-                                        Remplacer les créneaux existants en conflit par les nouveaux
+                                        Ajoute les créneaux, garde les nouveaux si conflit
                                     </div>
                                 </button>
 
