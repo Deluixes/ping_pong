@@ -60,7 +60,9 @@ export default function Calendar() {
     const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
     const [events, setEvents] = useState(getCachedEvents)
     const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
-    const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
+
+    // Mode de vue : all | occupied | week | manage_slots | edit
+    const [viewMode, setViewMode] = useState('all')
 
     // Modal state - 3 steps (duration -> choice -> guests)
     const [modalStep, setModalStep] = useState(null) // 'duration' | 'choice' | 'guests' | null
@@ -92,9 +94,6 @@ export default function Calendar() {
     const [weekHours, setWeekHours] = useState([])
     const [isWeekConfigured, setIsWeekConfigured] = useState(false)
 
-    // Mode édition admin pour modifier les créneaux
-    const [editMode, setEditMode] = useState(false)
-
     // Créneaux ouverts par admin_salles
     const [openedSlots, setOpenedSlots] = useState([])
     const [showOpenSlotModal, setShowOpenSlotModal] = useState(false)
@@ -104,6 +103,22 @@ export default function Calendar() {
 
     // Peut ouvrir/fermer des créneaux (admin ou admin_salles)
     const canManageSlots = user?.isAdminSalles
+
+    // Options de vue selon le rôle
+    const getViewOptions = () => {
+        const options = [
+            { value: 'all', label: 'Vue de tous les créneaux' },
+            { value: 'occupied', label: 'Vue des créneaux avec joueurs' },
+            { value: 'week', label: 'Vue semaine' }
+        ]
+        if (canManageSlots) {
+            options.push({ value: 'manage_slots', label: 'Ouverture/Fermeture de créneaux' })
+        }
+        if (isAdmin && isWeekConfigured) {
+            options.push({ value: 'edit', label: 'Modification depuis le planning' })
+        }
+        return options
+    }
 
     // Ref for subscription to avoid re-subscriptions
     const subscriptionRef = useRef(null)
@@ -581,7 +596,7 @@ export default function Calendar() {
 
     // Admin: supprimer un créneau de la semaine
     const handleDeleteWeekSlot = async (slotId) => {
-        if (!isAdmin || !editMode) return
+        if (!isAdmin || viewMode !== 'edit') return
         if (!window.confirm('Supprimer ce créneau de cette semaine ?')) return
 
         await storageService.deleteWeekSlot(slotId)
@@ -1467,53 +1482,186 @@ export default function Calendar() {
                 }}>
                     {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
                 </h2>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {/* Admin Edit Mode Toggle */}
-                    {isAdmin && isWeekConfigured && (
-                        <button
-                            onClick={() => setEditMode(!editMode)}
-                            className="btn"
-                            style={{
-                                background: editMode ? '#DC2626' : 'var(--color-bg)',
-                                color: editMode ? 'white' : 'var(--color-text)',
-                                fontSize: '0.8rem',
-                                padding: '0.5rem 0.75rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
-                            }}
-                        >
-                            <Edit3 size={14} />
-                            {editMode ? 'Édition' : 'Modifier'}
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setShowOnlyOccupied(!showOnlyOccupied)}
-                        className="btn"
-                        style={{
-                            background: showOnlyOccupied ? 'var(--color-secondary)' : 'var(--color-bg)',
-                            color: showOnlyOccupied ? 'white' : 'var(--color-text)',
-                            fontSize: '0.8rem',
-                            padding: '0.5rem 0.75rem'
-                        }}
-                    >
-                        {showOnlyOccupied ? '👥 Avec inscrits' : '📋 Tout afficher'}
-                    </button>
-                </div>
+                <select
+                    value={viewMode}
+                    onChange={(e) => setViewMode(e.target.value)}
+                    style={{
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid #E2E8F0',
+                        background: viewMode === 'edit' ? '#FEE2E2' : viewMode === 'manage_slots' ? '#E0F2FE' : 'white',
+                        fontSize: '0.85rem',
+                        color: viewMode === 'edit' ? '#991B1B' : viewMode === 'manage_slots' ? '#0369A1' : 'var(--color-text)',
+                        cursor: 'pointer',
+                        fontWeight: viewMode === 'edit' || viewMode === 'manage_slots' ? '500' : '400'
+                    }}
+                >
+                    {getViewOptions().map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
             </div>
 
-            {/* Time Slots */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {TIME_SLOTS
-                    .filter(slot => {
-                        // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
-                        const isBlocked = getBlockedSlotInfo(slot.id) !== undefined
-                        if (!isBlocked && !isSlotInOpeningHours(slot.id)) return false
+            {/* Vue semaine ou vue jour */}
+            {viewMode === 'week' ? (
+                // Vue semaine : grille 7 colonnes
+                <div style={{ overflowX: 'auto' }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '50px repeat(7, 1fr)',
+                        gap: '1px',
+                        background: '#E2E8F0',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                        minWidth: '600px'
+                    }}>
+                        {/* Header avec jours */}
+                        <div style={{ background: 'var(--color-secondary)', padding: '0.5rem', color: 'white', fontWeight: 'bold', fontSize: '0.7rem' }}></div>
+                        {[0, 1, 2, 3, 4, 5, 6].map(dayOffset => {
+                            const day = addDays(weekStart, dayOffset)
+                            const isToday = isSameDay(day, new Date())
+                            const isSelected = isSameDay(day, selectedDate)
+                            return (
+                                <div
+                                    key={dayOffset}
+                                    style={{
+                                        background: isSelected ? 'var(--color-primary)' : isToday ? '#F0FDF4' : 'var(--color-secondary)',
+                                        padding: '0.5rem 0.25rem',
+                                        color: isSelected ? 'white' : isToday ? '#166534' : 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.7rem',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    <div>{format(day, 'EEE', { locale: fr })}</div>
+                                    <div style={{ fontSize: '0.85rem' }}>{format(day, 'd')}</div>
+                                </div>
+                            )
+                        })}
 
-                        // 2. Filtre "Avec inscrits"
-                        if (!showOnlyOccupied) return true
-                        return getParticipants(slot.id).length > 0 || isBlocked
-                    })
+                        {/* Lignes horaires de 8h à 22h */}
+                        {Array.from({ length: 15 }, (_, i) => i + 8).map(hour => (
+                            <React.Fragment key={hour}>
+                                {/* Colonne heure */}
+                                <div style={{
+                                    background: '#F9FAFB',
+                                    padding: '0.25rem',
+                                    fontSize: '0.65rem',
+                                    color: '#6B7280',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: '500'
+                                }}>
+                                    {hour}h
+                                </div>
+                                {/* 7 colonnes pour les jours */}
+                                {[0, 1, 2, 3, 4, 5, 6].map(dayOffset => {
+                                    const day = addDays(weekStart, dayOffset)
+                                    const dateStr = format(day, 'yyyy-MM-dd')
+                                    const slotId = `${hour}:00`
+
+                                    // Trouver les créneaux pour cette heure et ce jour
+                                    const dayWeekSlots = weekSlots.filter(ws => ws.date === dateStr)
+                                    const dayOpenedSlots = openedSlots.filter(os => os.date === dateStr)
+
+                                    // Vérifier si un créneau bloquant ou indicatif existe à cette heure
+                                    const matchingWeekSlot = dayWeekSlots.find(ws => {
+                                        const startHour = parseInt(ws.startTime.split(':')[0])
+                                        const endHour = parseInt(ws.endTime.split(':')[0])
+                                        return hour >= startHour && hour < endHour
+                                    })
+
+                                    // Vérifier si un créneau ouvert existe à cette heure
+                                    const matchingOpenedSlot = dayOpenedSlots.find(os => os.slotId === slotId)
+
+                                    let bgColor = 'white'
+                                    let content = ''
+                                    let textColor = '#6B7280'
+
+                                    if (matchingWeekSlot) {
+                                        if (matchingWeekSlot.isBlocking === false) {
+                                            // Cours indicatif
+                                            bgColor = '#DBEAFE'
+                                            textColor = '#1D4ED8'
+                                            const startHour = parseInt(matchingWeekSlot.startTime.split(':')[0])
+                                            if (hour === startHour) content = matchingWeekSlot.name?.substring(0, 8) || 'Cours'
+                                        } else {
+                                            // Entraînement bloquant
+                                            bgColor = '#F3F4F6'
+                                            textColor = '#6B7280'
+                                            const startHour = parseInt(matchingWeekSlot.startTime.split(':')[0])
+                                            if (hour === startHour) content = matchingWeekSlot.name?.substring(0, 8) || 'Entr.'
+                                        }
+                                    } else if (matchingOpenedSlot) {
+                                        // Créneau ouvert
+                                        bgColor = '#DCFCE7'
+                                        textColor = '#166534'
+                                    }
+
+                                    return (
+                                        <div
+                                            key={dayOffset}
+                                            style={{
+                                                background: bgColor,
+                                                padding: '0.15rem',
+                                                minHeight: '24px',
+                                                fontSize: '0.55rem',
+                                                color: textColor,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                textAlign: 'center',
+                                                overflow: 'hidden'
+                                            }}
+                                        >
+                                            {content}
+                                        </div>
+                                    )
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+
+                    {/* Légende */}
+                    <div style={{
+                        display: 'flex',
+                        gap: '1rem',
+                        marginTop: '0.75rem',
+                        flexWrap: 'wrap',
+                        fontSize: '0.75rem',
+                        color: '#6B7280'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <div style={{ width: '12px', height: '12px', background: '#DCFCE7', borderRadius: '2px' }}></div>
+                            <span>Ouvert</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <div style={{ width: '12px', height: '12px', background: '#DBEAFE', borderRadius: '2px' }}></div>
+                            <span>Cours</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <div style={{ width: '12px', height: '12px', background: '#F3F4F6', borderRadius: '2px' }}></div>
+                            <span>Entraînement</span>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                // Vue jour standard
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {TIME_SLOTS
+                        .filter(slot => {
+                            // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
+                            const isBlocked = getBlockedSlotInfo(slot.id) !== undefined
+                            if (!isBlocked && !isSlotInOpeningHours(slot.id)) return false
+
+                            // 2. Filtre selon viewMode
+                            if (viewMode === 'occupied') {
+                                // Afficher seulement les créneaux avec participants ou les créneaux bloqués
+                                return getParticipants(slot.id).length > 0 || isBlocked
+                            }
+                            return true
+                        })
                     .map(slot => {
                         const blockedInfo = getBlockedSlotInfo(slot.id)
                         const availability = isSlotAvailable(slot.id)
@@ -1613,7 +1761,7 @@ export default function Calendar() {
                                     </div>
 
                                     {/* Action/indicator */}
-                                    {editMode && isAdmin ? (
+                                    {viewMode === 'edit' && isAdmin ? (
                                         <button
                                             onClick={() => handleDeleteWeekSlot(blockedInfo.id)}
                                             style={{
@@ -1854,93 +2002,113 @@ export default function Calendar() {
                                     )}
                                 </div>
 
-                                {/* Action Button */}
-                                {isParticipating ? (
-                                    <button
-                                        onClick={() => handleSlotClick(slot.id)}
-                                        style={{
+                                {/* Action Button - selon viewMode */}
+                                {viewMode === 'manage_slots' ? (
+                                    // Vue gestion créneaux : seulement ouvrir/fermer
+                                    isOpened ? (
+                                        <button
+                                            onClick={() => handleCloseSlot(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: '#FEE2E2',
+                                                color: '#DC2626',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="Fermer ce créneau"
+                                        >
+                                            <Lock size={18} />
+                                        </button>
+                                    ) : isClosed ? (
+                                        <button
+                                            onClick={() => handleSlotClick(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: '#E0F2FE',
+                                                color: '#0369A1',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="Ouvrir ce créneau"
+                                        >
+                                            <Unlock size={18} />
+                                        </button>
+                                    ) : (
+                                        <div style={{
                                             width: '50px',
-                                            border: 'none',
-                                            background: '#22C55E',
-                                            color: 'white',
-                                            cursor: 'pointer',
+                                            background: '#E5E7EB',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justifyContent: 'center'
+                                            justifyContent: 'center',
+                                            color: '#9CA3AF'
                                         }}
-                                        title="Se désinscrire"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                ) : canManageSlots && isOpened ? (
-                                    <button
-                                        onClick={() => handleCloseSlot(slot.id)}
-                                        style={{
-                                            width: '50px',
-                                            border: 'none',
-                                            background: '#FEE2E2',
-                                            color: '#DC2626',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                        title="Fermer ce créneau"
-                                    >
-                                        <Lock size={18} />
-                                    </button>
-                                ) : canManageSlots && isClosed ? (
-                                    <button
-                                        onClick={() => handleSlotClick(slot.id)}
-                                        style={{
-                                            width: '50px',
-                                            border: 'none',
-                                            background: '#E0F2FE',
-                                            color: '#0369A1',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                        title="Ouvrir ce créneau"
-                                    >
-                                        <Unlock size={18} />
-                                    </button>
-                                ) : userCanRegister && canReserveOnWeek() ? (
-                                    <button
-                                        onClick={() => handleSlotClick(slot.id)}
-                                        style={{
-                                            width: '50px',
-                                            border: 'none',
-                                            background: '#DCFCE7',
-                                            color: '#22C55E',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                        title="S'inscrire"
-                                    >
-                                        +
-                                    </button>
+                                        title="Créneau géré par le template"
+                                        >
+                                            <Lock size={18} />
+                                        </div>
+                                    )
                                 ) : (
-                                    <div style={{
-                                        width: '50px',
-                                        background: '#E5E7EB',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#9CA3AF'
-                                    }}
-                                    title={isClosed ? 'Créneau fermé' : (!userCanRegister ? 'Licence non compatible' : 'Non disponible')}
-                                    >
-                                        <Lock size={18} />
-                                    </div>
+                                    // Vues normales : inscription/désinscription
+                                    isParticipating ? (
+                                        <button
+                                            onClick={() => handleSlotClick(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: '#22C55E',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="Se désinscrire"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    ) : userCanRegister && canReserveOnWeek() ? (
+                                        <button
+                                            onClick={() => handleSlotClick(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: '#DCFCE7',
+                                                color: '#22C55E',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="S'inscrire"
+                                        >
+                                            +
+                                        </button>
+                                    ) : (
+                                        <div style={{
+                                            width: '50px',
+                                            background: '#E5E7EB',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#9CA3AF'
+                                        }}
+                                        title={isClosed ? 'Créneau fermé' : (!userCanRegister ? 'Licence non compatible' : 'Non disponible')}
+                                        >
+                                            <Lock size={18} />
+                                        </div>
+                                    )
                                 )}
                             </div>
                         )
                     })}
-            </div>
+                </div>
+            )}
 
             {/* Refresh */}
             <button
