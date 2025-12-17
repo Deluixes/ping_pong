@@ -1,18 +1,46 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Shield, ShieldOff, Edit2, Award, Home } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Edit2, Award, Shield } from 'lucide-react'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
+    const { user: currentUser } = useAuth()
     const [members, setMembers] = useState({ pending: [], approved: [] })
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
 
     // Modal d'édition
     const [editingMember, setEditingMember] = useState(null)
-    const [editForm, setEditForm] = useState({ name: '', licenseType: null })
+    const [editForm, setEditForm] = useState({ name: '', licenseType: null, role: 'member' })
     const [savingEdit, setSavingEdit] = useState(false)
+
+    // Calcule les rôles disponibles selon le rôle de l'utilisateur courant
+    const getAvailableRoles = () => {
+        const roles = [
+            { value: 'member', label: 'Membre' },
+            { value: 'admin_salles', label: 'Admin Salles' }
+        ]
+        // Seul super_admin peut créer des admins
+        if (currentUser?.role === 'super_admin') {
+            roles.push({ value: 'admin', label: 'Admin' })
+        }
+        return roles
+    }
+
+    // Vérifie si l'utilisateur courant peut modifier ce membre
+    const canEditMemberRole = (member) => {
+        // On ne peut pas modifier son propre rôle
+        if (member.userId === currentUser?.id) return false
+        // super_admin peut modifier tout le monde sauf les autres super_admin
+        if (currentUser?.role === 'super_admin') return member.role !== 'super_admin'
+        // admin peut modifier admin_salles et member
+        if (currentUser?.role === 'admin') {
+            return member.role !== 'admin' && member.role !== 'super_admin'
+        }
+        return false
+    }
 
     const loadData = async () => {
         const data = await storageService.getMembers()
@@ -46,18 +74,7 @@ export default function AdminPanel() {
         if (window.confirm(`Retirer ${name} du groupe ?`)) {
             await storageService.removeMember(userId)
             await loadData()
-        }
-    }
-
-    const handleSetRole = async (userId, name, newRole) => {
-        const roleLabels = {
-            admin: 'administrateur',
-            admin_salles: 'administrateur des salles',
-            member: 'membre'
-        }
-        if (window.confirm(`Définir ${name} comme ${roleLabels[newRole]} ?`)) {
-            await storageService.updateMemberRole(userId, newRole)
-            await loadData()
+            closeEditModal()
         }
     }
 
@@ -65,13 +82,14 @@ export default function AdminPanel() {
         setEditingMember(member)
         setEditForm({
             name: member.name,
-            licenseType: member.licenseType
+            licenseType: member.licenseType,
+            role: member.role || 'member'
         })
     }
 
     const closeEditModal = () => {
         setEditingMember(null)
-        setEditForm({ name: '', licenseType: null })
+        setEditForm({ name: '', licenseType: null, role: 'member' })
     }
 
     const handleSaveEdit = async () => {
@@ -85,6 +103,11 @@ export default function AdminPanel() {
 
         // Mettre à jour la licence
         await storageService.updateMemberLicense(editingMember.userId, editForm.licenseType)
+
+        // Mettre à jour le rôle si modifié et si autorisé
+        if (editForm.role !== editingMember.role && canEditMemberRole(editingMember)) {
+            await storageService.updateMemberRole(editingMember.userId, editForm.role)
+        }
 
         await loadData()
         setSavingEdit(false)
@@ -254,6 +277,18 @@ export default function AdminPanel() {
                                                 {member.licenseType === 'C' ? 'Compét.' : 'Loisir'}
                                             </span>
                                         )}
+                                        {member.role === 'super_admin' && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                background: '#FEF3C7',
+                                                color: '#92400E',
+                                                padding: '2px 6px',
+                                                borderRadius: '999px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                SUPER
+                                            </span>
+                                        )}
                                         {member.role === 'admin' && (
                                             <span style={{
                                                 fontSize: '0.7rem',
@@ -297,71 +332,6 @@ export default function AdminPanel() {
                                     title="Modifier"
                                 >
                                     <Edit2 size={18} />
-                                </button>
-
-                                {/* Boutons de gestion des rôles */}
-                                {member.role !== 'admin' && (
-                                    <button
-                                        onClick={() => handleSetRole(member.userId, member.name, 'admin')}
-                                        style={{
-                                            background: '#DBEAFE',
-                                            color: '#1E40AF',
-                                            border: 'none',
-                                            borderRadius: 'var(--radius-md)',
-                                            padding: '0.5rem',
-                                            cursor: 'pointer'
-                                        }}
-                                        title="Nommer Admin"
-                                    >
-                                        <Shield size={18} />
-                                    </button>
-                                )}
-                                {member.role !== 'admin_salles' && (
-                                    <button
-                                        onClick={() => handleSetRole(member.userId, member.name, 'admin_salles')}
-                                        style={{
-                                            background: '#D1FAE5',
-                                            color: '#065F46',
-                                            border: 'none',
-                                            borderRadius: 'var(--radius-md)',
-                                            padding: '0.5rem',
-                                            cursor: 'pointer'
-                                        }}
-                                        title="Nommer Admin Salles"
-                                    >
-                                        <Home size={18} />
-                                    </button>
-                                )}
-                                {member.role !== 'member' && (
-                                    <button
-                                        onClick={() => handleSetRole(member.userId, member.name, 'member')}
-                                        style={{
-                                            background: '#FEF3C7',
-                                            color: '#B45309',
-                                            border: 'none',
-                                            borderRadius: 'var(--radius-md)',
-                                            padding: '0.5rem',
-                                            cursor: 'pointer'
-                                        }}
-                                        title="Retirer les droits"
-                                    >
-                                        <ShieldOff size={18} />
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={() => handleRemove(member.userId, member.name)}
-                                    style={{
-                                        background: '#FEE2E2',
-                                        color: '#991B1B',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.5rem',
-                                        cursor: 'pointer'
-                                    }}
-                                    title="Retirer du groupe"
-                                >
-                                    <UserX size={18} />
                                 </button>
                             </div>
                         ))}
@@ -431,7 +401,7 @@ export default function AdminPanel() {
                             />
                         </div>
 
-                        <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ marginBottom: '1rem' }}>
                             <label style={{
                                 display: 'block',
                                 marginBottom: '0.5rem',
@@ -477,7 +447,38 @@ export default function AdminPanel() {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        {/* Sélecteur de rôle - seulement si l'utilisateur peut modifier */}
+                        {canEditMemberRole(editingMember) && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: '500',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    <Shield size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                    Rôle
+                                </label>
+                                <select
+                                    value={editForm.role}
+                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid #DDD',
+                                        fontSize: '1rem',
+                                        background: 'white'
+                                    }}
+                                >
+                                    {getAvailableRoles().map(r => (
+                                        <option key={r.value} value={r.value}>{r.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
                             <button
                                 onClick={closeEditModal}
                                 className="btn"
@@ -494,6 +495,30 @@ export default function AdminPanel() {
                                 {savingEdit ? 'Enregistrement...' : 'Enregistrer'}
                             </button>
                         </div>
+
+                        {/* Bouton supprimer - seulement si pas soi-même */}
+                        {editingMember?.userId !== currentUser?.id && canEditMemberRole(editingMember) && (
+                            <button
+                                onClick={() => handleRemove(editingMember.userId, editingMember.name)}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    background: '#FEE2E2',
+                                    color: '#991B1B',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <UserX size={16} />
+                                Supprimer du groupe
+                            </button>
+                        )}
                     </div>
                 </>
             )}

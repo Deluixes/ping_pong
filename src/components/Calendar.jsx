@@ -3,7 +3,6 @@ import { startOfWeek, addDays, format, isSameDay, isSameWeek, startOfDay } from 
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { ADMIN_EMAILS } from '../lib/supabase'
 import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus, Edit3, Lock, Info, Unlock } from 'lucide-react'
 
 // Generate 30-min slots from 8:00 to 23:00 (for unconfigured weeks)
@@ -76,7 +75,7 @@ export default function Calendar() {
     const maxPersons = totalTables * 2
 
     // Admin check
-    const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
+    const isAdmin = user?.isAdmin
 
     // Approved members for guest selection
     const [approvedMembers, setApprovedMembers] = useState([])

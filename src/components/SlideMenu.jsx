@@ -117,7 +117,7 @@ export default function SlideMenu({ isOpen, onClose }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {user?.name}
-                            {user?.isAdmin && (
+                            {user?.role === 'super_admin' && (
                                 <span style={{
                                     marginLeft: '0.5rem',
                                     fontSize: '0.7rem',
@@ -126,10 +126,22 @@ export default function SlideMenu({ isOpen, onClose }) {
                                     padding: '0.15rem 0.4rem',
                                     borderRadius: '4px'
                                 }}>
+                                    Super Admin
+                                </span>
+                            )}
+                            {user?.role === 'admin' && (
+                                <span style={{
+                                    marginLeft: '0.5rem',
+                                    fontSize: '0.7rem',
+                                    background: '#DBEAFE',
+                                    color: '#1E40AF',
+                                    padding: '0.15rem 0.4rem',
+                                    borderRadius: '4px'
+                                }}>
                                     Admin
                                 </span>
                             )}
-                            {!user?.isAdmin && user?.role === 'admin_salles' && (
+                            {user?.role === 'admin_salles' && (
                                 <span style={{
                                     marginLeft: '0.5rem',
                                     fontSize: '0.7rem',

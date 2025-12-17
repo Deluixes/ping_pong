@@ -13,9 +13,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Liste des emails admin (centralisée pour éviter la duplication)
-export const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || '')
-    .split(',')
-    .map(e => e.trim().toLowerCase())
-    .filter(Boolean)

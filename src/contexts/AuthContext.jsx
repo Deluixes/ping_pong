@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
-import { supabase, ADMIN_EMAILS } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { storageService } from '../services/storage'
 
 const AuthContext = createContext(null)
@@ -10,28 +10,13 @@ export const AuthProvider = ({ children }) => {
     const [authError, setAuthError] = useState(null)
     const [memberStatus, setMemberStatus] = useState('none')
 
-    const checkMemberStatus = useCallback(async (userId, isAdminEmail, email, name) => {
+    const checkMemberStatus = useCallback(async (userId) => {
         try {
             // Récupérer le profil complet (inclut licenseType)
             const profile = await storageService.getMemberProfile(userId)
-            let status = profile?.status || 'none'
-            let role = profile?.role || 'member'
+            const status = profile?.status || 'none'
+            const role = profile?.role || 'member'
             const licenseType = profile?.licenseType || null
-
-            // Auto-approve admins if they are in the ENV list
-            if (isAdminEmail) {
-                if (status !== 'approved') {
-                    // Not a member yet? Create as admin
-                    await storageService.requestAccess(userId, email, name, 'admin')
-                    await storageService.approveMember(userId)
-                    status = 'approved'
-                    role = 'admin'
-                } else if (role !== 'admin') {
-                    // Already member but not admin? Upgrade
-                    await storageService.updateMemberRole(userId, 'admin')
-                    role = 'admin'
-                }
-            }
 
             setMemberStatus(status)
             return { status, role, licenseType }
@@ -54,7 +39,7 @@ export const AuthProvider = ({ children }) => {
                     id: session.user.id,
                     email: session.user.email,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
-                    isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
+                    isSuperAdmin: false,
                     isAdmin: false,
                     isAdminSalles: false,
                     role: 'member',
@@ -66,13 +51,14 @@ export const AuthProvider = ({ children }) => {
 
                 // Vérifier le statut membre si demandé (AVANT de mettre loading à false)
                 if (shouldCheckMember) {
-                    const { role, licenseType } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+                    const { role, licenseType } = await checkMemberStatus(userData.id)
                     if (!isMounted) return
                     setUser(prev => prev ? ({
                         ...prev,
                         role: role,
-                        isAdmin: role === 'admin',
-                        isAdminSalles: role === 'admin' || role === 'admin_salles',
+                        isSuperAdmin: role === 'super_admin',
+                        isAdmin: role === 'admin' || role === 'super_admin',
+                        isAdminSalles: role === 'admin' || role === 'admin_salles' || role === 'super_admin',
                         licenseType: licenseType
                     }) : null)
                 }
@@ -174,13 +160,14 @@ export const AuthProvider = ({ children }) => {
     // Refresh member status (useful after admin approval)
     const refreshMemberStatus = async () => {
         if (user) {
-            const { role, licenseType } = await checkMemberStatus(user.id, user.isAdminEmail, user.email, user.name)
+            const { role, licenseType } = await checkMemberStatus(user.id)
             // Update user role and license in state
             setUser(prev => prev ? ({
                 ...prev,
                 role: role,
-                isAdmin: role === 'admin',
-                isAdminSalles: role === 'admin' || role === 'admin_salles',
+                isSuperAdmin: role === 'super_admin',
+                isAdmin: role === 'admin' || role === 'super_admin',
+                isAdminSalles: role === 'admin' || role === 'admin_salles' || role === 'super_admin',
                 licenseType: licenseType
             }) : null)
         }
