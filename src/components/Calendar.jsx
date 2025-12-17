@@ -434,13 +434,9 @@ export default function Calendar() {
             return { available: true, type: 'course', target: 'all', blockedInfo }
         }
 
-        // 2. Créneau d'entraînement (bloquant, isBlocking === true) → inscription selon groupe/licence
+        // 2. Créneau d'entraînement (bloquant, isBlocking === true) → PAS d'inscription
         if (blockedInfo && blockedInfo.isBlocking === true) {
-            const group = blockedInfo.group?.toLowerCase() || ''
-            let target = 'all'
-            if (group.includes('compet') || group.includes('compét')) target = 'competition'
-            else if (group.includes('loisir')) target = 'loisir'
-            return { available: true, type: 'training', target, blockedInfo }
+            return { available: false, type: 'training', reason: 'blocked', blockedInfo }
         }
 
         // 3. Créneau ouvert par admin_salles → vérifier target
@@ -1292,39 +1288,22 @@ export default function Calendar() {
 
                         // Si le créneau est un entraînement (bloquant) ou un cours (indicatif)
                         if (blockedInfo) {
-                            const isBlocking = blockedInfo.isBlocking !== false
                             const isCourse = blockedInfo.isBlocking === false
-                            const isTraining = isBlocking
+                            const isTraining = blockedInfo.isBlocking !== false
 
-                            // Couleurs selon le type et si l'utilisateur peut s'inscrire
+                            // Couleurs selon le type
                             let bgColor, timeColor, textColor
                             if (isCourse) {
-                                bgColor = '#EFF6FF'
-                                timeColor = '#3B82F6'
+                                // Cours indicatif : bleu, inscription possible
+                                bgColor = isParticipating ? '#F0FDF4' : '#EFF6FF'
+                                timeColor = isParticipating ? '#22C55E' : '#3B82F6'
                                 textColor = '#1D4ED8'
-                            } else if (isTraining && userCanRegister) {
-                                bgColor = '#F0FDF4'
-                                timeColor = '#22C55E'
-                                textColor = '#166534'
                             } else {
+                                // Entraînement bloquant : gris, pas d'inscription
                                 bgColor = '#F3F4F6'
                                 timeColor = '#9CA3AF'
                                 textColor = '#6B7280'
                             }
-
-                            // Badge de restriction pour entraînement
-                            const targetBadge = availability.target !== 'all' && isTraining ? (
-                                <span style={{
-                                    fontSize: '0.65rem',
-                                    background: availability.target === 'competition' ? '#FEF3C7' : '#E0F2FE',
-                                    color: availability.target === 'competition' ? '#92400E' : '#0369A1',
-                                    padding: '0.1rem 0.4rem',
-                                    borderRadius: '4px',
-                                    fontWeight: '600'
-                                }}>
-                                    {availability.target === 'competition' ? 'Compét' : 'Loisir'}
-                                </span>
-                            ) : null
 
                             return (
                                 <div
@@ -1332,18 +1311,19 @@ export default function Calendar() {
                                     style={{
                                         display: 'flex',
                                         alignItems: 'stretch',
-                                        background: isParticipating ? '#F0FDF4' : bgColor,
+                                        background: bgColor,
                                         borderRadius: 'var(--radius-md)',
                                         overflow: 'hidden',
                                         boxShadow: 'var(--shadow-sm)',
-                                        border: isParticipating ? '2px solid #22C55E' : (isCourse ? '1px solid #93C5FD' : '1px solid #E2E8F0')
+                                        border: isParticipating ? '2px solid #22C55E' : (isCourse ? '1px solid #93C5FD' : '1px solid #E2E8F0'),
+                                        opacity: isTraining ? 0.8 : 1
                                     }}
                                 >
                                     {/* Time Label */}
                                     <div style={{
                                         width: '60px',
                                         padding: '0.75rem 0.5rem',
-                                        background: isParticipating ? '#22C55E' : timeColor,
+                                        background: timeColor,
                                         color: 'white',
                                         fontWeight: 'bold',
                                         fontSize: '0.85rem',
@@ -1380,14 +1360,13 @@ export default function Calendar() {
                                                     Info
                                                 </span>
                                             )}
-                                            {targetBadge}
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
                                             {blockedInfo.coach}
                                             {blockedInfo.group && <span style={{ marginLeft: '0.5rem', background: '#E5E7EB', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{blockedInfo.group}</span>}
                                         </div>
-                                        {/* Participants si entraînement avec inscrits */}
-                                        {isTraining && count > 0 && (
+                                        {/* Participants pour cours indicatifs */}
+                                        {isCourse && count > 0 && (
                                             <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
                                                 <Users size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
                                                 {participants.map(p => p.name).join(', ')}
@@ -1413,7 +1392,22 @@ export default function Calendar() {
                                         >
                                             <Trash2 size={18} />
                                         </button>
+                                    ) : isTraining ? (
+                                        // Entraînement : cadenas, pas d'inscription
+                                        <div style={{
+                                            width: '50px',
+                                            background: '#E5E7EB',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#9CA3AF'
+                                        }}
+                                        title="Entraînement réservé"
+                                        >
+                                            <Lock size={18} />
+                                        </div>
                                     ) : isParticipating ? (
+                                        // Cours : déjà inscrit, peut se désinscrire
                                         <button
                                             onClick={() => handleSlotClick(slot.id)}
                                             style={{
@@ -1430,14 +1424,15 @@ export default function Calendar() {
                                         >
                                             <X size={20} />
                                         </button>
-                                    ) : userCanRegister && canReserveOnWeek() ? (
+                                    ) : canReserveOnWeek() ? (
+                                        // Cours : peut s'inscrire
                                         <button
                                             onClick={() => handleSlotClick(slot.id)}
                                             style={{
                                                 width: '50px',
                                                 border: 'none',
-                                                background: isCourse ? '#DBEAFE' : '#DCFCE7',
-                                                color: isCourse ? '#3B82F6' : '#22C55E',
+                                                background: '#DBEAFE',
+                                                color: '#3B82F6',
                                                 cursor: 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -1456,7 +1451,7 @@ export default function Calendar() {
                                             justifyContent: 'center',
                                             color: '#9CA3AF'
                                         }}
-                                        title={!userCanRegister && availability.target !== 'all' ? `Réservé aux ${availability.target === 'competition' ? 'compétiteurs' : 'loisirs'}` : 'Non disponible'}
+                                        title="Réservations fermées"
                                         >
                                             <Lock size={18} />
                                         </div>
