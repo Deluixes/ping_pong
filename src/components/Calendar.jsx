@@ -4,7 +4,7 @@ import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
 import { ADMIN_EMAILS } from '../lib/supabase'
-import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus, Edit3, Lock, Info } from 'lucide-react'
+import { Users, ChevronLeft, ChevronRight, X, Clock, Trash2, UserPlus, Edit3, Lock, Info, Unlock } from 'lucide-react'
 
 // Generate 30-min slots from 8:00 to 23:00 (for unconfigured weeks)
 const generateTimeSlots = () => {
@@ -90,6 +90,16 @@ export default function Calendar() {
     // Mode édition admin pour modifier les créneaux
     const [editMode, setEditMode] = useState(false)
 
+    // Créneaux ouverts par admin_salles
+    const [openedSlots, setOpenedSlots] = useState([])
+    const [showOpenSlotModal, setShowOpenSlotModal] = useState(false)
+    const [slotToOpen, setSlotToOpen] = useState(null)
+    const [selectedTarget, setSelectedTarget] = useState('all')
+    const openedSlotsSubscriptionRef = useRef(null)
+
+    // Peut ouvrir/fermer des créneaux (admin ou admin_salles)
+    const canManageSlots = user?.isAdminSalles
+
     // Ref for subscription to avoid re-subscriptions
     const subscriptionRef = useRef(null)
     const invitationsSubscriptionRef = useRef(null)
@@ -170,10 +180,24 @@ export default function Calendar() {
         }
     }, [selectedDate])
 
+    // Charger les créneaux ouverts quand la date change
+    const loadOpenedSlots = useCallback(async () => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        const slots = await storageService.getOpenedSlotsForDate(dateStr)
+        if (isMountedRef.current) {
+            setOpenedSlots(slots)
+        }
+    }, [selectedDate])
+
     // Recharger les invitations quand la date change
     useEffect(() => {
         loadInvitations()
     }, [loadInvitations])
+
+    // Recharger les créneaux ouverts quand la date change
+    useEffect(() => {
+        loadOpenedSlots()
+    }, [loadOpenedSlots])
 
     // Recharger la config de la semaine quand la date change
     useEffect(() => {
@@ -199,6 +223,10 @@ export default function Calendar() {
             loadInvitations()
         })
 
+        openedSlotsSubscriptionRef.current = storageService.subscribeToOpenedSlots(() => {
+            loadOpenedSlots()
+        })
+
         return () => {
             if (subscriptionRef.current) {
                 storageService.unsubscribe(subscriptionRef.current)
@@ -208,8 +236,12 @@ export default function Calendar() {
                 storageService.unsubscribe(invitationsSubscriptionRef.current)
                 invitationsSubscriptionRef.current = null
             }
+            if (openedSlotsSubscriptionRef.current) {
+                storageService.unsubscribe(openedSlotsSubscriptionRef.current)
+                openedSlotsSubscriptionRef.current = null
+            }
         }
-    }, [loadData, loadInvitations])
+    }, [loadData, loadInvitations, loadOpenedSlots])
 
     // Navigation
     const nextWeek = () => setWeekStart(d => addDays(d, 7))
@@ -388,28 +420,120 @@ export default function Calendar() {
         })
     }
 
+    // Récupérer info d'un créneau ouvert
+    const getOpenedSlotInfo = (slotId) => {
+        return openedSlots.find(os => os.slotId === slotId)
+    }
+
+    // Détermine la disponibilité d'un créneau et son type
+    const isSlotAvailable = (slotId) => {
+        const blockedInfo = getBlockedSlotInfo(slotId)
+
+        // 1. Créneau de cours (indicatif, isBlocking === false) → ouvert à tous
+        if (blockedInfo && blockedInfo.isBlocking === false) {
+            return { available: true, type: 'course', target: 'all', blockedInfo }
+        }
+
+        // 2. Créneau d'entraînement (bloquant, isBlocking === true) → inscription selon groupe/licence
+        if (blockedInfo && blockedInfo.isBlocking === true) {
+            const group = blockedInfo.group?.toLowerCase() || ''
+            let target = 'all'
+            if (group.includes('compet') || group.includes('compét')) target = 'competition'
+            else if (group.includes('loisir')) target = 'loisir'
+            return { available: true, type: 'training', target, blockedInfo }
+        }
+
+        // 3. Créneau ouvert par admin_salles → vérifier target
+        const openedInfo = getOpenedSlotInfo(slotId)
+        if (openedInfo) {
+            return { available: true, type: 'opened', target: openedInfo.target, openedInfo }
+        }
+
+        // 4. Par défaut → fermé
+        return { available: false, type: 'closed', reason: 'not_opened' }
+    }
+
+    // Vérifie si l'utilisateur peut s'inscrire à un créneau
+    const canUserRegister = (slotId) => {
+        if (!canReserveOnWeek()) return false
+
+        const { available, target } = isSlotAvailable(slotId)
+        if (!available) return false
+        if (target === 'all') return true
+        if (target === 'loisir' && user?.licenseType === 'L') return true
+        if (target === 'competition' && user?.licenseType === 'C') return true
+        return false
+    }
+
+    // Ouvrir un créneau (admin_salles)
+    const handleOpenSlot = async () => {
+        if (!slotToOpen || !canManageSlots) return
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        await storageService.openSlot(dateStr, slotToOpen, user.id, selectedTarget)
+        setShowOpenSlotModal(false)
+        setSlotToOpen(null)
+        setSelectedTarget('all')
+        await loadOpenedSlots()
+    }
+
+    // Fermer un créneau (admin_salles)
+    const handleCloseSlot = async (slotId) => {
+        if (!canManageSlots) return
+        if (!window.confirm('Fermer ce créneau ?')) return
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        await storageService.closeSlot(dateStr, slotId)
+        await loadOpenedSlots()
+    }
+
     // Actions
     const handleSlotClick = (slotId) => {
-        // Vérifier si les réservations sont autorisées pour cette semaine
-        if (!canReserveOnWeek()) {
-            alert('Les réservations ne sont pas encore ouvertes pour cette semaine.')
+        const userReg = getUserRegistration(slotId)
+
+        // Si déjà inscrit, permettre l'annulation
+        if (userReg) {
+            handleUnregister(slotId)
+            return
+        }
+        if (isUserOnSlot(slotId)) {
+            handleGuestUnregister(slotId)
             return
         }
 
-        const userReg = getUserRegistration(slotId)
+        // Vérifier la disponibilité du créneau
+        const availability = isSlotAvailable(slotId)
 
-        if (userReg) {
-            // L'utilisateur est owner d'une réservation
-            handleUnregister(slotId)
-        } else if (isUserOnSlot(slotId)) {
-            // L'utilisateur est invité (pas owner)
-            handleGuestUnregister(slotId)
-        } else {
-            // Pas sur le créneau, ouvrir le modal d'inscription
-            setSelectedSlotId(slotId)
-            setSelectedDuration(null)
-            setModalStep('duration')
+        // Créneau fermé par défaut
+        if (!availability.available) {
+            // Si admin_salles, proposer d'ouvrir le créneau
+            if (canManageSlots) {
+                setSlotToOpen(slotId)
+                setSelectedTarget('all')
+                setShowOpenSlotModal(true)
+            } else {
+                alert('Ce créneau n\'est pas ouvert aux réservations.')
+            }
+            return
         }
+
+        // Vérifier si l'utilisateur peut s'inscrire (licence compatible)
+        if (!canUserRegister(slotId)) {
+            const { target } = availability
+            if (target === 'loisir') {
+                alert('Ce créneau est réservé aux licences Loisir.')
+            } else if (target === 'competition') {
+                alert('Ce créneau est réservé aux licences Compétition.')
+            } else if (!user?.licenseType) {
+                alert('Votre type de licence n\'est pas défini. Contactez un administrateur.')
+            } else {
+                alert('Vous ne pouvez pas vous inscrire à ce créneau.')
+            }
+            return
+        }
+
+        // Tout est ok, ouvrir le modal d'inscription
+        setSelectedSlotId(slotId)
+        setSelectedDuration(null)
+        setModalStep('duration')
     }
 
     // Admin: supprimer un créneau de la semaine
@@ -840,6 +964,144 @@ export default function Calendar() {
                 </div>
             )}
 
+            {/* Modal ouverture de créneau (admin_salles) */}
+            {showOpenSlotModal && slotToOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}
+                    onClick={(e) => e.target === e.currentTarget && setShowOpenSlotModal(false)}
+                >
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '1.5rem 1.5rem 0 0',
+                        padding: '1.5rem',
+                        width: '100%',
+                        maxWidth: '500px',
+                        animation: 'slideUp 0.2s ease-out'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Unlock size={20} />
+                                Ouvrir un créneau
+                            </h3>
+                            <button
+                                onClick={() => setShowOpenSlotModal(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            <strong>{slotToOpen}</strong> - {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                        </p>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                                Ouvrir ce créneau pour :
+                            </label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.75rem',
+                                    border: selectedTarget === 'all' ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    background: selectedTarget === 'all' ? '#F0FDF4' : 'white'
+                                }}>
+                                    <input
+                                        type="radio"
+                                        name="target"
+                                        value="all"
+                                        checked={selectedTarget === 'all'}
+                                        onChange={(e) => setSelectedTarget(e.target.value)}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: '500' }}>Tous les membres</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Loisir et Compétition</div>
+                                    </div>
+                                </label>
+
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.75rem',
+                                    border: selectedTarget === 'loisir' ? '2px solid #0369A1' : '1px solid #E2E8F0',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    background: selectedTarget === 'loisir' ? '#E0F2FE' : 'white'
+                                }}>
+                                    <input
+                                        type="radio"
+                                        name="target"
+                                        value="loisir"
+                                        checked={selectedTarget === 'loisir'}
+                                        onChange={(e) => setSelectedTarget(e.target.value)}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: '500', color: '#0369A1' }}>Loisir uniquement</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Licence L</div>
+                                    </div>
+                                </label>
+
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.75rem',
+                                    border: selectedTarget === 'competition' ? '2px solid #92400E' : '1px solid #E2E8F0',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    background: selectedTarget === 'competition' ? '#FEF3C7' : 'white'
+                                }}>
+                                    <input
+                                        type="radio"
+                                        name="target"
+                                        value="competition"
+                                        checked={selectedTarget === 'competition'}
+                                        onChange={(e) => setSelectedTarget(e.target.value)}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: '500', color: '#92400E' }}>Compétition uniquement</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Licence C</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                                onClick={() => setShowOpenSlotModal(false)}
+                                className="btn"
+                                style={{ flex: 1, background: 'var(--color-bg)' }}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleOpenSlot}
+                                className="btn btn-primary"
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            >
+                                <Unlock size={16} />
+                                Ouvrir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Week Navigation */}
             <div style={{
                 display: 'flex',
@@ -1020,13 +1282,49 @@ export default function Calendar() {
                     })
                     .map(slot => {
                         const blockedInfo = getBlockedSlotInfo(slot.id)
+                        const availability = isSlotAvailable(slot.id)
+                        const userCanRegister = canUserRegister(slot.id)
+                        const isParticipating = isUserParticipating(slot.id)
+                        const participants = getParticipants(slot.id)
+                        const count = participants.length
+                        const acceptedCount = getAcceptedParticipantCount(slot.id)
+                        const isOverbooked = acceptedCount > maxPersons
 
-                        // Si le créneau est bloqué/indicatif, afficher différemment
+                        // Si le créneau est un entraînement (bloquant) ou un cours (indicatif)
                         if (blockedInfo) {
-                            const isBlocking = blockedInfo.isBlocking !== false // Par défaut bloquant
-                            const bgColor = isBlocking ? '#F3F4F6' : '#EFF6FF'
-                            const timeColor = isBlocking ? '#9CA3AF' : '#3B82F6'
-                            const textColor = isBlocking ? '#6B7280' : '#1D4ED8'
+                            const isBlocking = blockedInfo.isBlocking !== false
+                            const isCourse = blockedInfo.isBlocking === false
+                            const isTraining = isBlocking
+
+                            // Couleurs selon le type et si l'utilisateur peut s'inscrire
+                            let bgColor, timeColor, textColor
+                            if (isCourse) {
+                                bgColor = '#EFF6FF'
+                                timeColor = '#3B82F6'
+                                textColor = '#1D4ED8'
+                            } else if (isTraining && userCanRegister) {
+                                bgColor = '#F0FDF4'
+                                timeColor = '#22C55E'
+                                textColor = '#166534'
+                            } else {
+                                bgColor = '#F3F4F6'
+                                timeColor = '#9CA3AF'
+                                textColor = '#6B7280'
+                            }
+
+                            // Badge de restriction pour entraînement
+                            const targetBadge = availability.target !== 'all' && isTraining ? (
+                                <span style={{
+                                    fontSize: '0.65rem',
+                                    background: availability.target === 'competition' ? '#FEF3C7' : '#E0F2FE',
+                                    color: availability.target === 'competition' ? '#92400E' : '#0369A1',
+                                    padding: '0.1rem 0.4rem',
+                                    borderRadius: '4px',
+                                    fontWeight: '600'
+                                }}>
+                                    {availability.target === 'competition' ? 'Compét' : 'Loisir'}
+                                </span>
+                            ) : null
 
                             return (
                                 <div
@@ -1034,19 +1332,18 @@ export default function Calendar() {
                                     style={{
                                         display: 'flex',
                                         alignItems: 'stretch',
-                                        background: bgColor,
+                                        background: isParticipating ? '#F0FDF4' : bgColor,
                                         borderRadius: 'var(--radius-md)',
                                         overflow: 'hidden',
                                         boxShadow: 'var(--shadow-sm)',
-                                        border: isBlocking ? '1px solid #E2E8F0' : '1px solid #93C5FD',
-                                        opacity: isBlocking ? 0.8 : 1
+                                        border: isParticipating ? '2px solid #22C55E' : (isCourse ? '1px solid #93C5FD' : '1px solid #E2E8F0')
                                     }}
                                 >
                                     {/* Time Label */}
                                     <div style={{
                                         width: '60px',
                                         padding: '0.75rem 0.5rem',
-                                        background: timeColor,
+                                        background: isParticipating ? '#22C55E' : timeColor,
                                         color: 'white',
                                         fontWeight: 'bold',
                                         fontSize: '0.85rem',
@@ -1059,7 +1356,7 @@ export default function Calendar() {
                                         <span>{slot.label}</span>
                                     </div>
 
-                                    {/* Blocked Slot Info */}
+                                    {/* Slot Info */}
                                     <div style={{
                                         flex: 1,
                                         padding: '0.5rem 0.75rem',
@@ -1069,10 +1366,10 @@ export default function Calendar() {
                                         gap: '0.15rem',
                                         minWidth: 0
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: textColor }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: textColor, flexWrap: 'wrap' }}>
                                             <span style={{ fontSize: '1rem' }}>🏓</span>
                                             <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{blockedInfo.name}</span>
-                                            {!isBlocking && (
+                                            {isCourse && (
                                                 <span style={{
                                                     fontSize: '0.7rem',
                                                     background: '#DBEAFE',
@@ -1083,11 +1380,19 @@ export default function Calendar() {
                                                     Info
                                                 </span>
                                             )}
+                                            {targetBadge}
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
                                             {blockedInfo.coach}
                                             {blockedInfo.group && <span style={{ marginLeft: '0.5rem', background: '#E5E7EB', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{blockedInfo.group}</span>}
                                         </div>
+                                        {/* Participants si entraînement avec inscrits */}
+                                        {isTraining && count > 0 && (
+                                            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
+                                                <Users size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                                                {participants.map(p => p.name).join(', ')}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action/indicator */}
@@ -1108,7 +1413,41 @@ export default function Calendar() {
                                         >
                                             <Trash2 size={18} />
                                         </button>
-                                    ) : isBlocking ? (
+                                    ) : isParticipating ? (
+                                        <button
+                                            onClick={() => handleSlotClick(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: '#22C55E',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="Se désinscrire"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    ) : userCanRegister && canReserveOnWeek() ? (
+                                        <button
+                                            onClick={() => handleSlotClick(slot.id)}
+                                            style={{
+                                                width: '50px',
+                                                border: 'none',
+                                                background: isCourse ? '#DBEAFE' : '#DCFCE7',
+                                                color: isCourse ? '#3B82F6' : '#22C55E',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="S'inscrire"
+                                        >
+                                            +
+                                        </button>
+                                    ) : (
                                         <div style={{
                                             width: '50px',
                                             background: '#E5E7EB',
@@ -1116,38 +1455,59 @@ export default function Calendar() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             color: '#9CA3AF'
-                                        }}>
+                                        }}
+                                        title={!userCanRegister && availability.target !== 'all' ? `Réservé aux ${availability.target === 'competition' ? 'compétiteurs' : 'loisirs'}` : 'Non disponible'}
+                                        >
                                             <Lock size={18} />
                                         </div>
-                                    ) : (
-                                        // Créneau indicatif : on peut cliquer pour réserver
-                                        <button
-                                            onClick={() => canReserveOnWeek() && handleSlotClick(slot.id)}
-                                            style={{
-                                                width: '50px',
-                                                border: 'none',
-                                                background: '#DBEAFE',
-                                                color: '#3B82F6',
-                                                cursor: canReserveOnWeek() ? 'pointer' : 'not-allowed',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                opacity: canReserveOnWeek() ? 1 : 0.5
-                                            }}
-                                            disabled={!canReserveOnWeek()}
-                                        >
-                                            +
-                                        </button>
                                     )}
                                 </div>
                             )
                         }
 
-                        const participants = getParticipants(slot.id)
-                        const isParticipating = isUserParticipating(slot.id)
-                        const count = participants.length
-                        const acceptedCount = getAcceptedParticipantCount(slot.id)
-                        const isOverbooked = acceptedCount > maxPersons
+                        // Créneau normal (non entraînement, non cours)
+                        const openedInfo = getOpenedSlotInfo(slot.id)
+                        const isClosed = !availability.available
+                        const isOpened = availability.type === 'opened'
+
+                        // Couleurs selon l'état
+                        let bgColor = 'var(--color-surface)'
+                        let timeColor = 'var(--color-bg)'
+                        let borderColor = '1px solid #E2E8F0'
+                        let statusText = 'Fermé'
+                        let statusColor = '#9CA3AF'
+
+                        if (isParticipating) {
+                            bgColor = '#F0FDF4'
+                            timeColor = '#22C55E'
+                            borderColor = '2px solid #22C55E'
+                        } else if (isOpened) {
+                            bgColor = '#F0FDF4'
+                            timeColor = '#22C55E'
+                            borderColor = '1px solid #86EFAC'
+                            statusText = 'Ouvert'
+                            statusColor = '#22C55E'
+                        } else if (isClosed) {
+                            bgColor = '#F9FAFB'
+                            timeColor = '#D1D5DB'
+                            borderColor = '1px solid #E5E7EB'
+                            statusText = 'Fermé'
+                            statusColor = '#9CA3AF'
+                        }
+
+                        // Badge de restriction si ouvert avec target spécifique
+                        const targetBadge = isOpened && availability.target !== 'all' ? (
+                            <span style={{
+                                fontSize: '0.65rem',
+                                background: availability.target === 'competition' ? '#FEF3C7' : '#E0F2FE',
+                                color: availability.target === 'competition' ? '#92400E' : '#0369A1',
+                                padding: '0.1rem 0.4rem',
+                                borderRadius: '4px',
+                                fontWeight: '600'
+                            }}>
+                                {availability.target === 'competition' ? 'Compét' : 'Loisir'}
+                            </span>
+                        ) : null
 
                         return (
                             <div
@@ -1155,19 +1515,19 @@ export default function Calendar() {
                                 style={{
                                     display: 'flex',
                                     alignItems: 'stretch',
-                                    background: 'var(--color-surface)',
+                                    background: bgColor,
                                     borderRadius: 'var(--radius-md)',
                                     overflow: 'hidden',
                                     boxShadow: 'var(--shadow-sm)',
-                                    border: isParticipating ? '2px solid var(--color-primary)' : '1px solid #E2E8F0'
+                                    border: borderColor
                                 }}
                             >
                                 {/* Time Label */}
                                 <div style={{
                                     width: '60px',
                                     padding: '0.75rem 0.5rem',
-                                    background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
-                                    color: isParticipating ? 'white' : 'var(--color-text)',
+                                    background: timeColor,
+                                    color: isParticipating || isOpened ? 'white' : '#6B7280',
                                     fontWeight: 'bold',
                                     fontSize: '0.85rem',
                                     display: 'flex',
@@ -1206,6 +1566,7 @@ export default function Calendar() {
                                                         ⚠️ Surbooké
                                                     </span>
                                                 )}
+                                                {targetBadge}
                                             </div>
                                             <div style={{ fontSize: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                                                 {participants.map((p, idx) => (
@@ -1245,32 +1606,104 @@ export default function Calendar() {
                                             </div>
                                         </>
                                     ) : (
-                                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                                            {canReserveOnWeek() ? 'Disponible' : 'Fermé'}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ color: statusColor, fontSize: '0.85rem' }}>
+                                                {statusText}
+                                            </span>
+                                            {targetBadge}
+                                            {/* Message si mauvaise licence */}
+                                            {isOpened && !userCanRegister && availability.target !== 'all' && (
+                                                <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                                                    (licence {availability.target === 'competition' ? 'C' : 'L'} requise)
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
 
-                                {/* Toggle Button */}
-                                <button
-                                    onClick={() => handleSlotClick(slot.id)}
-                                    style={{
+                                {/* Action Button */}
+                                {isParticipating ? (
+                                    <button
+                                        onClick={() => handleSlotClick(slot.id)}
+                                        style={{
+                                            width: '50px',
+                                            border: 'none',
+                                            background: '#22C55E',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title="Se désinscrire"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                ) : userCanRegister && canReserveOnWeek() ? (
+                                    <button
+                                        onClick={() => handleSlotClick(slot.id)}
+                                        style={{
+                                            width: '50px',
+                                            border: 'none',
+                                            background: '#DCFCE7',
+                                            color: '#22C55E',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title="S'inscrire"
+                                    >
+                                        +
+                                    </button>
+                                ) : canManageSlots && isClosed ? (
+                                    <button
+                                        onClick={() => handleSlotClick(slot.id)}
+                                        style={{
+                                            width: '50px',
+                                            border: 'none',
+                                            background: '#E0F2FE',
+                                            color: '#0369A1',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title="Ouvrir ce créneau"
+                                    >
+                                        <Unlock size={18} />
+                                    </button>
+                                ) : canManageSlots && isOpened ? (
+                                    <button
+                                        onClick={() => handleCloseSlot(slot.id)}
+                                        style={{
+                                            width: '50px',
+                                            border: 'none',
+                                            background: '#FEE2E2',
+                                            color: '#DC2626',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title="Fermer ce créneau"
+                                    >
+                                        <Lock size={18} />
+                                    </button>
+                                ) : (
+                                    <div style={{
                                         width: '50px',
-                                        border: 'none',
-                                        background: isParticipating ? 'var(--color-primary)' : 'var(--color-bg)',
-                                        color: isParticipating ? 'white' : 'var(--color-text-muted)',
-                                        cursor: canReserveOnWeek() || isParticipating ? 'pointer' : 'not-allowed',
+                                        background: '#E5E7EB',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        transition: 'all 0.2s',
-                                        opacity: canReserveOnWeek() || isParticipating ? 1 : 0.5
+                                        color: '#9CA3AF'
                                     }}
-                                    title={!canReserveOnWeek() && !isParticipating ? 'Réservations fermées' : (isParticipating ? 'Annuler' : "S'inscrire")}
-                                    disabled={!canReserveOnWeek() && !isParticipating}
-                                >
-                                    {isParticipating ? <X size={20} /> : '+'}
-                                </button>
+                                    title={isClosed ? 'Créneau fermé' : (!userCanRegister ? 'Licence non compatible' : 'Non disponible')}
+                                    >
+                                        <Lock size={18} />
+                                    </div>
+                                )}
                             </div>
                         )
                     })}

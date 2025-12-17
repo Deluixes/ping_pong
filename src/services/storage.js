@@ -1252,6 +1252,78 @@ class StorageService {
         return { success: true }
     }
 
+    // ==================== OPENED SLOTS ====================
+
+    async getOpenedSlotsForDate(date) {
+        const { data, error } = await supabase
+            .from('opened_slots')
+            .select('*')
+            .eq('date', date)
+
+        if (error) {
+            console.error('Error fetching opened slots:', error)
+            return []
+        }
+
+        return data.map(s => ({
+            id: s.id,
+            date: s.date,
+            slotId: s.slot_id,
+            openedBy: s.opened_by,
+            target: s.target,
+            createdAt: s.created_at
+        }))
+    }
+
+    async openSlot(date, slotId, openedBy, target = 'all') {
+        const { data, error } = await supabase
+            .from('opened_slots')
+            .insert({
+                date: date,
+                slot_id: slotId,
+                opened_by: openedBy,
+                target: target
+            })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error opening slot:', error)
+            return { success: false, error }
+        }
+
+        return { success: true, slot: data }
+    }
+
+    async closeSlot(date, slotId) {
+        const { error } = await supabase
+            .from('opened_slots')
+            .delete()
+            .eq('date', date)
+            .eq('slot_id', slotId)
+
+        if (error) {
+            console.error('Error closing slot:', error)
+            return { success: false }
+        }
+
+        return { success: true }
+    }
+
+    async updateOpenedSlotTarget(id, target) {
+        const { error } = await supabase
+            .from('opened_slots')
+            .update({ target })
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error updating opened slot target:', error)
+            return { success: false }
+        }
+
+        return { success: true }
+    }
+
     // ==================== REAL-TIME SUBSCRIPTIONS ====================
 
     subscribeToReservations(callback) {
@@ -1279,6 +1351,16 @@ class StorageService {
             .channel('invitations-changes')
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: 'slot_invitations' },
+                () => callback()
+            )
+            .subscribe()
+    }
+
+    subscribeToOpenedSlots(callback) {
+        return supabase
+            .channel('opened-slots-changes')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'opened_slots' },
                 () => callback()
             )
             .subscribe()

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Shield, ShieldOff, Edit2, Award } from 'lucide-react'
+import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Shield, ShieldOff, Edit2, Award, Home } from 'lucide-react'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
@@ -49,16 +49,14 @@ export default function AdminPanel() {
         }
     }
 
-    const handlePromote = async (userId, name) => {
-        if (window.confirm(`Nommer ${name} administrateur ?`)) {
-            await storageService.updateMemberRole(userId, 'admin')
-            await loadData()
+    const handleSetRole = async (userId, name, newRole) => {
+        const roleLabels = {
+            admin: 'administrateur',
+            admin_salles: 'administrateur des salles',
+            member: 'membre'
         }
-    }
-
-    const handleDemote = async (userId, name) => {
-        if (window.confirm(`Retirer les droits d'admin à ${name} ?`)) {
-            await storageService.updateMemberRole(userId, 'member')
+        if (window.confirm(`Définir ${name} comme ${roleLabels[newRole]} ?`)) {
+            await storageService.updateMemberRole(userId, newRole)
             await loadData()
         }
     }
@@ -268,6 +266,18 @@ export default function AdminPanel() {
                                                 ADMIN
                                             </span>
                                         )}
+                                        {member.role === 'admin_salles' && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                background: '#D1FAE5',
+                                                color: '#065F46',
+                                                padding: '2px 6px',
+                                                borderRadius: '999px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                SALLES
+                                            </span>
+                                        )}
                                     </div>
                                     <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {member.email}
@@ -289,9 +299,10 @@ export default function AdminPanel() {
                                     <Edit2 size={18} />
                                 </button>
 
-                                {member.role !== 'admin' ? (
+                                {/* Boutons de gestion des rôles */}
+                                {member.role !== 'admin' && (
                                     <button
-                                        onClick={() => handlePromote(member.userId, member.name)}
+                                        onClick={() => handleSetRole(member.userId, member.name, 'admin')}
                                         style={{
                                             background: '#DBEAFE',
                                             color: '#1E40AF',
@@ -304,9 +315,26 @@ export default function AdminPanel() {
                                     >
                                         <Shield size={18} />
                                     </button>
-                                ) : (
+                                )}
+                                {member.role !== 'admin_salles' && (
                                     <button
-                                        onClick={() => handleDemote(member.userId, member.name)}
+                                        onClick={() => handleSetRole(member.userId, member.name, 'admin_salles')}
+                                        style={{
+                                            background: '#D1FAE5',
+                                            color: '#065F46',
+                                            border: 'none',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '0.5rem',
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Nommer Admin Salles"
+                                    >
+                                        <Home size={18} />
+                                    </button>
+                                )}
+                                {member.role !== 'member' && (
+                                    <button
+                                        onClick={() => handleSetRole(member.userId, member.name, 'member')}
                                         style={{
                                             background: '#FEF3C7',
                                             color: '#B45309',
@@ -315,7 +343,7 @@ export default function AdminPanel() {
                                             padding: '0.5rem',
                                             cursor: 'pointer'
                                         }}
-                                        title="Retirer Admin"
+                                        title="Retirer les droits"
                                     >
                                         <ShieldOff size={18} />
                                     </button>

@@ -129,6 +129,18 @@ export default function SlideMenu({ isOpen, onClose }) {
                                     Admin
                                 </span>
                             )}
+                            {!user?.isAdmin && user?.role === 'admin_salles' && (
+                                <span style={{
+                                    marginLeft: '0.5rem',
+                                    fontSize: '0.7rem',
+                                    background: '#D1FAE5',
+                                    color: '#065F46',
+                                    padding: '0.15rem 0.4rem',
+                                    borderRadius: '4px'
+                                }}>
+                                    Salles
+                                </span>
+                            )}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {user?.email}

@@ -12,7 +12,11 @@ export const AuthProvider = ({ children }) => {
 
     const checkMemberStatus = useCallback(async (userId, isAdminEmail, email, name) => {
         try {
-            let { status, role } = await storageService.getMemberStatus(userId)
+            // Récupérer le profil complet (inclut licenseType)
+            const profile = await storageService.getMemberProfile(userId)
+            let status = profile?.status || 'none'
+            let role = profile?.role || 'member'
+            const licenseType = profile?.licenseType || null
 
             // Auto-approve admins if they are in the ENV list
             if (isAdminEmail) {
@@ -30,11 +34,11 @@ export const AuthProvider = ({ children }) => {
             }
 
             setMemberStatus(status)
-            return { status, role }
+            return { status, role, licenseType }
         } catch (error) {
             console.error('Error checking member status:', error)
             setMemberStatus('none')
-            return { status: 'none', role: 'member' }
+            return { status: 'none', role: 'member', licenseType: null }
         }
     }, [])
 
@@ -51,7 +55,10 @@ export const AuthProvider = ({ children }) => {
                     email: session.user.email,
                     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
                     isAdminEmail: ADMIN_EMAILS.includes(session.user.email?.toLowerCase()),
-                    isAdmin: false
+                    isAdmin: false,
+                    isAdminSalles: false,
+                    role: 'member',
+                    licenseType: null
                 }
 
                 if (!isMounted) return
@@ -59,9 +66,15 @@ export const AuthProvider = ({ children }) => {
 
                 // Vérifier le statut membre si demandé (AVANT de mettre loading à false)
                 if (shouldCheckMember) {
-                    const { role } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
+                    const { role, licenseType } = await checkMemberStatus(userData.id, userData.isAdminEmail, userData.email, userData.name)
                     if (!isMounted) return
-                    setUser(prev => prev ? ({ ...prev, isAdmin: role === 'admin' }) : null)
+                    setUser(prev => prev ? ({
+                        ...prev,
+                        role: role,
+                        isAdmin: role === 'admin',
+                        isAdminSalles: role === 'admin' || role === 'admin_salles',
+                        licenseType: licenseType
+                    }) : null)
                 }
 
                 if (!isMounted) return
@@ -161,11 +174,15 @@ export const AuthProvider = ({ children }) => {
     // Refresh member status (useful after admin approval)
     const refreshMemberStatus = async () => {
         if (user) {
-            const { role } = await checkMemberStatus(user.id, user.isAdminEmail, user.email, user.name)
-            // Update user role in state if changed
-            if ((role === 'admin') !== user.isAdmin) {
-                setUser(prev => ({ ...prev, isAdmin: role === 'admin' }))
-            }
+            const { role, licenseType } = await checkMemberStatus(user.id, user.isAdminEmail, user.email, user.name)
+            // Update user role and license in state
+            setUser(prev => prev ? ({
+                ...prev,
+                role: role,
+                isAdmin: role === 'admin',
+                isAdminSalles: role === 'admin' || role === 'admin_salles',
+                licenseType: licenseType
+            }) : null)
         }
     }
 
