@@ -900,8 +900,10 @@ export default function Calendar() {
                                         border: '2px solid #22C55E'
                                     }}
                                 >
-                                    <span style={{ fontSize: '1.5rem' }}>✓</span>
-                                    <div style={{ textAlign: 'left' }}>
+                                    <div style={{ width: '24px', display: 'flex', justifyContent: 'center' }}>
+                                        <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>✓</span>
+                                    </div>
+                                    <div style={{ textAlign: 'left', flex: 1 }}>
                                         <div style={{ fontWeight: '600' }}>S'inscrire</div>
                                         <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Je m'inscris et je peux inviter des personnes</div>
                                     </div>
@@ -920,8 +922,10 @@ export default function Calendar() {
                                         border: '2px solid #3B82F6'
                                     }}
                                 >
-                                    <UserPlus size={24} />
-                                    <div style={{ textAlign: 'left' }}>
+                                    <div style={{ width: '24px', display: 'flex', justifyContent: 'center' }}>
+                                        <UserPlus size={24} />
+                                    </div>
+                                    <div style={{ textAlign: 'left', flex: 1 }}>
                                         <div style={{ fontWeight: '600' }}>Inviter seulement</div>
                                         <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>J'invite des personnes sans m'inscrire</div>
                                     </div>
