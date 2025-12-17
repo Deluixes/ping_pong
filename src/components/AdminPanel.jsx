@@ -20,7 +20,7 @@ export default function AdminPanel() {
     const getAvailableRoles = () => {
         const roles = [
             { value: 'member', label: 'Membre' },
-            { value: 'admin_salles', label: 'Admin Salles' }
+            { value: 'admin_salles', label: 'Gestion Salle' }
         ]
         // Seul super_admin peut créer des admins
         if (currentUser?.role === 'super_admin') {
@@ -268,25 +268,26 @@ export default function AdminPanel() {
                                         {member.licenseType && (
                                             <span style={{
                                                 fontSize: '0.7rem',
-                                                background: member.licenseType === 'C' ? '#FEF3C7' : '#E0F2FE',
-                                                color: member.licenseType === 'C' ? '#B45309' : '#0369A1',
+                                                background: member.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
+                                                color: member.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
                                                 padding: '2px 6px',
                                                 borderRadius: '999px',
                                                 fontWeight: 'bold'
                                             }}>
-                                                {member.licenseType === 'C' ? 'Compét.' : 'Loisir'}
+                                                {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
                                             </span>
                                         )}
                                         {member.role === 'super_admin' && (
                                             <span style={{
                                                 fontSize: '0.7rem',
                                                 background: '#FEF3C7',
-                                                color: '#92400E',
+                                                color: '#B45309',
                                                 padding: '2px 6px',
                                                 borderRadius: '999px',
-                                                fontWeight: 'bold'
+                                                fontWeight: 'bold',
+                                                border: '1px solid #F59E0B'
                                             }}>
-                                                SUPER
+                                                Super Admin
                                             </span>
                                         )}
                                         {member.role === 'admin' && (
@@ -298,7 +299,7 @@ export default function AdminPanel() {
                                                 borderRadius: '999px',
                                                 fontWeight: 'bold'
                                             }}>
-                                                ADMIN
+                                                Admin
                                             </span>
                                         )}
                                         {member.role === 'admin_salles' && (
@@ -310,7 +311,19 @@ export default function AdminPanel() {
                                                 borderRadius: '999px',
                                                 fontWeight: 'bold'
                                             }}>
-                                                SALLES
+                                                Gestion Salle
+                                            </span>
+                                        )}
+                                        {member.role === 'member' && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                background: '#F3F4F6',
+                                                color: '#6B7280',
+                                                padding: '2px 6px',
+                                                borderRadius: '999px',
+                                                fontWeight: '500'
+                                            }}>
+                                                Membre
                                             </span>
                                         )}
                                     </div>
