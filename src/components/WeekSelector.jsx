@@ -450,7 +450,9 @@ export default function WeekSelector({ templates, onClose }) {
                                         background: '#FEE2E2',
                                         color: '#991B1B',
                                         padding: '0.75rem 1rem',
-                                        textAlign: 'left'
+                                        textAlign: 'left',
+                                        flexDirection: 'column',
+                                        alignItems: 'flex-start'
                                     }}
                                 >
                                     <div style={{ fontWeight: '600' }}>Écraser</div>
@@ -466,7 +468,9 @@ export default function WeekSelector({ templates, onClose }) {
                                         background: '#DBEAFE',
                                         color: '#1E40AF',
                                         padding: '0.75rem 1rem',
-                                        textAlign: 'left'
+                                        textAlign: 'left',
+                                        flexDirection: 'column',
+                                        alignItems: 'flex-start'
                                     }}
                                 >
                                     <div style={{ fontWeight: '600' }}>Fusionner (garder existants)</div>
@@ -482,7 +486,9 @@ export default function WeekSelector({ templates, onClose }) {
                                         background: '#FEF3C7',
                                         color: '#92400E',
                                         padding: '0.75rem 1rem',
-                                        textAlign: 'left'
+                                        textAlign: 'left',
+                                        flexDirection: 'column',
+                                        alignItems: 'flex-start'
                                     }}
                                 >
                                     <div style={{ fontWeight: '600' }}>Fusionner (garder nouveaux)</div>
