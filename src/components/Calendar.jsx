@@ -62,11 +62,16 @@ export default function Calendar() {
     const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
     const [showOnlyOccupied, setShowOnlyOccupied] = useState(false)
 
-    // Modal state - 2 steps (duration -> guests)
-    const [modalStep, setModalStep] = useState(null) // 'duration' | 'guests' | null
+    // Modal state - 3 steps (duration -> choice -> guests)
+    const [modalStep, setModalStep] = useState(null) // 'duration' | 'choice' | 'guests' | null
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
     const [guests, setGuests] = useState([{ odId: '', name: '' }])
+    const [inviteOnlyMode, setInviteOnlyMode] = useState(false)
+
+    // Menu pour créneau où l'utilisateur est inscrit
+    const [showRegisteredMenu, setShowRegisteredMenu] = useState(false)
+    const [registeredSlotId, setRegisteredSlotId] = useState(null)
 
     // Settings
     const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
@@ -509,9 +514,10 @@ export default function Calendar() {
     const handleSlotClick = (slotId) => {
         const userReg = getUserRegistration(slotId)
 
-        // Si déjà inscrit, permettre l'annulation
+        // Si déjà inscrit, ouvrir le menu (inviter / se désinscrire)
         if (userReg) {
-            handleUnregister(slotId)
+            setRegisteredSlotId(slotId)
+            setShowRegisteredMenu(true)
             return
         }
         if (isUserOnSlot(slotId)) {
@@ -574,6 +580,11 @@ export default function Calendar() {
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
         setGuests([{ odId: '', name: '' }])
+        setModalStep('choice')
+    }
+
+    const handleModeChoice = (mode) => {
+        setInviteOnlyMode(mode === 'invite_only')
         setModalStep('guests')
     }
 
@@ -598,6 +609,13 @@ export default function Calendar() {
     const handleRegister = async () => {
         if (!selectedSlotId || !selectedDuration) return
 
+        // En mode invite_only, il faut au moins un invité
+        const validGuests = guests.filter(g => g.odId)
+        if (inviteOnlyMode && validGuests.length === 0) {
+            alert('Veuillez sélectionner au moins une personne à inviter.')
+            return
+        }
+
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(selectedSlotId)
 
@@ -614,20 +632,26 @@ export default function Calendar() {
 
         // Calculer overbooked en comptant SEULEMENT les acceptés
         const currentAccepted = getAcceptedParticipantCount(selectedSlotId)
-        const totalAfter = currentAccepted + 1 // +1 pour le nouveau réservant
+        const totalAfter = currentAccepted + (inviteOnlyMode ? 0 : 1) // +1 seulement si on s'inscrit
         const isOverbooked = totalAfter > maxPersons
 
         try {
-            // Register for all slots in the duration
+            // S'inscrire seulement si pas en mode invite_only
+            if (!inviteOnlyMode) {
+                for (let i = 0; i < selectedDuration.slots; i++) {
+                    const slot = TIME_SLOTS[startIndex + i]
+                    await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, isOverbooked)
+                }
+            }
+
+            // Créer les invitations pour chaque slot
             for (let i = 0; i < selectedDuration.slots; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
-                await storageService.registerForSlot(slot.id, dateStr, user.id, user.name, selectedDuration.slots, isOverbooked)
-
-                // Créer les invitations pour chaque slot
-                for (const guest of guests.filter(g => g.odId)) {
+                for (const guest of validGuests) {
                     await storageService.inviteToSlot(slot.id, dateStr, guest.odId, guest.name, user.id)
                 }
             }
+
             closeModal()
             await loadData()
             await loadInvitations()
@@ -677,6 +701,9 @@ export default function Calendar() {
         setSelectedSlotId(null)
         setSelectedDuration(null)
         setGuests([{ odId: '', name: '' }])
+        setInviteOnlyMode(false)
+        setShowRegisteredMenu(false)
+        setRegisteredSlotId(null)
     }
 
     if (loading) {
@@ -710,6 +737,111 @@ export default function Calendar() {
 
     return (
         <div className="calendar-view" style={{ paddingBottom: '2rem' }}>
+            {/* Menu pour créneau où l'utilisateur est inscrit */}
+            {showRegisteredMenu && registeredSlotId && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}
+                    onClick={(e) => e.target === e.currentTarget && setShowRegisteredMenu(false)}
+                >
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '1.5rem 1.5rem 0 0',
+                        padding: '1.5rem',
+                        width: '100%',
+                        maxWidth: '500px',
+                        animation: 'slideUp 0.2s ease-out'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, color: 'var(--color-secondary)' }}>
+                                Ma réservation
+                            </h3>
+                            <button
+                                onClick={() => setShowRegisteredMenu(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            <strong>{registeredSlotId}</strong> - {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => {
+                                    const userReg = getUserRegistration(registeredSlotId)
+                                    setShowRegisteredMenu(false)
+                                    setSelectedSlotId(registeredSlotId)
+                                    setSelectedDuration(DURATION_OPTIONS.find(d => d.slots === userReg?.duration) || DURATION_OPTIONS[0])
+                                    setInviteOnlyMode(true)
+                                    setGuests([{ odId: '', name: '' }])
+                                    setModalStep('guests')
+                                }}
+                                className="btn"
+                                style={{
+                                    background: '#DBEAFE',
+                                    color: '#1E40AF',
+                                    padding: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem'
+                                }}
+                            >
+                                <UserPlus size={20} />
+                                <div style={{ textAlign: 'left' }}>
+                                    <div style={{ fontWeight: '600' }}>Inviter quelqu'un</div>
+                                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Ajouter des personnes à ce créneau</div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setShowRegisteredMenu(false)
+                                    handleUnregister(registeredSlotId)
+                                }}
+                                className="btn"
+                                style={{
+                                    background: '#FEE2E2',
+                                    color: '#991B1B',
+                                    padding: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem'
+                                }}
+                            >
+                                <X size={20} />
+                                <div style={{ textAlign: 'left' }}>
+                                    <div style={{ fontWeight: '600' }}>Se désinscrire</div>
+                                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Annuler ma réservation</div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setShowRegisteredMenu(false)}
+                                className="btn"
+                                style={{
+                                    background: 'var(--color-bg)',
+                                    padding: '0.75rem'
+                                }}
+                            >
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modal */}
             {modalStep && (
                 <div style={{
@@ -746,7 +878,9 @@ export default function Calendar() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h3 style={{ margin: 0, color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Clock size={20} />
-                                {modalStep === 'duration' ? 'Durée de réservation' : 'Confirmer la réservation'}
+                                {modalStep === 'duration' ? 'Durée de réservation' :
+                                 modalStep === 'choice' ? 'Type de réservation' :
+                                 inviteOnlyMode ? 'Inviter des personnes' : 'Confirmer la réservation'}
                             </h3>
                             <button
                                 onClick={closeModal}
@@ -810,11 +944,74 @@ export default function Calendar() {
                             </>
                         )}
 
-                        {/* Step 2: Invite Guests + Confirmation */}
-                        {modalStep === 'guests' && (
-                            <>
+                        {/* Step 2: Choice (S'inscrire / Inviter seulement) */}
+                        {modalStep === 'choice' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 <button
                                     onClick={() => setModalStep('duration')}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--color-primary)',
+                                        cursor: 'pointer',
+                                        marginBottom: '0.5rem',
+                                        padding: 0,
+                                        textAlign: 'left',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    ← Changer la durée
+                                </button>
+
+                                <button
+                                    onClick={() => handleModeChoice('register')}
+                                    className="btn"
+                                    style={{
+                                        background: '#F0FDF4',
+                                        color: '#166534',
+                                        padding: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        border: '2px solid #22C55E'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '1.5rem' }}>✓</span>
+                                    <div style={{ textAlign: 'left' }}>
+                                        <div style={{ fontWeight: '600' }}>S'inscrire</div>
+                                        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Je m'inscris et je peux inviter des personnes</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => handleModeChoice('invite_only')}
+                                    className="btn"
+                                    style={{
+                                        background: '#DBEAFE',
+                                        color: '#1E40AF',
+                                        padding: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        border: '2px solid #3B82F6'
+                                    }}
+                                >
+                                    <UserPlus size={24} />
+                                    <div style={{ textAlign: 'left' }}>
+                                        <div style={{ fontWeight: '600' }}>Inviter seulement</div>
+                                        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>J'invite des personnes sans m'inscrire</div>
+                                    </div>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Step 3: Invite Guests + Confirmation */}
+                        {modalStep === 'guests' && (
+                            <>
+                                {/* Si on vient du menu (registeredSlotId défini), fermer le modal */}
+                                {/* Sinon retourner à l'étape choice */}
+                                <button
+                                    onClick={() => registeredSlotId ? closeModal() : setModalStep('choice')}
                                     style={{
                                         background: 'none',
                                         border: 'none',
@@ -825,7 +1022,7 @@ export default function Calendar() {
                                         padding: 0
                                     }}
                                 >
-                                    ← Changer la durée
+                                    {registeredSlotId ? '← Annuler' : '← Retour'}
                                 </button>
 
                                 {/* Warning if overbooked */}
@@ -976,7 +1173,7 @@ export default function Calendar() {
                                         gap: '0.5rem'
                                     }}
                                 >
-                                    ✓ Confirmer la réservation
+                                    {inviteOnlyMode ? '✓ Envoyer les invitations' : '✓ Confirmer la réservation'}
                                 </button>
                             </>
                         )}
