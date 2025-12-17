@@ -19,6 +19,7 @@ export default function WeekSelector({ templates, onClose }) {
     const [conflictAnalysis, setConflictAnalysis] = useState(null)
     const [showConflictWarning, setShowConflictWarning] = useState(false)
     const [analyzing, setAnalyzing] = useState(false)
+    const [selectedMode, setSelectedMode] = useState(null)
 
     const today = startOfDay(new Date())
 
@@ -101,8 +102,9 @@ export default function WeekSelector({ templates, onClose }) {
             return
         }
 
-        // Si mode merge et des conflits existent, afficher le warning
-        if (mode === 'merge' && conflictAnalysis?.conflicts?.length > 0) {
+        // Si mode merge ou merge_keep_new et des conflits existent, afficher le warning
+        if ((mode === 'merge' || mode === 'merge_keep_new') && conflictAnalysis?.conflicts?.length > 0) {
+            setSelectedMode(mode)
             setShowConflictWarning(true)
         } else {
             await executeApply(mode)
@@ -467,9 +469,25 @@ export default function WeekSelector({ templates, onClose }) {
                                         textAlign: 'left'
                                     }}
                                 >
-                                    <div style={{ fontWeight: '600' }}>Fusionner</div>
+                                    <div style={{ fontWeight: '600' }}>Fusionner (garder existants)</div>
                                     <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.8 }}>
                                         Ajouter les nouveaux créneaux (garder les existants si conflit)
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => handleModeSelect('merge_keep_new')}
+                                    className="btn"
+                                    style={{
+                                        background: '#FEF3C7',
+                                        color: '#92400E',
+                                        padding: '0.75rem 1rem',
+                                        textAlign: 'left'
+                                    }}
+                                >
+                                    <div style={{ fontWeight: '600' }}>Fusionner (garder nouveaux)</div>
+                                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.8 }}>
+                                        Remplacer les créneaux existants en conflit par les nouveaux
                                     </div>
                                 </button>
 
@@ -519,7 +537,9 @@ export default function WeekSelector({ templates, onClose }) {
                             </div>
 
                             <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                                Les créneaux suivants ne seront pas ajoutés car ils chevauchent des créneaux existants :
+                                {selectedMode === 'merge'
+                                    ? 'Les créneaux suivants ne seront pas ajoutés car ils chevauchent des créneaux existants :'
+                                    : 'Les créneaux existants suivants seront remplacés par les nouveaux du template :'}
                             </p>
 
                             <div style={{
@@ -551,7 +571,7 @@ export default function WeekSelector({ templates, onClose }) {
                                     Annuler
                                 </button>
                                 <button
-                                    onClick={() => executeApply('merge')}
+                                    onClick={() => executeApply(selectedMode)}
                                     className="btn btn-primary"
                                     style={{ flex: 1 }}
                                 >

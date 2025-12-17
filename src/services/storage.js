@@ -1028,7 +1028,7 @@ class StorageService {
     }
 
     async applyTemplateToWeeks(templateId, weekStarts, mode = 'overwrite') {
-        // mode: 'overwrite' = remplacer complètement | 'merge' = fusionner (garder existants si conflit)
+        // mode: 'overwrite' = remplacer complètement | 'merge' = fusionner (garder existants si conflit) | 'merge_keep_new' = fusionner (garder nouveaux si conflit)
 
         // 1. Récupérer les données du template
         const [templateResult, slotsResult, hoursResult] = await Promise.all([
@@ -1124,6 +1124,19 @@ class StorageService {
                     }
                 }
 
+                // En mode merge_keep_new, supprimer les slots existants en conflit
+                if (mode === 'merge_keep_new' && existingSlots.length > 0) {
+                    const conflictingSlots = existingSlots.filter(existingSlot =>
+                        this._slotsOverlap(
+                            { date: newSlot.date, startTime: newSlot.start_time, endTime: newSlot.end_time },
+                            existingSlot
+                        )
+                    )
+                    for (const conflictSlot of conflictingSlots) {
+                        await supabase.from('week_slots').delete().eq('id', conflictSlot.id)
+                    }
+                }
+
                 newSlots.push(newSlot)
             }
 
@@ -1152,6 +1165,19 @@ class StorageService {
                     )
                     if (hasConflict) {
                         continue // Ne pas ajouter cette plage
+                    }
+                }
+
+                // En mode merge_keep_new, supprimer les plages horaires existantes en conflit
+                if (mode === 'merge_keep_new' && existingHours.length > 0) {
+                    const conflictingHours = existingHours.filter(existingHour =>
+                        this._slotsOverlap(
+                            { date: newHour.date, startTime: newHour.start_time, endTime: newHour.end_time },
+                            existingHour
+                        )
+                    )
+                    for (const conflictHour of conflictingHours) {
+                        await supabase.from('week_hours').delete().eq('id', conflictHour.id)
                     }
                 }
 
