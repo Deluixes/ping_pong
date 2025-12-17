@@ -504,8 +504,25 @@ export default function Calendar() {
     // Fermer un créneau (admin_salles)
     const handleCloseSlot = async (slotId) => {
         if (!canManageSlots) return
-        if (!window.confirm('Fermer ce créneau ?')) return
+
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        const participants = getParticipants(slotId)
+
+        if (participants.length > 0) {
+            // Il y a des inscrits, demander confirmation
+            const confirmed = window.confirm(
+                `${participants.length} personne(s) inscrite(s) sur ce créneau :\n` +
+                participants.map(p => `- ${p.name}`).join('\n') +
+                `\n\nVoulez-vous vraiment fermer ce créneau ?\nLeurs réservations seront supprimées.`
+            )
+            if (!confirmed) return
+
+            // Supprimer les réservations
+            await storageService.deleteReservationsForSlot(dateStr, slotId)
+            await loadData() // Recharger les événements
+        }
+
+        // Fermer le créneau
         await storageService.closeSlot(dateStr, slotId)
         await loadOpenedSlots()
     }
@@ -1855,22 +1872,22 @@ export default function Calendar() {
                                     >
                                         <X size={20} />
                                     </button>
-                                ) : userCanRegister && canReserveOnWeek() ? (
+                                ) : canManageSlots && isOpened ? (
                                     <button
-                                        onClick={() => handleSlotClick(slot.id)}
+                                        onClick={() => handleCloseSlot(slot.id)}
                                         style={{
                                             width: '50px',
                                             border: 'none',
-                                            background: '#DCFCE7',
-                                            color: '#22C55E',
+                                            background: '#FEE2E2',
+                                            color: '#DC2626',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center'
                                         }}
-                                        title="S'inscrire"
+                                        title="Fermer ce créneau"
                                     >
-                                        +
+                                        <Lock size={18} />
                                     </button>
                                 ) : canManageSlots && isClosed ? (
                                     <button
@@ -1889,22 +1906,22 @@ export default function Calendar() {
                                     >
                                         <Unlock size={18} />
                                     </button>
-                                ) : canManageSlots && isOpened ? (
+                                ) : userCanRegister && canReserveOnWeek() ? (
                                     <button
-                                        onClick={() => handleCloseSlot(slot.id)}
+                                        onClick={() => handleSlotClick(slot.id)}
                                         style={{
                                             width: '50px',
                                             border: 'none',
-                                            background: '#FEE2E2',
-                                            color: '#DC2626',
+                                            background: '#DCFCE7',
+                                            color: '#22C55E',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center'
                                         }}
-                                        title="Fermer ce créneau"
+                                        title="S'inscrire"
                                     >
-                                        <Lock size={18} />
+                                        +
                                     </button>
                                 ) : (
                                     <div style={{

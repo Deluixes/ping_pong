@@ -114,6 +114,22 @@ class StorageService {
         return { deleted: 1, events: await this.getEvents() }
     }
 
+    async deleteReservationsForSlot(date, slotId) {
+        const { data, error } = await supabase
+            .from('reservations')
+            .delete()
+            .eq('date', date)
+            .eq('slot_id', slotId)
+            .select()
+
+        if (error) {
+            console.error('Error deleting reservations:', error)
+            return { success: false, deleted: 0 }
+        }
+
+        return { success: true, deleted: data?.length || 0 }
+    }
+
     async updateUserNameInEvents(userId, newName) {
         const { data, error } = await supabase
             .from('reservations')
