@@ -339,6 +339,9 @@ export default function Calendar() {
 
         const available = []
 
+        // Vérifier le type du créneau de départ
+        const startAvailability = isSlotAvailable(startSlotId)
+
         for (const duration of DURATION_OPTIONS) {
             // Check if we have enough slots remaining in the day
             if (startIndex + duration.slots > TIME_SLOTS.length) {
@@ -346,17 +349,38 @@ export default function Calendar() {
             }
 
             // Check if any slot in this duration overlaps with a blocking slot
-            let hasBlockingSlot = false
+            // OR if slot is not available (closed or wrong target)
+            let isValidDuration = true
             for (let i = 0; i < duration.slots; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
                 const blockedInfo = getBlockedSlotInfo(slot.id)
+
+                // Slot bloquant (training) → durée invalide
                 if (blockedInfo && blockedInfo.isBlocking !== false) {
-                    hasBlockingSlot = true
+                    isValidDuration = false
                     break
+                }
+
+                // Pour les créneaux "opened" (ouverts par admin_salles),
+                // vérifier que les créneaux suivants sont aussi ouverts
+                if (startAvailability.type === 'opened' && i > 0) {
+                    const slotAvailability = isSlotAvailable(slot.id)
+                    // Si le créneau suivant n'est pas disponible
+                    if (!slotAvailability.available) {
+                        isValidDuration = false
+                        break
+                    }
+                    // Vérifier aussi que le target est compatible
+                    if (slotAvailability.type === 'opened' &&
+                        slotAvailability.target !== 'all' &&
+                        slotAvailability.target !== startAvailability.target) {
+                        isValidDuration = false
+                        break
+                    }
                 }
             }
 
-            if (!hasBlockingSlot) {
+            if (isValidDuration) {
                 available.push(duration)
             }
         }
