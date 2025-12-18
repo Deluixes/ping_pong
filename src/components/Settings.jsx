@@ -90,8 +90,9 @@ export default function Settings() {
 
         setIsSaving(true)
         await updateName(name.trim())
-        // Also update name in existing reservations
+        // Also update name in existing reservations and invitations
         await storageService.updateUserNameInEvents(user.id, name.trim())
+        await storageService.updateUserNameInInvitations(user.id, name.trim())
         // Update license type
         if (licenseType) {
             await storageService.updateMemberLicense(user.id, licenseType)
