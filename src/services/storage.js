@@ -146,20 +146,17 @@ class StorageService {
     }
 
     async updateUserNameInInvitations(userId, newName) {
-        console.log('updateUserNameInInvitations called:', { userId, newName })
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('slot_invitations')
             .update({ user_name: newName })
             .eq('user_id', userId)
-            .select()
 
         if (error) {
             console.error('Error updating user name in invitations:', error)
             return { success: false }
         }
 
-        console.log('Updated invitations:', data)
-        return { success: true, updated: data?.length || 0 }
+        return { success: true }
     }
 
     // ==================== MEMBERS ====================

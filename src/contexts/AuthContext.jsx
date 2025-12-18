@@ -13,18 +13,19 @@ export const AuthProvider = ({ children }) => {
 
     const checkMemberStatus = useCallback(async (userId) => {
         try {
-            // Récupérer le profil complet (inclut licenseType)
+            // Récupérer le profil complet (inclut licenseType et name)
             const profile = await storageService.getMemberProfile(userId)
             const status = profile?.status || 'none'
             const role = profile?.role || 'member'
             const licenseType = profile?.licenseType || null
+            const name = profile?.name || null // Nom depuis la table members
 
             setMemberStatus(status)
-            return { status, role, licenseType }
+            return { status, role, licenseType, name }
         } catch (error) {
             console.error('Error checking member status:', error)
             setMemberStatus('none')
-            return { status: 'none', role: 'member', licenseType: null }
+            return { status: 'none', role: 'member', licenseType: null, name: null }
         }
     }, [])
 
@@ -52,10 +53,12 @@ export const AuthProvider = ({ children }) => {
 
                 // Vérifier le statut membre si demandé (AVANT de mettre loading à false)
                 if (shouldCheckMember) {
-                    const { role, licenseType } = await checkMemberStatus(userData.id)
+                    const { role, licenseType, name } = await checkMemberStatus(userData.id)
                     if (!isMounted) return
                     setUser(prev => prev ? ({
                         ...prev,
+                        // Utiliser le nom depuis la table members s'il existe (peut être modifié par admin)
+                        name: name || prev.name,
                         role: role,
                         isSuperAdmin: role === 'super_admin',
                         isAdmin: role === 'admin' || role === 'super_admin',
@@ -112,6 +115,35 @@ export const AuthProvider = ({ children }) => {
         }
     }, [])
 
+    // Subscription pour détecter les changements sur le profil de l'utilisateur connecté
+    useEffect(() => {
+        if (!user?.id) return
+
+        const memberSubscription = supabase
+            .channel('my-member-changes')
+            .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'members', filter: `user_id=eq.${user.id}` },
+                async (payload) => {
+                    // Le profil a été modifié (possiblement par un admin)
+                    const newData = payload.new
+                    setUser(prev => prev ? ({
+                        ...prev,
+                        name: newData.name || prev.name,
+                        role: newData.role || prev.role,
+                        licenseType: newData.license_type || prev.licenseType,
+                        isSuperAdmin: newData.role === 'super_admin',
+                        isAdmin: newData.role === 'admin' || newData.role === 'super_admin',
+                        isAdminSalles: newData.role === 'admin' || newData.role === 'admin_salles' || newData.role === 'super_admin'
+                    }) : null)
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(memberSubscription)
+        }
+    }, [user?.id])
+
     const sendMagicLink = async (email, name) => {
         setAuthError(null)
         try {
@@ -158,13 +190,14 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.signOut()
     }
 
-    // Refresh member status (useful after admin approval)
+    // Refresh member status (useful after admin approval or name change)
     const refreshMemberStatus = async () => {
         if (user) {
-            const { role, licenseType } = await checkMemberStatus(user.id)
-            // Update user role and license in state
+            const { role, licenseType, name } = await checkMemberStatus(user.id)
+            // Update user role, license and name in state
             setUser(prev => prev ? ({
                 ...prev,
+                name: name || prev.name,
                 role: role,
                 isSuperAdmin: role === 'super_admin',
                 isAdmin: role === 'admin' || role === 'super_admin',
