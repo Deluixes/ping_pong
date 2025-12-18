@@ -4,20 +4,20 @@ Ce guide explique comment configurer les notifications push pour l'application P
 
 ## 1. Clés VAPID
 
-Les clés VAPID ont été générées. Voici les valeurs à utiliser :
-
-```
-Public Key:  BHF2Nxjs4tUF9SaujwtK69PZgVb65kf3nGtlnRx00Yx9W8tQ-wOYttg54w-tgu86dhQZnk5AMgufLgDrrfcJXPA
-Private Key: QVGQIm28QkPEyBO3WOLOvq4e6_o53Fp2H0iiLpEAMb0
+Générer des clés VAPID avec la commande :
+```bash
+npx web-push generate-vapid-keys
 ```
 
-## 2. Configuration Frontend
+Conserver les clés générées pour les étapes suivantes.
 
-Ajouter dans le fichier `.env` :
+## 2. Configuration Frontend (Vercel)
 
-```
-VITE_VAPID_PUBLIC_KEY=BHF2Nxjs4tUF9SaujwtK69PZgVb65kf3nGtlnRx00Yx9W8tQ-wOYttg54w-tgu86dhQZnk5AMgufLgDrrfcJXPA
-```
+Dans Vercel > Settings > Environment Variables, ajouter :
+
+| Variable | Valeur |
+|----------|--------|
+| `VITE_VAPID_PUBLIC_KEY` | Votre clé publique VAPID |
 
 ## 3. Configuration Supabase
 
@@ -36,33 +36,18 @@ Ajouter ces secrets :
 
 | Nom | Valeur |
 |-----|--------|
-| `VAPID_PUBLIC_KEY` | `BHF2Nxjs4tUF9SaujwtK69PZgVb65kf3nGtlnRx00Yx9W8tQ-wOYttg54w-tgu86dhQZnk5AMgufLgDrrfcJXPA` |
-| `VAPID_PRIVATE_KEY` | `QVGQIm28QkPEyBO3WOLOvq4e6_o53Fp2H0iiLpEAMb0` |
-| `VAPID_SUBJECT` | `mailto:admin@pingpong-club.fr` |
+| `VAPID_PUBLIC_KEY` | Votre clé publique VAPID |
+| `VAPID_PRIVATE_KEY` | Votre clé privée VAPID |
+| `VAPID_SUBJECT` | `mailto:votre-email@example.com` |
 
-### 3.3 Déployer les Edge Functions
+### 3.3 Créer les Edge Functions
 
-Installer Supabase CLI si pas déjà fait :
-```bash
-npm install -g supabase
-```
+Dans le Dashboard Supabase : Edge Functions > Create function
 
-Se connecter :
-```bash
-supabase login
-```
-
-Lier au projet :
-```bash
-supabase link --project-ref <votre-project-ref>
-```
-
-Déployer les fonctions :
-```bash
-supabase functions deploy send-push-notification
-supabase functions deploy on-invitation-created
-supabase functions deploy on-slot-opened
-```
+Créer 3 fonctions :
+- `send-push-notification`
+- `on-invitation-created`
+- `on-slot-opened`
 
 ### 3.4 Configurer les Webhooks
 
@@ -100,7 +85,7 @@ Dans le Dashboard Supabase : Database > Webhooks > Create webhook
 
 ### Erreur "Configuration manquante"
 
-Vérifier que `VITE_VAPID_PUBLIC_KEY` est bien dans le fichier `.env`
+Vérifier que `VITE_VAPID_PUBLIC_KEY` est bien configuré dans Vercel
 
 ### Les webhooks ne se déclenchent pas
 
