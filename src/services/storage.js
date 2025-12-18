@@ -388,7 +388,12 @@ class StorageService {
     async getPendingInvitations(userId) {
         const { data, error } = await supabase
             .from('slot_invitations')
-            .select('*')
+            .select(`
+                slot_id,
+                date,
+                invited_by,
+                inviter:members!slot_invitations_invited_by_fkey(first_name, last_name)
+            `)
             .eq('user_id', userId)
             .eq('status', 'pending')
 
@@ -396,7 +401,7 @@ class StorageService {
         return data.map(inv => ({
             slotId: inv.slot_id,
             date: inv.date,
-            invitedBy: inv.invited_by
+            invitedBy: inv.inviter ? `${inv.inviter.first_name} ${inv.inviter.last_name}` : null
         }))
     }
 
