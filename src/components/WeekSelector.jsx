@@ -485,9 +485,9 @@ export default function WeekSelector({ templates, onClose }) {
                                         alignItems: 'flex-start'
                                     }}
                                 >
-                                    <div style={{ fontWeight: '600' }}>Fusionner (garder nouveaux)</div>
+                                    <div style={{ fontWeight: '600' }}>Fusionner (remplacer par les nouveaux créneaux)</div>
                                     <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.8 }}>
-                                        Ajoute les créneaux, garde les nouveaux si conflit
+                                        Ajoute les créneaux, remplace par les nouveaux si conflit
                                     </div>
                                 </button>
 
