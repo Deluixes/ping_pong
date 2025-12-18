@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield } from 'lucide-react'
+import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield, Home } from 'lucide-react'
 
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout, simulatedRole, setSimulatedRole, getSimulatableRoles } = useAuth()
@@ -233,6 +233,24 @@ export default function SlideMenu({ isOpen, onClose }) {
                                 {invitationsCount}
                             </span>
                         )}
+                    </Link>
+
+                    <Link
+                        to="/club"
+                        onClick={onClose}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.875rem 1rem',
+                            textDecoration: 'none',
+                            color: isActive('/club') ? 'var(--color-primary)' : 'var(--color-text)',
+                            background: isActive('/club') ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
+                            fontWeight: isActive('/club') ? '500' : '400'
+                        }}
+                    >
+                        <Home size={20} />
+                        Mon club
                     </Link>
 
                     {user?.isAdmin && (

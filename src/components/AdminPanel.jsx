@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storageService, GROUP_NAME } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Edit2, Award, Shield } from 'lucide-react'
+import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Edit2, Award, Shield, Search } from 'lucide-react'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
@@ -10,6 +10,7 @@ export default function AdminPanel() {
     const [members, setMembers] = useState({ pending: [], approved: [] })
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
 
     // Modal d'édition
     const [editingMember, setEditingMember] = useState(null)
@@ -114,8 +115,98 @@ export default function AdminPanel() {
         closeEditModal()
     }
 
+    // Filtre et regroupe les membres par catégorie
+    const groupedMembers = useMemo(() => {
+        const filtered = members.approved.filter(m =>
+            m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            m.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+
+        return {
+            admins: filtered.filter(m => m.role === 'super_admin' || m.role === 'admin'),
+            gestionnaires: filtered.filter(m => m.role === 'admin_salles'),
+            membres: filtered.filter(m => m.role === 'member' || !m.role)
+        }
+    }, [members.approved, searchTerm])
+
     if (loading) {
         return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+    }
+
+    // Composant pour afficher un membre dans la liste
+    const MemberRow = ({ member }) => (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.75rem',
+                background: 'white',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid #E5E7EB'
+            }}
+        >
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {member.name}
+                    {member.licenseType && (
+                        <span style={{
+                            fontSize: '0.7rem',
+                            background: member.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
+                            color: member.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
+                            padding: '2px 6px',
+                            borderRadius: '999px',
+                            fontWeight: 'bold'
+                        }}>
+                            {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
+                        </span>
+                    )}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {member.email}
+                </div>
+            </div>
+
+            <button
+                onClick={() => openEditModal(member)}
+                style={{
+                    background: '#F3F4F6',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.5rem',
+                    cursor: 'pointer'
+                }}
+                title="Modifier"
+            >
+                <Edit2 size={18} />
+            </button>
+        </div>
+    )
+
+    // Composant pour afficher une section de groupe
+    const GroupSection = ({ title, members, color, icon }) => {
+        if (members.length === 0) return null
+        return (
+            <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{
+                    fontSize: '0.9rem',
+                    marginBottom: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: color
+                }}>
+                    {icon}
+                    {title} ({members.length})
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {members.map(member => (
+                        <MemberRow key={member.userId} member={member} />
+                    ))}
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -244,124 +335,65 @@ export default function AdminPanel() {
                     Membres approuvés ({members.approved.length})
                 </h2>
 
+                {/* Barre de recherche */}
+                <div style={{
+                    position: 'relative',
+                    marginBottom: '1rem'
+                }}>
+                    <Search
+                        size={18}
+                        style={{
+                            position: 'absolute',
+                            left: '0.75rem',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#9CA3AF'
+                        }}
+                    />
+                    <input
+                        type="text"
+                        placeholder="Rechercher un membre..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid #E5E7EB',
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                </div>
+
                 {members.approved.length === 0 ? (
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>
                         Aucun membre approuvé
                     </p>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {members.approved.map(member => (
-                            <div
-                                key={member.userId}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    padding: '0.75rem',
-                                    background: 'var(--color-bg)',
-                                    borderRadius: 'var(--radius-md)'
-                                }}
-                            >
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        {member.name}
-                                        {member.licenseType && (
-                                            <span style={{
-                                                fontSize: '0.7rem',
-                                                background: member.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
-                                                color: member.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
-                                                padding: '2px 6px',
-                                                borderRadius: '999px',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
-                                            </span>
-                                        )}
-                                        {/* Super Admin badge : visible uniquement si l'utilisateur actuel est super_admin (non simulé) */}
-                                        {member.role === 'super_admin' && currentUser?.role === 'super_admin' && (
-                                            <span style={{
-                                                fontSize: '0.7rem',
-                                                background: '#FEF3C7',
-                                                color: '#B45309',
-                                                padding: '2px 6px',
-                                                borderRadius: '999px',
-                                                fontWeight: 'bold',
-                                                border: '1px solid #F59E0B'
-                                            }}>
-                                                Super Admin
-                                            </span>
-                                        )}
-                                        {/* Pour les admins (ou super_admin simulant admin) : les super_admin apparaissent comme "Admin" */}
-                                        {member.role === 'super_admin' && currentUser?.role !== 'super_admin' && (
-                                            <span style={{
-                                                fontSize: '0.7rem',
-                                                background: '#DBEAFE',
-                                                color: '#1E40AF',
-                                                padding: '2px 6px',
-                                                borderRadius: '999px',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                Admin
-                                            </span>
-                                        )}
-                                        {member.role === 'admin' && (
-                                            <span style={{
-                                                fontSize: '0.7rem',
-                                                background: '#DBEAFE',
-                                                color: '#1E40AF',
-                                                padding: '2px 6px',
-                                                borderRadius: '999px',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                Admin
-                                            </span>
-                                        )}
-                                        {member.role === 'admin_salles' && (
-                                            <span style={{
-                                                fontSize: '0.7rem',
-                                                background: '#D1FAE5',
-                                                color: '#065F46',
-                                                padding: '2px 6px',
-                                                borderRadius: '999px',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                Gestion Salle
-                                            </span>
-                                        )}
-                                        {member.role === 'member' && (
-                                            <span style={{
-                                                fontSize: '0.7rem',
-                                                background: '#F3F4F6',
-                                                color: '#6B7280',
-                                                padding: '2px 6px',
-                                                borderRadius: '999px',
-                                                fontWeight: '500'
-                                            }}>
-                                                Membre
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {member.email}
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => openEditModal(member)}
-                                    style={{
-                                        background: '#F3F4F6',
-                                        color: '#374151',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.5rem',
-                                        cursor: 'pointer'
-                                    }}
-                                    title="Modifier"
-                                >
-                                    <Edit2 size={18} />
-                                </button>
-                            </div>
-                        ))}
+                    <div>
+                        <GroupSection
+                            title="Administrateurs"
+                            members={groupedMembers.admins}
+                            color="#1E40AF"
+                            icon={<Shield size={16} />}
+                        />
+                        <GroupSection
+                            title="Gestionnaires salle"
+                            members={groupedMembers.gestionnaires}
+                            color="#065F46"
+                            icon={<Users size={16} />}
+                        />
+                        <GroupSection
+                            title="Membres"
+                            members={groupedMembers.membres}
+                            color="#6B7280"
+                            icon={<Users size={16} />}
+                        />
+                        {searchTerm && groupedMembers.admins.length === 0 && groupedMembers.gestionnaires.length === 0 && groupedMembers.membres.length === 0 && (
+                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>
+                                Aucun membre trouvé pour "{searchTerm}"
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

@@ -8,6 +8,7 @@ import PendingApproval from './components/PendingApproval'
 import AdminPanel from './components/AdminPanel'
 import PlanningSettings from './components/PlanningSettings'
 import MyInvitations from './components/MyInvitations'
+import MyClub from './components/MyClub'
 import SlideMenu from './components/SlideMenu'
 import { GROUP_NAME, storageService } from './services/storage'
 import { Menu, Bell } from 'lucide-react'
@@ -135,6 +136,11 @@ function AppContent() {
                     <Route path="/invitations" element={
                         <PrivateRoute>
                             <MyInvitations />
+                        </PrivateRoute>
+                    } />
+                    <Route path="/club" element={
+                        <PrivateRoute>
+                            <MyClub />
                         </PrivateRoute>
                     } />
                     <Route path="/admin" element={

@@ -1450,14 +1450,14 @@ export default function Calendar() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: '1rem',
-                gap: '0.5rem',
-                flexWrap: 'wrap'
+                gap: '0.5rem'
             }}>
                 <h2 style={{
                     textTransform: 'capitalize',
                     color: 'var(--color-secondary)',
                     fontSize: '1.1rem',
-                    margin: 0
+                    margin: 0,
+                    whiteSpace: 'nowrap'
                 }}>
                     {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
                 </h2>
@@ -1465,14 +1465,15 @@ export default function Calendar() {
                     value={viewMode}
                     onChange={(e) => setViewMode(e.target.value)}
                     style={{
-                        padding: '0.5rem 0.75rem',
+                        padding: '0.5rem 1.5rem 0.5rem 0.75rem',
                         borderRadius: 'var(--radius-md)',
                         border: '1px solid #E2E8F0',
                         background: viewMode === 'edit' ? '#FEE2E2' : viewMode === 'manage_slots' ? '#E0F2FE' : 'white',
                         fontSize: '0.85rem',
                         color: viewMode === 'edit' ? '#991B1B' : viewMode === 'manage_slots' ? '#0369A1' : 'var(--color-text)',
                         cursor: 'pointer',
-                        fontWeight: viewMode === 'edit' || viewMode === 'manage_slots' ? '500' : '400'
+                        fontWeight: viewMode === 'edit' || viewMode === 'manage_slots' ? '500' : '400',
+                        flexShrink: 0
                     }}
                 >
                     {getViewOptions().map(opt => (
@@ -2103,19 +2104,6 @@ export default function Calendar() {
                 </div>
             )}
 
-            {/* Refresh */}
-            <button
-                onClick={() => { loadData(); loadWeekConfig(); }}
-                className="btn"
-                style={{
-                    marginTop: '1.5rem',
-                    width: '100%',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text-muted)'
-                }}
-            >
-                Actualiser
-            </button>
         </div>
     )
 }

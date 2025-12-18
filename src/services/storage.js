@@ -276,6 +276,25 @@ class StorageService {
         }
     }
 
+    async getAllApprovedMembers() {
+        const { data, error } = await supabase
+            .from('members')
+            .select('user_id, name, license_type')
+            .eq('status', 'approved')
+            .order('name', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching approved members:', error)
+            return []
+        }
+
+        return data.map(m => ({
+            userId: m.user_id,
+            name: m.name,
+            licenseType: m.license_type || null
+        }))
+    }
+
     async getMemberStatus(userId) {
         const { data, error } = await supabase
             .from('members')
