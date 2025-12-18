@@ -61,7 +61,7 @@ export default function Calendar() {
     const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
 
     // Mode de vue : all | occupied | week | manage_slots | edit
-    const [viewMode, setViewMode] = useState('all')
+    const [viewMode, setViewMode] = useState('occupied')
 
     // Modal state - 3 steps (duration -> choice -> guests)
     const [modalStep, setModalStep] = useState(null) // 'duration' | 'choice' | 'guests' | null
@@ -103,8 +103,8 @@ export default function Calendar() {
     // Options de vue selon le rôle
     const getViewOptions = () => {
         const options = [
+            { value: 'occupied', label: 'Vue des créneaux ouverts' },
             { value: 'all', label: 'Vue de tous les créneaux' },
-            { value: 'occupied', label: 'Vue des créneaux avec joueurs' },
             { value: 'week', label: 'Vue semaine' }
         ]
         if (canManageSlots) {
