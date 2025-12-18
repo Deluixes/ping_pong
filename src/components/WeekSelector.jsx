@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { startOfWeek, addWeeks, addMonths, format, isSameWeek, isBefore, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
-import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Calendar, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Calendar, AlertTriangle, ChevronUp, ChevronDown, Layers, Plus, Trash2 } from 'lucide-react'
 
 const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
 export default function WeekSelector({ templates, onClose }) {
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [selectedWeeks, setSelectedWeeks] = useState([])
-    const [selectedTemplate, setSelectedTemplate] = useState(null)
+    // Multi-template selection: array of template IDs in priority order (first = highest priority)
+    const [selectedTemplates, setSelectedTemplates] = useState([])
     const [configuredWeeks, setConfiguredWeeks] = useState([])
     const [loading, setLoading] = useState(true)
     const [applying, setApplying] = useState(false)
@@ -77,14 +78,52 @@ export default function WeekSelector({ templates, onClose }) {
         return selectedWeeks.some(w => configuredWeeks.includes(w))
     }
 
+    // Fonctions pour gérer la sélection multiple de templates
+    const addTemplate = (templateId) => {
+        if (!templateId || selectedTemplates.includes(templateId)) return
+        setSelectedTemplates(prev => [...prev, templateId])
+    }
+
+    const removeTemplate = (templateId) => {
+        setSelectedTemplates(prev => prev.filter(id => id !== templateId))
+    }
+
+    const moveTemplateUp = (index) => {
+        if (index === 0) return
+        setSelectedTemplates(prev => {
+            const newList = [...prev]
+            ;[newList[index - 1], newList[index]] = [newList[index], newList[index - 1]]
+            return newList
+        })
+    }
+
+    const moveTemplateDown = (index) => {
+        if (index === selectedTemplates.length - 1) return
+        setSelectedTemplates(prev => {
+            const newList = [...prev]
+            ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+            return newList
+        })
+    }
+
+    const getTemplateName = (templateId) => {
+        const template = templates.find(t => t.id === templateId)
+        return template?.name || 'Inconnu'
+    }
+
+    const getAvailableTemplates = () => {
+        return templates.filter(t => !selectedTemplates.includes(t.id))
+    }
+
     // Appelé quand on clique sur "Appliquer"
     const handleApplyClick = async () => {
-        if (!selectedTemplate || selectedWeeks.length === 0) return
+        if (selectedTemplates.length === 0 || selectedWeeks.length === 0) return
 
         // Si des semaines sont déjà configurées, analyser les conflits et afficher le dialog
         if (hasConfiguredWeeksSelected()) {
             setAnalyzing(true)
-            const analysis = await storageService.analyzeTemplateConflicts(selectedTemplate, selectedWeeks)
+            // Analyser les conflits avec le premier template (le plus prioritaire)
+            const analysis = await storageService.analyzeTemplateConflicts(selectedTemplates[0], selectedWeeks)
             setConflictAnalysis(analysis)
             setAnalyzing(false)
             setShowModeDialog(true)
@@ -116,21 +155,31 @@ export default function WeekSelector({ templates, onClose }) {
         setShowConflictWarning(false)
         setApplying(true)
 
-        const result = await storageService.applyTemplateToWeeks(selectedTemplate, selectedWeeks, mode)
+        let result
+        if (selectedTemplates.length === 1) {
+            // Un seul template : utiliser la méthode classique
+            result = await storageService.applyTemplateToWeeks(selectedTemplates[0], selectedWeeks, mode)
+        } else {
+            // Plusieurs templates : utiliser la méthode multi-templates
+            // Note: le mode est toujours "overwrite" pour le premier template,
+            // puis "merge" pour les suivants (priorité au premier)
+            result = await storageService.applyMultipleTemplatesToWeeks(selectedTemplates, selectedWeeks)
+        }
 
         if (result.success) {
-            let message = `Template appliqué à ${selectedWeeks.length} semaine(s)`
+            let message = `${selectedTemplates.length} template(s) appliqué(s) à ${selectedWeeks.length} semaine(s)`
             if (result.deletedReservations > 0) {
                 message += `\n${result.deletedReservations} réservation(s) supprimée(s) (conflit avec créneaux bloquants)`
             }
             if (result.skippedSlots > 0) {
-                message += `\n${result.skippedSlots} créneau(x) ignoré(s) (chevauchement avec existants)`
+                message += `\n${result.skippedSlots} créneau(x) ignoré(s) (chevauchement entre templates)`
             }
             alert(message)
             await loadConfiguredWeeks()
             setSelectedWeeks([])
+            setSelectedTemplates([])
         } else {
-            alert('Erreur lors de l\'application du template')
+            alert('Erreur lors de l\'application des templates')
         }
 
         setApplying(false)
@@ -191,34 +240,174 @@ export default function WeekSelector({ templates, onClose }) {
                         justifyContent: 'space-between',
                         alignItems: 'center'
                     }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Appliquer un template</h3>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Appliquer des templates</h3>
                         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
                             <X size={20} />
                         </button>
                     </div>
 
                     <div style={{ padding: '1.5rem' }}>
-                        {/* Template selection */}
+                        {/* Template selection - Multi-select with priority */}
                         <div style={{ marginBottom: '1.5rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                                Template à appliquer
+                                Templates à appliquer (par ordre de priorité)
                             </label>
-                            <select
-                                value={selectedTemplate || ''}
-                                onChange={(e) => setSelectedTemplate(e.target.value || null)}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
+
+                            {/* Liste des templates sélectionnés avec ordre */}
+                            {selectedTemplates.length > 0 && (
+                                <div style={{
+                                    marginBottom: '0.75rem',
+                                    border: '1px solid #E5E7EB',
                                     borderRadius: 'var(--radius-md)',
-                                    border: '1px solid #DDD',
-                                    fontSize: '1rem'
-                                }}
-                            >
-                                <option value="">Sélectionner un template...</option>
-                                {templates.map(t => (
-                                    <option key={t.id} value={t.id}>{t.name}</option>
-                                ))}
-                            </select>
+                                    overflow: 'hidden'
+                                }}>
+                                    {selectedTemplates.map((templateId, index) => (
+                                        <div
+                                            key={templateId}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                padding: '0.5rem 0.75rem',
+                                                background: index === 0 ? '#EFF6FF' : 'white',
+                                                borderBottom: index < selectedTemplates.length - 1 ? '1px solid #E5E7EB' : 'none'
+                                            }}
+                                        >
+                                            {/* Priority badge */}
+                                            <span style={{
+                                                background: index === 0 ? 'var(--color-primary)' : '#9CA3AF',
+                                                color: 'white',
+                                                borderRadius: '50%',
+                                                width: '20px',
+                                                height: '20px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '0.7rem',
+                                                fontWeight: '600',
+                                                flexShrink: 0
+                                            }}>
+                                                {index + 1}
+                                            </span>
+
+                                            {/* Template name */}
+                                            <div style={{ flex: 1, fontSize: '0.9rem' }}>
+                                                <span style={{ fontWeight: index === 0 ? '500' : '400' }}>
+                                                    {getTemplateName(templateId)}
+                                                </span>
+                                                {index === 0 && (
+                                                    <span style={{
+                                                        marginLeft: '0.5rem',
+                                                        fontSize: '0.75rem',
+                                                        color: 'var(--color-primary)',
+                                                        fontWeight: '500'
+                                                    }}>
+                                                        (Priorité max)
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Move buttons */}
+                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                <button
+                                                    onClick={() => moveTemplateUp(index)}
+                                                    disabled={index === 0}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: index === 0 ? 'not-allowed' : 'pointer',
+                                                        padding: '0.25rem',
+                                                        opacity: index === 0 ? 0.3 : 1,
+                                                        color: 'var(--color-text-muted)'
+                                                    }}
+                                                    title="Monter (plus prioritaire)"
+                                                >
+                                                    <ChevronUp size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => moveTemplateDown(index)}
+                                                    disabled={index === selectedTemplates.length - 1}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: index === selectedTemplates.length - 1 ? 'not-allowed' : 'pointer',
+                                                        padding: '0.25rem',
+                                                        opacity: index === selectedTemplates.length - 1 ? 0.3 : 1,
+                                                        color: 'var(--color-text-muted)'
+                                                    }}
+                                                    title="Descendre (moins prioritaire)"
+                                                >
+                                                    <ChevronDown size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => removeTemplate(templateId)}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        padding: '0.25rem',
+                                                        color: '#EF4444'
+                                                    }}
+                                                    title="Retirer"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Add template dropdown */}
+                            {getAvailableTemplates().length > 0 && (
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <select
+                                        id="template-select"
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.5rem 0.75rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid #DDD',
+                                            fontSize: '0.9rem'
+                                        }}
+                                        defaultValue=""
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                addTemplate(e.target.value)
+                                                e.target.value = ''
+                                            }
+                                        }}
+                                    >
+                                        <option value="">+ Ajouter un template...</option>
+                                        {getAvailableTemplates().map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {selectedTemplates.length === 0 && (
+                                <p style={{
+                                    margin: '0.5rem 0 0 0',
+                                    fontSize: '0.8rem',
+                                    color: 'var(--color-text-muted)'
+                                }}>
+                                    Sélectionnez un ou plusieurs templates. Le premier sera prioritaire en cas de chevauchement.
+                                </p>
+                            )}
+
+                            {selectedTemplates.length > 1 && (
+                                <p style={{
+                                    margin: '0.5rem 0 0 0',
+                                    fontSize: '0.8rem',
+                                    color: '#92400E',
+                                    background: '#FEF3C7',
+                                    padding: '0.5rem',
+                                    borderRadius: 'var(--radius-sm)'
+                                }}>
+                                    En cas de chevauchement, les créneaux du template n°1 seront conservés.
+                                </p>
+                            )}
                         </div>
 
                         {/* Month navigation */}
@@ -391,7 +580,7 @@ export default function WeekSelector({ templates, onClose }) {
                             onClick={handleApplyClick}
                             className="btn btn-primary"
                             style={{ flex: 1 }}
-                            disabled={applying || analyzing || !selectedTemplate || selectedWeeks.length === 0}
+                            disabled={applying || analyzing || selectedTemplates.length === 0 || selectedWeeks.length === 0}
                         >
                             {applying ? (
                                 <>

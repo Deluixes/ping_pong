@@ -22,6 +22,11 @@ export default function PlanningSettings() {
     const [newTemplateName, setNewTemplateName] = useState('')
     const [savingTemplate, setSavingTemplate] = useState(false)
 
+    // Edit template name state
+    const [showEditNameModal, setShowEditNameModal] = useState(false)
+    const [templateToRename, setTemplateToRename] = useState(null)
+    const [editedTemplateName, setEditedTemplateName] = useState('')
+
     // Week selector state
     const [showWeekSelector, setShowWeekSelector] = useState(false)
 
@@ -67,6 +72,27 @@ export default function PlanningSettings() {
         if (!window.confirm(`Supprimer le template "${template.name}" ?`)) return
         await storageService.deleteTemplate(template.id)
         setTemplates(prev => prev.filter(t => t.id !== template.id))
+    }
+
+    const handleOpenRenameModal = (template) => {
+        setTemplateToRename(template)
+        setEditedTemplateName(template.name)
+        setShowEditNameModal(true)
+    }
+
+    const handleSaveTemplateName = async () => {
+        if (!editedTemplateName.trim() || !templateToRename) return
+        setSavingTemplate(true)
+
+        const result = await storageService.updateTemplate(templateToRename.id, editedTemplateName.trim())
+        if (result.success) {
+            await loadData()
+            setShowEditNameModal(false)
+            setTemplateToRename(null)
+            setEditedTemplateName('')
+        }
+
+        setSavingTemplate(false)
     }
 
     if (loading) {
@@ -330,9 +356,25 @@ export default function PlanningSettings() {
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: '500' }}>{template.name}</div>
                                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                            Cliquez pour éditer
+                                            Cliquez pour éditer les créneaux
                                         </div>
                                     </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleOpenRenameModal(template)
+                                        }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--color-primary)',
+                                            cursor: 'pointer',
+                                            padding: '0.5rem'
+                                        }}
+                                        title="Renommer"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation()
@@ -345,6 +387,7 @@ export default function PlanningSettings() {
                                             cursor: 'pointer',
                                             padding: '0.5rem'
                                         }}
+                                        title="Supprimer"
                                     >
                                         <Trash2 size={18} />
                                     </button>
@@ -399,7 +442,7 @@ export default function PlanningSettings() {
                         disabled={templates.length === 0}
                     >
                         <Calendar size={20} />
-                        Appliquer un template aux semaines
+                        Appliquer des templates aux semaines
                     </button>
 
                     {templates.length === 0 && (
@@ -497,6 +540,95 @@ export default function PlanningSettings() {
                                     <RefreshCw size={18} className="spin" />
                                 ) : (
                                     'Créer'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Modal édition nom template */}
+            {showEditNameModal && (
+                <>
+                    <div
+                        onClick={() => setShowEditNameModal(false)}
+                        style={{
+                            position: 'fixed',
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'rgba(0,0,0,0.5)',
+                            zIndex: 1000
+                        }}
+                    />
+                    <div style={{
+                        position: 'fixed',
+                        top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'white',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.5rem',
+                        width: '90%',
+                        maxWidth: '400px',
+                        zIndex: 1001,
+                        boxShadow: 'var(--shadow-lg)'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Renommer le template</h3>
+                            <button
+                                onClick={() => setShowEditNameModal(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontWeight: '500',
+                                fontSize: '0.9rem'
+                            }}>
+                                Nom du template
+                            </label>
+                            <input
+                                type="text"
+                                value={editedTemplateName}
+                                onChange={(e) => setEditedTemplateName(e.target.value)}
+                                placeholder="Ex: Semaine normale, Vacances..."
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid #DDD',
+                                    fontSize: '1rem'
+                                }}
+                                autoFocus
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setShowEditNameModal(false)}
+                                className="btn"
+                                style={{ flex: 1, background: 'var(--color-bg)' }}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleSaveTemplateName}
+                                className="btn btn-primary"
+                                style={{ flex: 1 }}
+                                disabled={savingTemplate || !editedTemplateName.trim()}
+                            >
+                                {savingTemplate ? (
+                                    <RefreshCw size={18} className="spin" />
+                                ) : (
+                                    'Enregistrer'
                                 )}
                             </button>
                         </div>

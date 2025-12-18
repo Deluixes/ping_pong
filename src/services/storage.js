@@ -1233,6 +1233,41 @@ class StorageService {
         return { success: true, deletedReservations: totalDeleted, skippedSlots }
     }
 
+    /**
+     * Applique plusieurs templates aux semaines, dans l'ordre de priorité
+     * Le premier template a la priorité la plus haute (ses créneaux sont gardés en cas de conflit)
+     * @param {Array<string>} templateIds - IDs des templates dans l'ordre de priorité (premier = plus prioritaire)
+     * @param {Array<string>} weekStarts - Dates de début des semaines
+     * @returns {Promise<{success: boolean, deletedReservations: number, skippedSlots: number}>}
+     */
+    async applyMultipleTemplatesToWeeks(templateIds, weekStarts) {
+        if (!templateIds || templateIds.length === 0) {
+            return { success: false, error: 'No templates provided' }
+        }
+
+        let totalDeleted = 0
+        let totalSkipped = 0
+
+        // Appliquer le premier template en mode overwrite (efface tout)
+        const firstResult = await this.applyTemplateToWeeks(templateIds[0], weekStarts, 'overwrite')
+        if (!firstResult.success) {
+            return firstResult
+        }
+        totalDeleted += firstResult.deletedReservations || 0
+
+        // Appliquer les templates suivants en mode merge (garde les existants = priorité au premier)
+        for (let i = 1; i < templateIds.length; i++) {
+            const result = await this.applyTemplateToWeeks(templateIds[i], weekStarts, 'merge')
+            if (!result.success) {
+                return result
+            }
+            totalDeleted += result.deletedReservations || 0
+            totalSkipped += result.skippedSlots || 0
+        }
+
+        return { success: true, deletedReservations: totalDeleted, skippedSlots: totalSkipped }
+    }
+
     async deleteWeekSlot(id) {
         const { error } = await supabase
             .from('week_slots')
