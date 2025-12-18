@@ -401,12 +401,12 @@ class StorageService {
         if (inviterIds.length > 0) {
             const { data: members } = await supabase
                 .from('members')
-                .select('user_id, first_name, last_name')
+                .select('user_id, name')
                 .in('user_id', inviterIds)
 
             if (members) {
                 members.forEach(m => {
-                    inviterNames[m.user_id] = `${m.first_name} ${m.last_name}`
+                    inviterNames[m.user_id] = m.name
                 })
             }
         }
