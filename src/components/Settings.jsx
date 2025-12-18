@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService } from '../services/storage'
-import { ArrowLeft, Save, User, Mail, Award } from 'lucide-react'
+import { notificationService } from '../services/notifications'
+import { ArrowLeft, Save, User, Mail, Award, Bell, BellOff, Smartphone } from 'lucide-react'
 
 export default function Settings() {
     const { user, updateName, logout } = useAuth()
@@ -11,6 +12,16 @@ export default function Settings() {
     const [licenseType, setLicenseType] = useState(null)
     const [isSaving, setIsSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+
+    // Notification states
+    const [notifSupported, setNotifSupported] = useState(false)
+    const [notifEnabled, setNotifEnabled] = useState(false)
+    const [notifPrefs, setNotifPrefs] = useState({
+        invitations_enabled: true,
+        slot_openings_enabled: true
+    })
+    const [notifLoading, setNotifLoading] = useState(false)
+    const [notifPermission, setNotifPermission] = useState('default')
 
     // Charger le profil pour récupérer le type de licence
     useEffect(() => {
@@ -24,6 +35,54 @@ export default function Settings() {
         }
         loadProfile()
     }, [user?.id])
+
+    // Charger les préférences de notifications
+    useEffect(() => {
+        const loadNotificationSettings = async () => {
+            const supported = notificationService.isSupported()
+            setNotifSupported(supported)
+            setNotifPermission(notificationService.getPermissionStatus())
+
+            if (supported && user?.id) {
+                const prefs = await notificationService.getPreferences(user.id)
+                setNotifEnabled(prefs.enabled)
+                setNotifPrefs({
+                    invitations_enabled: prefs.invitations_enabled,
+                    slot_openings_enabled: prefs.slot_openings_enabled
+                })
+            }
+        }
+        loadNotificationSettings()
+    }, [user?.id])
+
+    // Handlers pour les notifications
+    const handleToggleNotifications = async () => {
+        setNotifLoading(true)
+        if (notifEnabled) {
+            await notificationService.disableNotifications(user.id)
+            setNotifEnabled(false)
+        } else {
+            const result = await notificationService.enableNotifications(user.id)
+            if (result.success) {
+                setNotifEnabled(true)
+                setNotifPermission('granted')
+            } else {
+                alert(result.error || 'Impossible d\'activer les notifications')
+                setNotifPermission(notificationService.getPermissionStatus())
+            }
+        }
+        setNotifLoading(false)
+    }
+
+    const handleUpdateNotifPref = async (key, value) => {
+        const newPrefs = { ...notifPrefs, [key]: value }
+        setNotifPrefs(newPrefs)
+        await notificationService.updatePreferences(user.id, newPrefs)
+    }
+
+    const handleTestNotification = async () => {
+        await notificationService.sendTestNotification()
+    }
 
     const handleSave = async (e) => {
         e.preventDefault()
@@ -168,6 +227,151 @@ export default function Settings() {
                         )}
                     </button>
                 </form>
+            </div>
+
+            {/* Notifications Section */}
+            <div className="card" style={{ marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Bell size={18} />
+                    Notifications
+                </h2>
+
+                {!notifSupported ? (
+                    <div style={{
+                        background: '#FEF3C7',
+                        padding: '0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.9rem',
+                        color: '#92400E',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}>
+                        <Smartphone size={16} />
+                        Les notifications ne sont pas supportées sur ce navigateur.
+                    </div>
+                ) : notifPermission === 'denied' && !notifEnabled ? (
+                    <div style={{
+                        background: '#FEE2E2',
+                        padding: '0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.9rem',
+                        color: '#991B1B'
+                    }}>
+                        <p style={{ margin: 0, marginBottom: '0.5rem', fontWeight: '500' }}>
+                            Notifications bloquées
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                            Vous avez refusé les notifications. Pour les activer, modifiez les paramètres de votre navigateur pour ce site.
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Master toggle */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.75rem',
+                            background: notifEnabled ? '#F0FDF4' : '#F9FAFB',
+                            borderRadius: 'var(--radius-md)',
+                            marginBottom: notifEnabled ? '1rem' : 0,
+                            border: notifEnabled ? '1px solid #86EFAC' : '1px solid #E5E7EB'
+                        }}>
+                            <div>
+                                <div style={{ fontWeight: '500' }}>
+                                    {notifEnabled ? 'Notifications activées' : 'Notifications désactivées'}
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                    Recevez des alertes sur votre appareil
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleToggleNotifications}
+                                disabled={notifLoading}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: 'none',
+                                    background: notifEnabled ? '#DC2626' : 'var(--color-primary)',
+                                    color: 'white',
+                                    cursor: notifLoading ? 'wait' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                {notifEnabled ? <BellOff size={16} /> : <Bell size={16} />}
+                                {notifLoading ? '...' : (notifEnabled ? 'Désactiver' : 'Activer')}
+                            </button>
+                        </div>
+
+                        {/* Granular preferences - only show if enabled */}
+                        {notifEnabled && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.75rem',
+                                    background: 'var(--color-bg)',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notifPrefs.invitations_enabled}
+                                        onChange={(e) => handleUpdateNotifPref('invitations_enabled', e.target.checked)}
+                                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: '500' }}>Invitations</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                            Quand quelqu'un vous invite sur un créneau
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.75rem',
+                                    background: 'var(--color-bg)',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notifPrefs.slot_openings_enabled}
+                                        onChange={(e) => handleUpdateNotifPref('slot_openings_enabled', e.target.checked)}
+                                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: '500' }}>Ouvertures de créneaux</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                            Quand un créneau correspondant à votre licence s'ouvre
+                                        </div>
+                                    </div>
+                                </label>
+
+                                {/* Test button */}
+                                <button
+                                    onClick={handleTestNotification}
+                                    className="btn"
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        background: 'var(--color-bg)',
+                                        fontSize: '0.85rem'
+                                    }}
+                                >
+                                    Tester les notifications
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
 
             {/* Logout Section */}
