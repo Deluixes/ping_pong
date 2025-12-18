@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
     const [memberStatus, setMemberStatus] = useState('none')
+    const [simulatedRole, setSimulatedRole] = useState(null) // Rôle simulé (null = pas de simulation)
 
     const checkMemberStatus = useCallback(async (userId) => {
         try {
@@ -173,9 +174,53 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
+    // Calcul des permissions effectives (prend en compte le rôle simulé)
+    const getEffectivePermissions = () => {
+        const effectiveRole = simulatedRole || user?.role || 'member'
+        return {
+            effectiveRole,
+            isSuperAdmin: effectiveRole === 'super_admin',
+            isAdmin: effectiveRole === 'admin' || effectiveRole === 'super_admin',
+            isAdminSalles: effectiveRole === 'admin' || effectiveRole === 'admin_salles' || effectiveRole === 'super_admin'
+        }
+    }
+
+    // Obtenir les rôles qu'on peut simuler
+    const getSimulatableRoles = () => {
+        const realRole = user?.role || 'member'
+        const roles = []
+
+        if (realRole === 'super_admin') {
+            roles.push({ value: 'admin', label: 'Admin' })
+            roles.push({ value: 'admin_salles', label: 'Gestion Salle' })
+            roles.push({ value: 'member', label: 'Membre' })
+        } else if (realRole === 'admin') {
+            roles.push({ value: 'admin_salles', label: 'Gestion Salle' })
+            roles.push({ value: 'member', label: 'Membre' })
+        } else if (realRole === 'admin_salles') {
+            roles.push({ value: 'member', label: 'Membre' })
+        }
+
+        return roles
+    }
+
+    const effectivePermissions = getEffectivePermissions()
+
+    // User enrichi avec les permissions effectives
+    const effectiveUser = user ? {
+        ...user,
+        // Garder le vrai rôle accessible
+        realRole: user.role,
+        // Remplacer par le rôle effectif (simulé ou réel)
+        role: effectivePermissions.effectiveRole,
+        isSuperAdmin: effectivePermissions.isSuperAdmin,
+        isAdmin: effectivePermissions.isAdmin,
+        isAdminSalles: effectivePermissions.isAdminSalles
+    } : null
+
     return (
         <AuthContext.Provider value={{
-            user,
+            user: effectiveUser,
             loading,
             authError,
             memberStatus,
@@ -183,7 +228,11 @@ export const AuthProvider = ({ children }) => {
             requestAccess,
             updateName,
             logout,
-            refreshMemberStatus
+            refreshMemberStatus,
+            // Simulation de rôle
+            simulatedRole,
+            setSimulatedRole,
+            getSimulatableRoles
         }}>
             {children}
         </AuthContext.Provider>

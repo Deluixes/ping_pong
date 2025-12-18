@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { X, Calendar, Users, LogOut, User, Settings, Mail } from 'lucide-react'
+import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield } from 'lucide-react'
 
 export default function SlideMenu({ isOpen, onClose }) {
-    const { user, logout } = useAuth()
+    const { user, logout, simulatedRole, setSimulatedRole, getSimulatableRoles } = useAuth()
     const location = useLocation()
     const [pendingCount, setPendingCount] = useState(0)
     const [invitationsCount, setInvitationsCount] = useState(0)
@@ -159,6 +159,61 @@ export default function SlideMenu({ isOpen, onClose }) {
                         </div>
                     </div>
                 </div>
+
+                {/* Role Simulation */}
+                {getSimulatableRoles().length > 0 && (
+                    <div style={{
+                        padding: '0.75rem 1rem',
+                        borderBottom: '1px solid #E2E8F0',
+                        background: simulatedRole ? '#FEF3C7' : 'transparent'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '0.5rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            color: simulatedRole ? '#92400E' : '#6B7280'
+                        }}>
+                            <Shield size={14} />
+                            {simulatedRole ? 'Mode simulation actif' : 'Simuler un rôle'}
+                        </div>
+                        <select
+                            value={simulatedRole || ''}
+                            onChange={(e) => setSimulatedRole(e.target.value || null)}
+                            style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                borderRadius: 'var(--radius-md)',
+                                border: simulatedRole ? '2px solid #F59E0B' : '1px solid #E2E8F0',
+                                background: 'white',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <option value="">
+                                {user?.realRole === 'super_admin' ? 'Super Admin (mon rôle)' :
+                                 user?.realRole === 'admin' ? 'Admin (mon rôle)' :
+                                 user?.realRole === 'admin_salles' ? 'Gestion Salle (mon rôle)' : 'Mon rôle'}
+                            </option>
+                            {getSimulatableRoles().map(role => (
+                                <option key={role.value} value={role.value}>
+                                    {role.label}
+                                </option>
+                            ))}
+                        </select>
+                        {simulatedRole && (
+                            <div style={{
+                                marginTop: '0.5rem',
+                                fontSize: '0.75rem',
+                                color: '#92400E'
+                            }}>
+                                ⚠️ Vous voyez l'app comme un "{simulatedRole === 'admin' ? 'Admin' : simulatedRole === 'admin_salles' ? 'Gestion Salle' : 'Membre'}"
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Navigation */}
                 <nav style={{ flex: 1, padding: '0.5rem 0' }}>
