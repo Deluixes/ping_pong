@@ -306,7 +306,12 @@ class NotificationService {
         const result = await this.subscribe(userId)
         if (!result.success) return result
 
-        await this.updatePreferences(userId, { enabled: true })
+        // Set default preferences with notifications enabled
+        await this.updatePreferences(userId, {
+            enabled: true,
+            invitations_enabled: true,
+            slot_openings_enabled: true
+        })
         return { success: true }
     }
 
