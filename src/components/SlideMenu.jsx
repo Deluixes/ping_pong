@@ -115,105 +115,55 @@ export default function SlideMenu({ isOpen, onClose }) {
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {user?.name}
-                            {user?.role === 'super_admin' && (
-                                <span style={{
-                                    marginLeft: '0.5rem',
-                                    fontSize: '0.7rem',
-                                    background: '#FEF3C7',
-                                    color: '#92400E',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '4px'
-                                }}>
-                                    Super Admin
-                                </span>
-                            )}
-                            {user?.role === 'admin' && (
-                                <span style={{
-                                    marginLeft: '0.5rem',
-                                    fontSize: '0.7rem',
-                                    background: '#DBEAFE',
-                                    color: '#1E40AF',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '4px'
-                                }}>
-                                    Admin
-                                </span>
-                            )}
-                            {user?.role === 'admin_salles' && (
-                                <span style={{
-                                    marginLeft: '0.5rem',
-                                    fontSize: '0.7rem',
-                                    background: '#D1FAE5',
-                                    color: '#065F46',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '4px'
-                                }}>
-                                    Salles
-                                </span>
-                            )}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {user?.email}
                         </div>
-                    </div>
-                </div>
-
-                {/* Role Simulation */}
-                {getSimulatableRoles().length > 0 && (
-                    <div style={{
-                        padding: '0.75rem 1rem',
-                        borderBottom: '1px solid #E2E8F0',
-                        background: simulatedRole ? '#FEF3C7' : 'transparent'
-                    }}>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            marginBottom: '0.5rem',
-                            fontSize: '0.8rem',
-                            fontWeight: '500',
-                            color: simulatedRole ? '#92400E' : '#6B7280'
-                        }}>
-                            <Shield size={14} />
-                            {simulatedRole ? 'Mode simulation actif' : 'Simuler un rôle'}
-                        </div>
-                        <select
-                            value={simulatedRole || ''}
-                            onChange={(e) => setSimulatedRole(e.target.value || null)}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                borderRadius: 'var(--radius-md)',
-                                border: simulatedRole ? '2px solid #F59E0B' : '1px solid #E2E8F0',
-                                background: 'white',
-                                fontSize: '0.85rem',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <option value="">
-                                {user?.realRole === 'super_admin' ? 'Super Admin (mon rôle)' :
-                                 user?.realRole === 'admin' ? 'Admin (mon rôle)' :
-                                 user?.realRole === 'admin_salles' ? 'Gestion Salle (mon rôle)' : 'Mon rôle'}
-                            </option>
-                            {getSimulatableRoles().map(role => (
-                                <option key={role.value} value={role.value}>
-                                    {role.label}
-                                </option>
-                            ))}
-                        </select>
-                        {simulatedRole && (
-                            <div style={{
-                                marginTop: '0.5rem',
-                                fontSize: '0.75rem',
-                                color: '#92400E'
-                            }}>
-                                ⚠️ Vous voyez l'app comme un "{simulatedRole === 'admin' ? 'Admin' : simulatedRole === 'admin_salles' ? 'Gestion Salle' : 'Membre'}"
+                        {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'admin_salles') && (
+                            <div style={{ marginTop: '0.25rem' }}>
+                                {user?.role === 'super_admin' && (
+                                    <span style={{
+                                        fontSize: '0.7rem',
+                                        background: '#FEF3C7',
+                                        color: '#B45309',
+                                        padding: '0.2rem 0.5rem',
+                                        borderRadius: '4px',
+                                        fontWeight: '600',
+                                        border: '1px solid #F59E0B'
+                                    }}>
+                                        Super Admin
+                                    </span>
+                                )}
+                                {user?.role === 'admin' && (
+                                    <span style={{
+                                        fontSize: '0.7rem',
+                                        background: '#DBEAFE',
+                                        color: '#1E40AF',
+                                        padding: '0.2rem 0.5rem',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                    }}>
+                                        Admin
+                                    </span>
+                                )}
+                                {user?.role === 'admin_salles' && (
+                                    <span style={{
+                                        fontSize: '0.7rem',
+                                        background: '#D1FAE5',
+                                        color: '#065F46',
+                                        padding: '0.2rem 0.5rem',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                    }}>
+                                        Gestion Salle
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
-                )}
+                </div>
 
                 {/* Navigation */}
                 <nav style={{ flex: 1, padding: '0.5rem 0' }}>
@@ -338,6 +288,61 @@ export default function SlideMenu({ isOpen, onClose }) {
                         </>
                     )}
                 </nav>
+
+                {/* Role Simulation */}
+                {getSimulatableRoles().length > 0 && (
+                    <div style={{
+                        padding: '0.75rem 1rem',
+                        borderTop: '1px solid #E2E8F0',
+                        background: simulatedRole ? '#FEF3C7' : 'transparent'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '0.5rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            color: simulatedRole ? '#92400E' : '#6B7280'
+                        }}>
+                            <Shield size={14} />
+                            {simulatedRole ? 'Mode simulation actif' : 'Simuler un rôle'}
+                        </div>
+                        <select
+                            value={simulatedRole || ''}
+                            onChange={(e) => setSimulatedRole(e.target.value || null)}
+                            style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                borderRadius: 'var(--radius-md)',
+                                border: simulatedRole ? '2px solid #F59E0B' : '1px solid #E2E8F0',
+                                background: 'white',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <option value="">
+                                {user?.realRole === 'super_admin' ? 'Super Admin (mon rôle)' :
+                                 user?.realRole === 'admin' ? 'Admin (mon rôle)' :
+                                 user?.realRole === 'admin_salles' ? 'Gestion Salle (mon rôle)' : 'Mon rôle'}
+                            </option>
+                            {getSimulatableRoles().map(role => (
+                                <option key={role.value} value={role.value}>
+                                    {role.label}
+                                </option>
+                            ))}
+                        </select>
+                        {simulatedRole && (
+                            <div style={{
+                                marginTop: '0.5rem',
+                                fontSize: '0.75rem',
+                                color: '#92400E'
+                            }}>
+                                Vous voyez l'app comme : {simulatedRole === 'admin' ? 'Admin' : simulatedRole === 'admin_salles' ? 'Gestion Salle' : 'Membre'}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Logout */}
                 <div style={{ padding: '1rem', borderTop: '1px solid #E2E8F0' }}>
