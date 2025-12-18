@@ -92,6 +92,11 @@ export default function MyInvitations() {
                                 <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                                     Créneau de {inv.slotId}
                                 </div>
+                                {inv.invitedBy && (
+                                    <div style={{ color: 'var(--color-primary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                                        Invité par {inv.invitedBy}
+                                    </div>
+                                )}
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button

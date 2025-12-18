@@ -305,7 +305,8 @@ export default function Calendar() {
                 id: inv.odId,
                 name: inv.name,
                 isGuest: true,
-                status: inv.status
+                status: inv.status,
+                invitedBy: inv.invitedBy
             })
         })
 
