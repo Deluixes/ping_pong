@@ -290,7 +290,7 @@ export default function SlideMenu({ isOpen, onClose }) {
                 </nav>
 
                 {/* Role Simulation */}
-                {getSimulatableRoles().length > 0 && (
+                {getSimulatableRoles && getSimulatableRoles().length > 0 && (
                     <div style={{
                         padding: '0.75rem 1rem',
                         borderTop: '1px solid #E2E8F0',
