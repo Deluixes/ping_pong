@@ -1444,23 +1444,13 @@ export default function Calendar() {
                 </div>
             )}
 
-            {/* Title + Filter + Edit Mode */}
+            {/* Filter + Edit Mode - Centered */}
             <div style={{
                 display: 'flex',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 alignItems: 'center',
-                marginBottom: '1rem',
-                gap: '0.5rem'
+                marginBottom: '1rem'
             }}>
-                <h2 style={{
-                    textTransform: 'capitalize',
-                    color: 'var(--color-secondary)',
-                    fontSize: '1.1rem',
-                    margin: 0,
-                    whiteSpace: 'nowrap'
-                }}>
-                    {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
-                </h2>
                 <select
                     value={viewMode}
                     onChange={(e) => setViewMode(e.target.value)}
@@ -1472,8 +1462,7 @@ export default function Calendar() {
                         fontSize: '0.85rem',
                         color: viewMode === 'edit' ? '#991B1B' : viewMode === 'manage_slots' ? '#0369A1' : 'var(--color-text)',
                         cursor: 'pointer',
-                        fontWeight: viewMode === 'edit' || viewMode === 'manage_slots' ? '500' : '400',
-                        flexShrink: 0
+                        fontWeight: viewMode === 'edit' || viewMode === 'manage_slots' ? '500' : '400'
                     }}
                 >
                     {getViewOptions().map(opt => (

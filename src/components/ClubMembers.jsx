@@ -6,6 +6,7 @@ export default function ClubMembers() {
     const [members, setMembers] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
+    const [licenseFilter, setLicenseFilter] = useState('all') // 'all', 'L', 'C'
 
     useEffect(() => {
         loadMembers()
@@ -18,10 +19,12 @@ export default function ClubMembers() {
     }
 
     const filteredMembers = useMemo(() => {
-        return members.filter(m =>
-            m.name?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    }, [members, searchTerm])
+        return members.filter(m => {
+            const matchesSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase())
+            const matchesLicense = licenseFilter === 'all' || m.licenseType === licenseFilter
+            return matchesSearch && matchesLicense
+        })
+    }, [members, searchTerm, licenseFilter])
 
     if (loading) {
         return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
@@ -32,7 +35,7 @@ export default function ClubMembers() {
             {/* Barre de recherche */}
             <div style={{
                 position: 'relative',
-                marginBottom: '1rem'
+                marginBottom: '0.75rem'
             }}>
                 <Search
                     size={18}
@@ -57,6 +60,62 @@ export default function ClubMembers() {
                         fontSize: '0.9rem'
                     }}
                 />
+            </div>
+
+            {/* Filtre par licence */}
+            <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginBottom: '1rem'
+            }}>
+                <button
+                    onClick={() => setLicenseFilter('all')}
+                    style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: licenseFilter === 'all' ? '2px solid var(--color-primary)' : '1px solid #E5E7EB',
+                        background: licenseFilter === 'all' ? 'rgba(249, 115, 22, 0.1)' : 'white',
+                        color: licenseFilter === 'all' ? 'var(--color-primary)' : 'var(--color-text)',
+                        fontWeight: licenseFilter === 'all' ? '600' : '400',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                    }}
+                >
+                    Tous
+                </button>
+                <button
+                    onClick={() => setLicenseFilter('L')}
+                    style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: licenseFilter === 'L' ? '2px solid #1D4ED8' : '1px solid #E5E7EB',
+                        background: licenseFilter === 'L' ? '#DBEAFE' : 'white',
+                        color: licenseFilter === 'L' ? '#1D4ED8' : 'var(--color-text)',
+                        fontWeight: licenseFilter === 'L' ? '600' : '400',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                    }}
+                >
+                    Loisir
+                </button>
+                <button
+                    onClick={() => setLicenseFilter('C')}
+                    style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: licenseFilter === 'C' ? '2px solid #7C3AED' : '1px solid #E5E7EB',
+                        background: licenseFilter === 'C' ? '#F3E8FF' : 'white',
+                        color: licenseFilter === 'C' ? '#7C3AED' : 'var(--color-text)',
+                        fontWeight: licenseFilter === 'C' ? '600' : '400',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                    }}
+                >
+                    Compétition
+                </button>
             </div>
 
             {/* Nombre de membres */}
