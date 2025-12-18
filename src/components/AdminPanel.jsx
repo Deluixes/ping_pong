@@ -277,8 +277,8 @@ export default function AdminPanel() {
                                                 {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
                                             </span>
                                         )}
-                                        {/* Super Admin badge : visible uniquement par les super_admin */}
-                                        {member.role === 'super_admin' && currentUser?.realRole === 'super_admin' && (
+                                        {/* Super Admin badge : visible uniquement si l'utilisateur actuel est super_admin (non simulé) */}
+                                        {member.role === 'super_admin' && currentUser?.role === 'super_admin' && (
                                             <span style={{
                                                 fontSize: '0.7rem',
                                                 background: '#FEF3C7',
@@ -291,8 +291,8 @@ export default function AdminPanel() {
                                                 Super Admin
                                             </span>
                                         )}
-                                        {/* Pour les admins non-super : les super_admin apparaissent comme "Admin" */}
-                                        {member.role === 'super_admin' && currentUser?.realRole !== 'super_admin' && (
+                                        {/* Pour les admins (ou super_admin simulant admin) : les super_admin apparaissent comme "Admin" */}
+                                        {member.role === 'super_admin' && currentUser?.role !== 'super_admin' && (
                                             <span style={{
                                                 fontSize: '0.7rem',
                                                 background: '#DBEAFE',
