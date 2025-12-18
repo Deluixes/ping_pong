@@ -277,7 +277,8 @@ export default function AdminPanel() {
                                                 {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
                                             </span>
                                         )}
-                                        {member.role === 'super_admin' && (
+                                        {/* Super Admin badge : visible uniquement par les super_admin */}
+                                        {member.role === 'super_admin' && currentUser?.realRole === 'super_admin' && (
                                             <span style={{
                                                 fontSize: '0.7rem',
                                                 background: '#FEF3C7',
@@ -288,6 +289,19 @@ export default function AdminPanel() {
                                                 border: '1px solid #F59E0B'
                                             }}>
                                                 Super Admin
+                                            </span>
+                                        )}
+                                        {/* Pour les admins non-super : les super_admin apparaissent comme "Admin" */}
+                                        {member.role === 'super_admin' && currentUser?.realRole !== 'super_admin' && (
+                                            <span style={{
+                                                fontSize: '0.7rem',
+                                                background: '#DBEAFE',
+                                                color: '#1E40AF',
+                                                padding: '2px 6px',
+                                                borderRadius: '999px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                Admin
                                             </span>
                                         )}
                                         {member.role === 'admin' && (
