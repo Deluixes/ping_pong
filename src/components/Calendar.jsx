@@ -1638,12 +1638,11 @@ export default function Calendar() {
                             if (viewMode === 'occupied') {
                                 // Afficher :
                                 // - Créneaux avec participants
-                                // - Créneaux bloquants (entraînements, isBlocking !== false)
+                                // - Créneaux bloqués (bloquants ET indicatifs)
                                 // - Créneaux ouverts (dans openedSlots)
                                 const hasParticipants = getParticipants(slot.id).length > 0
-                                const isBlockingSlot = isBlocked && blockedInfo.isBlocking !== false
                                 const isOpenedSlot = getOpenedSlotInfo(slot.id) !== undefined
-                                return hasParticipants || isBlockingSlot || isOpenedSlot
+                                return hasParticipants || isBlocked || isOpenedSlot
                             }
                             return true
                         })

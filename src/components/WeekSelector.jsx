@@ -405,7 +405,7 @@ export default function WeekSelector({ templates, onClose }) {
                                     padding: '0.5rem',
                                     borderRadius: 'var(--radius-sm)'
                                 }}>
-                                    En cas de chevauchement, les créneaux du template n°1 seront conservés.
+                                    En cas de chevauchement, les créneaux du template le plus prioritaire seront conservés.
                                 </p>
                             )}
                         </div>
