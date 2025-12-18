@@ -94,6 +94,7 @@ export default function Calendar() {
     const [showOpenSlotModal, setShowOpenSlotModal] = useState(false)
     const [slotToOpen, setSlotToOpen] = useState(null)
     const [selectedTarget, setSelectedTarget] = useState('all')
+    const [selectedOpenDuration, setSelectedOpenDuration] = useState(1)
     const openedSlotsSubscriptionRef = useRef(null)
 
     // Peut ouvrir/fermer des créneaux (admin ou admin_salles)
@@ -500,14 +501,58 @@ export default function Calendar() {
         return false
     }
 
+    // Calcul des durées disponibles pour l'ouverture d'un créneau
+    const getAvailableOpenDurations = (startSlotId) => {
+        const startIndex = getSlotIndex(startSlotId)
+        if (startIndex === -1) return []
+
+        const available = []
+
+        for (const duration of DURATION_OPTIONS) {
+            // Vérifier qu'on ne dépasse pas la journée
+            if (startIndex + duration.slots > TIME_SLOTS.length) {
+                break
+            }
+
+            // Vérifier qu'aucun créneau bloquant n'interfère
+            let isValidDuration = true
+            for (let i = 0; i < duration.slots; i++) {
+                const slot = TIME_SLOTS[startIndex + i]
+                const blockedInfo = getBlockedSlotInfo(slot.id)
+
+                // Slot bloquant (training) → durée invalide
+                if (blockedInfo && blockedInfo.isBlocking !== false) {
+                    isValidDuration = false
+                    break
+                }
+            }
+
+            if (isValidDuration) {
+                available.push(duration)
+            }
+        }
+
+        return available
+    }
+
     // Ouvrir un créneau (admin_salles)
     const handleOpenSlot = async () => {
         if (!slotToOpen || !canManageSlots) return
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        await storageService.openSlot(dateStr, slotToOpen, user.id, selectedTarget)
+        const startIndex = getSlotIndex(slotToOpen)
+
+        // Ouvrir tous les créneaux consécutifs selon la durée
+        for (let i = 0; i < selectedOpenDuration; i++) {
+            const slot = TIME_SLOTS[startIndex + i]
+            if (slot) {
+                await storageService.openSlot(dateStr, slot.id, user.id, selectedTarget)
+            }
+        }
+
         setShowOpenSlotModal(false)
         setSlotToOpen(null)
         setSelectedTarget('all')
+        setSelectedOpenDuration(1)
         await loadOpenedSlots()
     }
 
@@ -1130,12 +1175,14 @@ export default function Calendar() {
                         padding: '1.5rem',
                         width: '100%',
                         maxWidth: '500px',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
                         animation: 'slideUp 0.2s ease-out'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h3 style={{ margin: 0, color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Unlock size={20} />
-                                Ouvrir un créneau
+                                Ouvrir des créneaux
                             </h3>
                             <button
                                 onClick={() => setShowOpenSlotModal(false)}
@@ -1146,12 +1193,42 @@ export default function Calendar() {
                         </div>
 
                         <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                            <strong>{slotToOpen}</strong> - {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                            <strong>{slotToOpen}</strong> → <strong>{getEndTime(slotToOpen, selectedOpenDuration)}</strong>
+                            <br />
+                            {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
                         </p>
+
+                        {/* Sélecteur de durée */}
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                                <Clock size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                Durée
+                            </label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                {getAvailableOpenDurations(slotToOpen).map(duration => (
+                                    <button
+                                        key={duration.value}
+                                        onClick={() => setSelectedOpenDuration(duration.slots)}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: selectedOpenDuration === duration.slots ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
+                                            background: selectedOpenDuration === duration.slots ? '#EFF6FF' : 'white',
+                                            color: selectedOpenDuration === duration.slots ? 'var(--color-primary)' : 'var(--color-text)',
+                                            fontWeight: selectedOpenDuration === duration.slots ? '600' : '400',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        {duration.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
                         <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                                Ouvrir ce créneau pour :
+                                Ouvrir pour :
                             </label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <label style={{
@@ -1239,7 +1316,7 @@ export default function Calendar() {
                                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                             >
                                 <Unlock size={16} />
-                                Ouvrir
+                                Ouvrir {selectedOpenDuration > 1 ? `(${selectedOpenDuration} créneaux)` : ''}
                             </button>
                         </div>
                     </div>
