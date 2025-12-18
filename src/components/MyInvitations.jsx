@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { storageService } from '../services/storage'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { ArrowLeft, Check, X, RefreshCw, Mail } from 'lucide-react'
+import { ArrowLeft, Check, X, RefreshCw, Mail, Calendar } from 'lucide-react'
 
 export default function MyInvitations() {
     const navigate = useNavigate()
@@ -99,6 +99,25 @@ export default function MyInvitations() {
                                 )}
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    onClick={() => navigate(`/?date=${inv.date}&slot=${inv.slotId}`)}
+                                    style={{
+                                        background: 'var(--color-primary)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-md)',
+                                        padding: '0.75rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        fontWeight: '500'
+                                    }}
+                                    title="Voir sur le planning"
+                                >
+                                    <Calendar size={18} />
+                                </button>
                                 <button
                                     onClick={() => handleAccept(inv)}
                                     style={{

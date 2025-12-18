@@ -132,7 +132,7 @@ export default function Settings() {
             <div className="card" style={{ marginBottom: '1rem' }}>
                 <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <User size={18} />
-                    Mon Profil
+                    Mon Compte
                 </h2>
 
                 <form onSubmit={handleSave}>

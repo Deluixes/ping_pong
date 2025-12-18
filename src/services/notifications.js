@@ -6,9 +6,11 @@
 import { supabase } from '../lib/supabase'
 
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID
+const ONESIGNAL_REST_API_KEY = import.meta.env.VITE_ONESIGNAL_REST_API_KEY
 
 // Debug logging
 console.log('[NotificationService] ONESIGNAL_APP_ID:', ONESIGNAL_APP_ID ? 'configured' : 'MISSING!')
+console.log('[NotificationService] ONESIGNAL_REST_API_KEY:', ONESIGNAL_REST_API_KEY ? 'configured' : 'MISSING!')
 
 class NotificationService {
 
@@ -163,17 +165,19 @@ class NotificationService {
                     await OneSignal.login(userId)
                     console.log('[NotificationService] Login successful')
 
-                    // Add tags for filtering (license type, etc.)
+                    // Add tags for filtering (license type, role, etc.)
                     const profile = await this._getUserProfile(userId)
                     console.log('[NotificationService] User profile:', profile)
 
+                    const tags = { user_id: userId }
                     if (profile?.licenseType) {
-                        await OneSignal.User.addTags({
-                            license_type: profile.licenseType,
-                            user_id: userId
-                        })
-                        console.log('[NotificationService] Tags added')
+                        tags.license_type = profile.licenseType
                     }
+                    if (profile?.role) {
+                        tags.role = profile.role
+                    }
+                    await OneSignal.User.addTags(tags)
+                    console.log('[NotificationService] Tags added:', tags)
 
                     console.log('[NotificationService] Subscription complete!')
                     resolve({ success: true })
@@ -191,10 +195,10 @@ class NotificationService {
     async _getUserProfile(userId) {
         const { data } = await supabase
             .from('members')
-            .select('license_type')
+            .select('license_type, role')
             .eq('user_id', userId)
             .single()
-        return data ? { licenseType: data.license_type } : null
+        return data ? { licenseType: data.license_type, role: data.role } : null
     }
 
     /**
@@ -340,6 +344,54 @@ class NotificationService {
             vibrate: [200, 100, 200],
             tag: 'test-notification'
         })
+    }
+
+    // ==================== ADMIN NOTIFICATIONS ====================
+
+    /**
+     * Notify admins when a new member requests access
+     * @param {string} memberName - Name of the new member
+     */
+    async notifyAdminsNewMember(memberName) {
+        if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+            console.warn('[NotificationService] Cannot send admin notification: missing API keys')
+            return { success: false, error: 'Configuration manquante' }
+        }
+
+        try {
+            const response = await fetch('https://onesignal.com/api/v1/notifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`
+                },
+                body: JSON.stringify({
+                    app_id: ONESIGNAL_APP_ID,
+                    headings: { en: 'Nouvelle demande d\'adhésion' },
+                    contents: { en: `${memberName} souhaite rejoindre le club` },
+                    // Cibler les admins et super_admins via les tags
+                    filters: [
+                        { field: 'tag', key: 'role', relation: '=', value: 'admin' },
+                        { operator: 'OR' },
+                        { field: 'tag', key: 'role', relation: '=', value: 'super_admin' }
+                    ],
+                    url: `${window.location.origin}/admin`
+                })
+            })
+
+            const result = await response.json()
+            console.log('[NotificationService] Admin notification sent:', result)
+
+            if (result.errors) {
+                console.error('[NotificationService] Notification errors:', result.errors)
+                return { success: false, error: result.errors }
+            }
+
+            return { success: true, recipients: result.recipients }
+        } catch (error) {
+            console.error('[NotificationService] Error sending admin notification:', error)
+            return { success: false, error: error.message }
+        }
     }
 }
 

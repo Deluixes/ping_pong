@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { startOfWeek, addDays, format, isSameDay, isSameWeek, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
@@ -55,8 +56,19 @@ const setCachedEvents = (events) => {
 
 export default function Calendar() {
     const { user } = useAuth()
-    const [selectedDate, setSelectedDate] = useState(() => new Date())
-    const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
+    const [searchParams, setSearchParams] = useSearchParams()
+    const [selectedDate, setSelectedDate] = useState(() => {
+        // Lire la date depuis les paramètres URL si présente
+        const dateParam = searchParams.get('date')
+        if (dateParam) {
+            const parsed = new Date(dateParam)
+            if (!isNaN(parsed.getTime())) {
+                return parsed
+            }
+        }
+        return new Date()
+    })
+    const [weekStart, setWeekStart] = useState(() => startOfWeek(selectedDate, { weekStartsOn: 1 }))
     const [events, setEvents] = useState(getCachedEvents)
     const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
 
@@ -227,6 +239,17 @@ export default function Calendar() {
             loadData()
         }
     }, [user?.id, loadData])
+
+    // Gérer les paramètres URL (date et slot depuis les invitations)
+    useEffect(() => {
+        const dateParam = searchParams.get('date')
+        const slotParam = searchParams.get('slot')
+
+        if (dateParam || slotParam) {
+            // Nettoyer les paramètres URL après les avoir lus
+            setSearchParams({}, { replace: true })
+        }
+    }, [])
 
     // Setup subscription once on mount
     useEffect(() => {
@@ -1571,6 +1594,10 @@ export default function Calendar() {
                                     return (
                                         <div
                                             key={dayOffset}
+                                            onClick={() => {
+                                                setSelectedDate(day)
+                                                setViewMode('occupied')
+                                            }}
                                             style={{
                                                 background: bgColor,
                                                 padding: '0.15rem',
@@ -1581,7 +1608,8 @@ export default function Calendar() {
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 textAlign: 'center',
-                                                overflow: 'hidden'
+                                                overflow: 'hidden',
+                                                cursor: 'pointer'
                                             }}
                                         >
                                             {content}

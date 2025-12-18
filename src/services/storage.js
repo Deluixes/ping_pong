@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase'
+import { notificationService } from './notifications'
 
 export const GROUP_NAME = 'Ping-Pong Ramonville'
 
@@ -346,6 +347,9 @@ class StorageService {
             // May already exist
             return { status: (await this.getMemberStatus(userId)).status }
         }
+
+        // Notifier les admins de la nouvelle demande
+        notificationService.notifyAdminsNewMember(name)
 
         return { status: 'pending' }
     }
