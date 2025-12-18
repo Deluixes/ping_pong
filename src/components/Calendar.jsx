@@ -1624,13 +1624,20 @@ export default function Calendar() {
                     {TIME_SLOTS
                         .filter(slot => {
                             // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
-                            const isBlocked = getBlockedSlotInfo(slot.id) !== undefined
+                            const blockedInfo = getBlockedSlotInfo(slot.id)
+                            const isBlocked = blockedInfo !== undefined
                             if (!isBlocked && !isSlotInOpeningHours(slot.id)) return false
 
                             // 2. Filtre selon viewMode
                             if (viewMode === 'occupied') {
-                                // Afficher seulement les créneaux avec participants ou les créneaux bloqués
-                                return getParticipants(slot.id).length > 0 || isBlocked
+                                // Afficher :
+                                // - Créneaux avec participants
+                                // - Créneaux bloquants (entraînements, isBlocking !== false)
+                                // - Créneaux ouverts (dans openedSlots)
+                                const hasParticipants = getParticipants(slot.id).length > 0
+                                const isBlockingSlot = isBlocked && blockedInfo.isBlocking !== false
+                                const isOpenedSlot = getOpenedSlotInfo(slot.id) !== undefined
+                                return hasParticipants || isBlockingSlot || isOpenedSlot
                             }
                             return true
                         })
