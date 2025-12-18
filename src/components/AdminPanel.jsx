@@ -100,6 +100,9 @@ export default function AdminPanel() {
         // Mettre à jour le nom si modifié
         if (editForm.name !== editingMember.name) {
             await storageService.updateMemberName(editingMember.userId, editForm.name.trim())
+            // Mettre à jour le nom dans les réservations et invitations
+            await storageService.updateUserNameInEvents(editingMember.userId, editForm.name.trim())
+            await storageService.updateUserNameInInvitations(editingMember.userId, editForm.name.trim())
         }
 
         // Mettre à jour la licence
