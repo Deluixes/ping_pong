@@ -51,6 +51,15 @@ export default function AdminPanel() {
 
     useEffect(() => {
         loadData()
+
+        // S'abonner aux changements de la table members (real-time)
+        const subscription = storageService.subscribeToMembers(() => {
+            loadData()
+        })
+
+        return () => {
+            storageService.unsubscribe(subscription)
+        }
     }, [])
 
     const handleRefresh = async () => {
