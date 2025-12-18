@@ -260,8 +260,14 @@ export default function Calendar() {
     }, [loadData, loadInvitations, loadOpenedSlots])
 
     // Navigation
-    const nextWeek = () => setWeekStart(d => addDays(d, 7))
-    const prevWeek = () => setWeekStart(d => addDays(d, -7))
+    const nextWeek = () => {
+        setWeekStart(d => addDays(d, 7))
+        setSelectedDate(d => addDays(d, 7))
+    }
+    const prevWeek = () => {
+        setWeekStart(d => addDays(d, -7))
+        setSelectedDate(d => addDays(d, -7))
+    }
 
     const weekDays = []
     for (let i = 0; i < 7; i++) {
