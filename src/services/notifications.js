@@ -7,6 +7,9 @@ import { supabase } from '../lib/supabase'
 
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID
 
+// Debug logging
+console.log('[NotificationService] ONESIGNAL_APP_ID:', ONESIGNAL_APP_ID ? 'configured' : 'MISSING!')
+
 class NotificationService {
 
     constructor() {
@@ -141,30 +144,41 @@ class NotificationService {
         return new Promise((resolve) => {
             window.OneSignalDeferred.push(async (OneSignal) => {
                 try {
+                    console.log('[NotificationService] Starting subscription for user:', userId)
+
                     // Request permission
+                    console.log('[NotificationService] Requesting permission...')
                     await OneSignal.Slidedown.promptPush()
 
                     const permission = await OneSignal.Notifications.permission
+                    console.log('[NotificationService] Permission result:', permission)
+
                     if (!permission) {
                         resolve({ success: false, error: 'Permission refusée' })
                         return
                     }
 
                     // Set external user ID (links OneSignal to our user)
+                    console.log('[NotificationService] Calling OneSignal.login with userId:', userId)
                     await OneSignal.login(userId)
+                    console.log('[NotificationService] Login successful')
 
                     // Add tags for filtering (license type, etc.)
                     const profile = await this._getUserProfile(userId)
+                    console.log('[NotificationService] User profile:', profile)
+
                     if (profile?.licenseType) {
                         await OneSignal.User.addTags({
                             license_type: profile.licenseType,
                             user_id: userId
                         })
+                        console.log('[NotificationService] Tags added')
                     }
 
+                    console.log('[NotificationService] Subscription complete!')
                     resolve({ success: true })
                 } catch (error) {
-                    console.error('OneSignal subscription error:', error)
+                    console.error('[NotificationService] OneSignal subscription error:', error)
                     resolve({ success: false, error: error.message })
                 }
             })
