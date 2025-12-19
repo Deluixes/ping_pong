@@ -466,7 +466,7 @@ class StorageService {
         return count || 0
     }
 
-    async inviteToSlot(slotId, date, userId, userName, invitedBy) {
+    async inviteToSlot(slotId, date, userId, userName, invitedBy, duration = 1) {
         const { error } = await supabase
             .from('slot_invitations')
             .insert({
@@ -475,7 +475,8 @@ class StorageService {
                 user_id: userId,
                 user_name: userName,
                 status: 'pending',
-                invited_by: invitedBy
+                invited_by: invitedBy,
+                duration: duration
             })
 
         return { success: !error || error.code === '23505' }

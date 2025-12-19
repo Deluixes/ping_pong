@@ -749,12 +749,10 @@ export default function Calendar() {
                 }
             }
 
-            // Créer les invitations pour chaque slot
-            for (let i = 0; i < selectedDuration.slots; i++) {
-                const slot = TIME_SLOTS[startIndex + i]
-                for (const guest of validGuests) {
-                    await storageService.inviteToSlot(slot.id, dateStr, guest.odId, guest.name, user.id)
-                }
+            // Créer une seule invitation par invité avec la durée totale
+            const firstSlot = TIME_SLOTS[startIndex]
+            for (const guest of validGuests) {
+                await storageService.inviteToSlot(firstSlot.id, dateStr, guest.odId, guest.name, user.id, selectedDuration.slots)
             }
 
             closeModal()
