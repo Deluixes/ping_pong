@@ -12,12 +12,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
     )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        persistSession: true,
-        storageKey: 'pingpong-auth',
-        storage: window.localStorage,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-    }
-})
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
