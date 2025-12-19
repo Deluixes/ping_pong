@@ -4,7 +4,6 @@
  */
 
 import { supabase } from '../lib/supabase'
-import { notificationService } from './notifications'
 
 export const GROUP_NAME = 'Ping-Pong Ramonville'
 
@@ -348,8 +347,8 @@ class StorageService {
             return { status: (await this.getMemberStatus(userId)).status }
         }
 
-        // Notifier les admins de la nouvelle demande
-        notificationService.notifyAdminsNewMember(name)
+        // Note: La notification aux admins est gérée par une Edge Function Supabase
+        // déclenchée automatiquement lors de l'INSERT dans la table members
 
         return { status: 'pending' }
     }
