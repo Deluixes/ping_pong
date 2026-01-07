@@ -739,8 +739,13 @@ export default function Calendar() {
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
         setGuests([{ odId: '', name: '' }])
-        // Passer directement à l'étape guests (le mode inviteOnlyMode est déjà défini)
-        setModalStep('guests')
+        // Si déjà inscrit (modification), passer directement à guests
+        // Sinon, afficher le choix s'inscrire / inviter seulement
+        if (isUserParticipating(selectedSlotId)) {
+            setModalStep('guests')
+        } else {
+            setModalStep('choice')
+        }
     }
 
     const handleModeChoice = (mode) => {
@@ -1063,9 +1068,9 @@ export default function Calendar() {
                         {/* Step 3: Invite Guests + Confirmation */}
                         {modalStep === 'guests' && (
                             <>
-                                {/* Bouton retour : si déjà inscrit → fermer, sinon → retour durée */}
+                                {/* Bouton retour : si déjà inscrit → fermer, sinon → retour choice */}
                                 <button
-                                    onClick={() => inviteOnlyMode && isUserParticipating(selectedSlotId) ? closeModal() : setModalStep('duration')}
+                                    onClick={() => inviteOnlyMode && isUserParticipating(selectedSlotId) ? closeModal() : setModalStep('choice')}
                                     style={{
                                         background: 'none',
                                         border: 'none',
