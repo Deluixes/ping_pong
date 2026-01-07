@@ -13,7 +13,16 @@ const formatDuration = (slots) => {
     const mins = (slots % 2) * 30
     if (hours === 0) return `${mins} min`
     if (mins === 0) return `${hours}h`
-    return `${hours}h ${mins}`
+    return `${hours}h${mins}`
+}
+
+// Helper pour calculer l'heure de fin
+const getEndTime = (startTime, slots) => {
+    const [hours, minutes] = startTime.split(':').map(Number)
+    const totalMinutes = hours * 60 + minutes + (slots || 1) * 30
+    const endHours = Math.floor(totalMinutes / 60)
+    const endMins = totalMinutes % 60
+    return `${endHours}h${endMins > 0 ? endMins.toString().padStart(2, '0') : ''}`
 }
 
 export default function MyInvitations({ onNotificationChange }) {
@@ -102,7 +111,7 @@ export default function MyInvitations({ onNotificationChange }) {
                                     {format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}
                                 </div>
                                 <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                                    Créneau de {inv.slotId} ({formatDuration(inv.duration)})
+                                    Créneau de {inv.slotId.replace(':', 'h')} à {getEndTime(inv.slotId, inv.duration)} ({formatDuration(inv.duration)})
                                 </div>
                                 {inv.invitedBy && (
                                     <div style={{ color: 'var(--color-primary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
