@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { Search, Users } from 'lucide-react'
+import { Search, Users, X } from 'lucide-react'
 
 export default function ClubMembers() {
     const { user } = useAuth()
@@ -9,6 +9,7 @@ export default function ClubMembers() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [licenseFilter, setLicenseFilter] = useState('all') // 'all', 'L', 'C'
+    const [selectedMember, setSelectedMember] = useState(null)
 
     useEffect(() => {
         loadMembers()
@@ -147,6 +148,7 @@ export default function ClubMembers() {
                     {filteredMembers.map(member => (
                         <div
                             key={member.userId}
+                            onClick={() => setSelectedMember(member)}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -154,7 +156,9 @@ export default function ClubMembers() {
                                 padding: '0.75rem 1rem',
                                 background: 'white',
                                 borderRadius: 'var(--radius-md)',
-                                border: '1px solid #E5E7EB'
+                                border: '1px solid #E5E7EB',
+                                cursor: 'pointer',
+                                transition: 'background 0.15s'
                             }}
                         >
                             {/* Avatar */}
@@ -208,6 +212,102 @@ export default function ClubMembers() {
                             )}
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Modal photo en grand */}
+            {selectedMember && (
+                <div
+                    onClick={() => setSelectedMember(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '1rem'
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'white',
+                            borderRadius: '1rem',
+                            padding: '1.5rem',
+                            maxWidth: '300px',
+                            width: '100%',
+                            textAlign: 'center',
+                            position: 'relative'
+                        }}
+                    >
+                        {/* Bouton fermer */}
+                        <button
+                            onClick={() => setSelectedMember(null)}
+                            style={{
+                                position: 'absolute',
+                                top: '0.75rem',
+                                right: '0.75rem',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                color: 'var(--color-text-muted)'
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+
+                        {/* Grande photo ou initiale */}
+                        <div style={{
+                            width: '150px',
+                            height: '150px',
+                            borderRadius: '50%',
+                            background: 'var(--color-primary)',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1rem',
+                            overflow: 'hidden'
+                        }}>
+                            {selectedMember.profilePhotoUrl ? (
+                                <img
+                                    src={selectedMember.profilePhotoUrl}
+                                    alt={selectedMember.name}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover'
+                                    }}
+                                />
+                            ) : (
+                                <span style={{ fontSize: '4rem', fontWeight: 'bold' }}>
+                                    {selectedMember.name?.charAt(0).toUpperCase() || '?'}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Nom */}
+                        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem' }}>
+                            {selectedMember.name}
+                        </h3>
+
+                        {/* Badge licence */}
+                        {selectedMember.licenseType && (
+                            <span style={{
+                                fontSize: '0.85rem',
+                                background: selectedMember.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
+                                color: selectedMember.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '999px',
+                                fontWeight: 'bold'
+                            }}>
+                                {selectedMember.licenseType === 'C' ? 'Compétition' : 'Loisir'}
+                            </span>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

@@ -28,6 +28,7 @@ export default function Settings() {
     // Photo de profil
     const [profilePhotoUrl, setProfilePhotoUrl] = useState(null)
     const [photoUploading, setPhotoUploading] = useState(false)
+    const [showPhotoModal, setShowPhotoModal] = useState(false)
 
     // Charger le profil pour récupérer le type de licence et la photo
     useEffect(() => {
@@ -198,18 +199,22 @@ export default function Settings() {
                     paddingBottom: '1.5rem',
                     borderBottom: '1px solid #E2E8F0'
                 }}>
-                    <div style={{
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: '50%',
-                        overflow: 'hidden',
-                        background: 'var(--color-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '1rem',
-                        position: 'relative'
-                    }}>
+                    <div
+                        onClick={() => profilePhotoUrl && setShowPhotoModal(true)}
+                        style={{
+                            width: '100px',
+                            height: '100px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            background: 'var(--color-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: '1rem',
+                            position: 'relative',
+                            cursor: profilePhotoUrl ? 'pointer' : 'default'
+                        }}
+                    >
                         {profilePhotoUrl ? (
                             <img
                                 src={profilePhotoUrl}
@@ -602,6 +607,60 @@ export default function Settings() {
                             forced={false}
                             onClose={() => setShowPasswordModal(false)}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Photo Modal - affichage en grand */}
+            {showPhotoModal && profilePhotoUrl && (
+                <div
+                    onClick={() => setShowPhotoModal(false)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.85)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '1rem'
+                    }}
+                >
+                    <div style={{
+                        position: 'relative',
+                        maxWidth: '90vw',
+                        maxHeight: '90vh'
+                    }}>
+                        <img
+                            src={profilePhotoUrl}
+                            alt="Photo de profil"
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '80vh',
+                                borderRadius: '1rem',
+                                objectFit: 'contain'
+                            }}
+                        />
+                        <button
+                            onClick={() => setShowPhotoModal(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '-40px',
+                                right: '0',
+                                background: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                fontSize: '1.25rem'
+                            }}
+                        >
+                            ×
+                        </button>
                     </div>
                 </div>
             )}

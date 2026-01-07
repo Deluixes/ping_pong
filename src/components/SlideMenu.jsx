@@ -9,6 +9,7 @@ export default function SlideMenu({ isOpen, onClose }) {
     const location = useLocation()
     const [pendingCount, setPendingCount] = useState(0)
     const [invitationsCount, setInvitationsCount] = useState(0)
+    const [profilePhotoUrl, setProfilePhotoUrl] = useState(null)
 
     useEffect(() => {
         if (isOpen && user?.isAdmin) {
@@ -16,6 +17,7 @@ export default function SlideMenu({ isOpen, onClose }) {
         }
         if (isOpen && user) {
             storageService.getPendingInvitationsCount(user.id).then(setInvitationsCount)
+            storageService.getProfilePhotoUrl(user.id).then(setProfilePhotoUrl)
         }
     }, [isOpen, user?.isAdmin, user])
 
@@ -110,9 +112,22 @@ export default function SlideMenu({ isOpen, onClose }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        overflow: 'hidden'
                     }}>
-                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                        {profilePhotoUrl ? (
+                            <img
+                                src={profilePhotoUrl}
+                                alt={user?.name}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                }}
+                            />
+                        ) : (
+                            user?.name?.charAt(0).toUpperCase() || 'U'
+                        )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
