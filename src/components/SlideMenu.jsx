@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService, GROUP_NAME } from '../services/storage'
 import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield, Home, ExternalLink } from 'lucide-react'
@@ -7,6 +7,7 @@ import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield, Home, Externa
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout, simulatedRole, setSimulatedRole, getSimulatableRoles } = useAuth()
     const location = useLocation()
+    const navigate = useNavigate()
     const [pendingCount, setPendingCount] = useState(0)
     const [invitationsCount, setInvitationsCount] = useState(0)
     const [profilePhotoUrl, setProfilePhotoUrl] = useState(null)
@@ -95,14 +96,22 @@ export default function SlideMenu({ isOpen, onClose }) {
                     </button>
                 </div>
 
-                {/* User Info */}
-                <div style={{
-                    padding: '1rem',
-                    borderBottom: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem'
-                }}>
+                {/* User Info - cliquable pour aller aux paramètres */}
+                <div
+                    onClick={() => {
+                        navigate('/settings')
+                        onClose()
+                    }}
+                    style={{
+                        padding: '1rem',
+                        borderBottom: '1px solid #E2E8F0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s'
+                    }}
+                >
                     <div style={{
                         width: '40px',
                         height: '40px',
