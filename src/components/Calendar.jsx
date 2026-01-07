@@ -82,6 +82,11 @@ export default function Calendar() {
     const [guests, setGuests] = useState([{ odId: '', name: '' }])
     const [inviteOnlyMode, setInviteOnlyMode] = useState(false)
 
+    // Modal choix d'action et liste joueurs
+    const [showActionChoice, setShowActionChoice] = useState(false)
+    const [showParticipantsList, setShowParticipantsList] = useState(false)
+    const [participantsToShow, setParticipantsToShow] = useState([])
+
     // Settings
     const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
     const maxPersons = totalTables * 2
@@ -623,11 +628,18 @@ export default function Calendar() {
     // Actions
     const handleSlotClick = (slotId) => {
         const userReg = getUserRegistration(slotId)
+        const participants = getParticipants(slotId)
 
-        // Si déjà inscrit, ouvrir directement le modal d'invitation
+        // Si déjà inscrit, afficher le modal de choix (voir joueurs ou modifier)
         if (userReg) {
             setSelectedSlotId(slotId)
             setSelectedDuration(DURATION_OPTIONS.find(d => d.slots === userReg?.duration) || DURATION_OPTIONS[0])
+            // S'il y a des participants, afficher le choix
+            if (participants.length > 0) {
+                setShowActionChoice(true)
+                return
+            }
+            // Sinon, ouvrir directement le modal d'invitation
             setInviteOnlyMode(true)
             setGuests([{ odId: '', name: '' }])
             setModalStep('guests')
@@ -673,6 +685,33 @@ export default function Calendar() {
         setSelectedSlotId(slotId)
         setSelectedDuration(null)
         setModalStep('duration')
+    }
+
+    // Afficher la liste des participants avec photos
+    const handleShowParticipants = async (slotId) => {
+        const participants = getParticipants(slotId)
+        // Enrichir avec les photos de profil et licences
+        const enrichedParticipants = await Promise.all(
+            participants.map(async (p) => {
+                const member = approvedMembers.find(m => m.userId === p.id)
+                return {
+                    ...p,
+                    profilePhotoUrl: p.id ? await storageService.getProfilePhotoUrl(p.id) : null,
+                    licenseType: member?.licenseType || null
+                }
+            })
+        )
+        setParticipantsToShow(enrichedParticipants)
+        setShowParticipantsList(true)
+        setShowActionChoice(false)
+    }
+
+    // Ouvrir le modal d'invitation depuis le choix
+    const handleOpenInviteModal = () => {
+        setShowActionChoice(false)
+        setInviteOnlyMode(true)
+        setGuests([{ odId: '', name: '' }])
+        setModalStep('guests')
     }
 
     // Admin: supprimer un créneau de la semaine
@@ -1355,6 +1394,227 @@ export default function Calendar() {
                                 Ouvrir {selectedOpenDuration > 1 ? `(${selectedOpenDuration} créneaux)` : ''}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal choix d'action (voir joueurs / modifier inscription) */}
+            {showActionChoice && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}
+                    onClick={() => setShowActionChoice(false)}
+                >
+                    <div style={{
+                        background: 'white',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.5rem',
+                        width: '90%',
+                        maxWidth: '320px',
+                        animation: 'slideUp 0.2s ease-out'
+                    }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 style={{ margin: '0 0 0.5rem 0', textAlign: 'center' }}>
+                            Créneau de {selectedSlotId}
+                        </h3>
+                        <p style={{ margin: '0 0 1.5rem 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                        </p>
+
+                        <button
+                            onClick={() => handleShowParticipants(selectedSlotId)}
+                            className="btn"
+                            style={{
+                                width: '100%',
+                                marginBottom: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                background: 'var(--color-bg)',
+                                padding: '1rem'
+                            }}
+                        >
+                            <Users size={18} />
+                            Voir les joueurs
+                        </button>
+
+                        <button
+                            onClick={handleOpenInviteModal}
+                            className="btn"
+                            style={{
+                                width: '100%',
+                                marginBottom: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                background: 'var(--color-bg)',
+                                padding: '1rem'
+                            }}
+                        >
+                            <Edit3 size={18} />
+                            Modifier l'inscription
+                        </button>
+
+                        <button
+                            onClick={() => setShowActionChoice(false)}
+                            className="btn"
+                            style={{
+                                width: '100%',
+                                background: 'transparent',
+                                color: 'var(--color-text-muted)'
+                            }}
+                        >
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal liste des joueurs */}
+            {showParticipantsList && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}
+                    onClick={() => setShowParticipantsList(false)}
+                >
+                    <div style={{
+                        background: 'white',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.5rem',
+                        width: '90%',
+                        maxWidth: '400px',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
+                        animation: 'slideUp 0.2s ease-out'
+                    }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Users size={20} />
+                                Joueurs sur ce créneau
+                            </h3>
+                            <button
+                                onClick={() => setShowParticipantsList(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p style={{ margin: '0 0 1rem 0', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            {selectedSlotId} - {format(selectedDate, 'EEEE d MMMM', { locale: fr })}
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {participantsToShow.map((p, index) => (
+                                <div key={p.id || index} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '1rem',
+                                    padding: '0.75rem',
+                                    background: 'var(--color-bg)',
+                                    borderRadius: 'var(--radius-md)'
+                                }}>
+                                    {/* Avatar */}
+                                    <div style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '50%',
+                                        background: 'var(--color-primary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: '1.2rem',
+                                        flexShrink: 0,
+                                        overflow: 'hidden'
+                                    }}>
+                                        {p.profilePhotoUrl ? (
+                                            <img
+                                                src={p.profilePhotoUrl}
+                                                alt={p.name}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            p.name?.charAt(0).toUpperCase() || '?'
+                                        )}
+                                    </div>
+
+                                    {/* Nom et infos */}
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{
+                                            fontWeight: '500',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            flexWrap: 'wrap'
+                                        }}>
+                                            {p.name}
+                                            {p.status === 'pending' && (
+                                                <span style={{
+                                                    fontSize: '0.75rem',
+                                                    color: 'var(--color-warning)',
+                                                    fontWeight: 'normal'
+                                                }}>
+                                                    (en attente)
+                                                </span>
+                                            )}
+                                        </div>
+                                        {p.licenseType && (
+                                            <span style={{
+                                                display: 'inline-block',
+                                                marginTop: '0.25rem',
+                                                padding: '0.15rem 0.5rem',
+                                                background: p.licenseType === 'Compétition' ? 'var(--color-primary)' : 'var(--color-secondary)',
+                                                color: 'white',
+                                                borderRadius: '1rem',
+                                                fontSize: '0.7rem',
+                                                fontWeight: '500'
+                                            }}>
+                                                {p.licenseType}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {participantsToShow.length === 0 && (
+                            <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '2rem 0' }}>
+                                Aucun joueur sur ce créneau
+                            </p>
+                        )}
+
+                        <button
+                            onClick={() => setShowParticipantsList(false)}
+                            className="btn btn-primary"
+                            style={{ width: '100%', marginTop: '1.5rem' }}
+                        >
+                            Fermer
+                        </button>
                     </div>
                 </div>
             )}
