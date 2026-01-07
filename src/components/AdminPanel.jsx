@@ -44,7 +44,7 @@ export default function AdminPanel() {
     }
 
     const loadData = async () => {
-        const data = await storageService.getMembers()
+        const data = await storageService.getMembers(currentUser?.role === 'super_admin')
         setMembers(data)
         setLoading(false)
     }

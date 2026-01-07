@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService, GROUP_NAME } from '../services/storage'
-import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield, Home } from 'lucide-react'
+import { X, Calendar, Users, LogOut, User, Settings, Mail, Shield, Home, ExternalLink } from 'lucide-react'
 
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout, simulatedRole, setSimulatedRole, getSimulatableRoles } = useAuth()
@@ -306,6 +306,26 @@ export default function SlideMenu({ isOpen, onClose }) {
                         </>
                     )}
                 </nav>
+
+                {/* Lien site du club */}
+                <a
+                    href="https://www.usramonvillett.fr/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={onClose}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.875rem 1rem',
+                        textDecoration: 'none',
+                        color: 'var(--color-text)',
+                        borderTop: '1px solid #E2E8F0'
+                    }}
+                >
+                    <ExternalLink size={20} />
+                    Site du club
+                </a>
 
                 {/* Role Simulation */}
                 {getSimulatableRoles && getSimulatableRoles().length > 0 && (

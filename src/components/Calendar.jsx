@@ -162,14 +162,14 @@ export default function Calendar() {
             setLoading(false)
 
             // Load members in background (for guest selection)
-            const members = await storageService.getMembers()
+            const members = await storageService.getMembers(user?.role === 'super_admin')
             if (!isMountedRef.current) return
             setApprovedMembers(members.approved.filter(m => m.userId !== currentUserId))
         } catch (error) {
             console.error('Error loading data:', error)
             if (isMountedRef.current) setLoading(false)
         }
-    }, [])
+    }, [user])
 
     // Charger la configuration de la semaine quand weekStart change
     const loadWeekConfig = useCallback(async () => {

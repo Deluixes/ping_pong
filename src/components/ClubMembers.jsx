@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { storageService } from '../services/storage'
+import { useAuth } from '../contexts/AuthContext'
 import { Search, Users } from 'lucide-react'
 
 export default function ClubMembers() {
+    const { user } = useAuth()
     const [members, setMembers] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -10,10 +12,10 @@ export default function ClubMembers() {
 
     useEffect(() => {
         loadMembers()
-    }, [])
+    }, [user])
 
     const loadMembers = async () => {
-        const data = await storageService.getAllApprovedMembers()
+        const data = await storageService.getAllApprovedMembers(user?.role === 'super_admin')
         setMembers(data)
         setLoading(false)
     }

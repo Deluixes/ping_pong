@@ -162,7 +162,7 @@ class StorageService {
 
     // ==================== MEMBERS ====================
 
-    async getMembers() {
+    async getMembers(includeTEST = false) {
         const { data, error } = await supabase
             .from('members')
             .select('*')
@@ -171,6 +171,12 @@ class StorageService {
         if (error) {
             console.error('Error fetching members:', error)
             return { pending: [], approved: [] }
+        }
+
+        // Filtrer les membres TEST_ si pas super admin
+        const filterTEST = (members) => {
+            if (includeTEST) return members
+            return members.filter(m => !m.name?.startsWith('TEST_'))
         }
 
         const pending = data
@@ -197,7 +203,7 @@ class StorageService {
                 licenseType: m.license_type || null
             }))
 
-        return { pending, approved }
+        return { pending: filterTEST(pending), approved: filterTEST(approved) }
     }
 
     async getPendingCount() {
@@ -316,7 +322,7 @@ class StorageService {
         return { success: true }
     }
 
-    async getAllApprovedMembers() {
+    async getAllApprovedMembers(includeTEST = false) {
         const { data, error } = await supabase
             .from('members')
             .select('user_id, name, license_type')
@@ -328,11 +334,17 @@ class StorageService {
             return []
         }
 
-        return data.map(m => ({
+        let result = data.map(m => ({
             userId: m.user_id,
             name: m.name,
             licenseType: m.license_type || null
         }))
+
+        if (!includeTEST) {
+            result = result.filter(m => !m.name?.startsWith('TEST_'))
+        }
+
+        return result
     }
 
     async getMemberStatus(userId) {
