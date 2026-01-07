@@ -739,7 +739,8 @@ export default function Calendar() {
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
         setGuests([{ odId: '', name: '' }])
-        setModalStep('choice')
+        // Passer directement à l'étape guests (le mode inviteOnlyMode est déjà défini)
+        setModalStep('guests')
     }
 
     const handleModeChoice = (mode) => {
@@ -1062,10 +1063,9 @@ export default function Calendar() {
                         {/* Step 3: Invite Guests + Confirmation */}
                         {modalStep === 'guests' && (
                             <>
-                                {/* Si déjà inscrit (inviteOnlyMode direct), fermer le modal */}
-                                {/* Sinon retourner à l'étape choice */}
+                                {/* Bouton retour : si déjà inscrit → fermer, sinon → retour durée */}
                                 <button
-                                    onClick={() => inviteOnlyMode && isUserParticipating(selectedSlotId) ? closeModal() : setModalStep('choice')}
+                                    onClick={() => inviteOnlyMode && isUserParticipating(selectedSlotId) ? closeModal() : setModalStep('duration')}
                                     style={{
                                         background: 'none',
                                         border: 'none',
@@ -1078,6 +1078,39 @@ export default function Calendar() {
                                 >
                                     {inviteOnlyMode && isUserParticipating(selectedSlotId) ? '← Annuler' : '← Retour'}
                                 </button>
+
+                                {/* Résumé avec bouton changer durée */}
+                                {selectedDuration && !isUserParticipating(selectedSlotId) && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '0.75rem',
+                                        background: 'var(--color-primary-light)',
+                                        borderRadius: 'var(--radius-md)',
+                                        marginBottom: '1rem'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Clock size={16} />
+                                            <span style={{ fontWeight: '500' }}>
+                                                {selectedDuration.label} ({selectedSlotId} → {getEndTime(selectedSlotId, selectedDuration.slots)})
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => setModalStep('duration')}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: 'var(--color-primary)',
+                                                cursor: 'pointer',
+                                                fontSize: '0.85rem',
+                                                textDecoration: 'underline'
+                                            }}
+                                        >
+                                            Modifier
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Warning if overbooked */}
                                 {isCurrentSlotOverbooked && (
@@ -1615,29 +1648,45 @@ export default function Calendar() {
                             </p>
                         )}
 
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                            {/* Bouton S'inscrire si pas inscrit */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
+                            {/* Boutons S'inscrire / Inviter seulement si pas inscrit */}
                             {!getUserRegistration(selectedSlotId) && !isUserOnSlot(selectedSlotId) && (
-                                <button
-                                    onClick={() => {
-                                        setShowParticipantsList(false)
-                                        setSelectedDuration(null)
-                                        setModalStep('duration')
-                                    }}
-                                    className="btn btn-primary"
-                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                >
-                                    <UserPlus size={18} />
-                                    S'inscrire
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            setShowParticipantsList(false)
+                                            setSelectedDuration(null)
+                                            setModalStep('duration')
+                                            setInviteOnlyMode(false)
+                                        }}
+                                        className="btn btn-primary"
+                                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem' }}
+                                    >
+                                        <UserPlus size={18} />
+                                        S'inscrire
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowParticipantsList(false)
+                                            setSelectedDuration(null)
+                                            setModalStep('duration')
+                                            setInviteOnlyMode(true)
+                                        }}
+                                        className="btn"
+                                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', background: 'var(--color-bg)' }}
+                                    >
+                                        <Users size={18} />
+                                        Inviter seulement
+                                    </button>
+                                </>
                             )}
                             <button
                                 onClick={() => setShowParticipantsList(false)}
                                 className="btn"
                                 style={{
-                                    flex: 1,
-                                    background: getUserRegistration(selectedSlotId) || isUserOnSlot(selectedSlotId) ? 'var(--color-primary)' : 'var(--color-bg)',
-                                    color: getUserRegistration(selectedSlotId) || isUserOnSlot(selectedSlotId) ? 'white' : 'inherit'
+                                    width: '100%',
+                                    background: getUserRegistration(selectedSlotId) || isUserOnSlot(selectedSlotId) ? 'var(--color-primary)' : 'transparent',
+                                    color: getUserRegistration(selectedSlotId) || isUserOnSlot(selectedSlotId) ? 'white' : 'var(--color-text-muted)'
                                 }}
                             >
                                 Fermer
