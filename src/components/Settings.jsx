@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService } from '../services/storage'
 import { notificationService } from '../services/notifications'
-import { ArrowLeft, Save, User, Mail, Award, Bell, BellOff, Smartphone, Lock } from 'lucide-react'
+import { ArrowLeft, Save, User, Mail, Award, Bell, BellOff, Smartphone, Lock, Camera, Trash2 } from 'lucide-react'
 import ChangePassword from './ChangePassword'
 
 export default function Settings() {
@@ -25,7 +25,11 @@ export default function Settings() {
     const [notifPermission, setNotifPermission] = useState('default')
     const [showPasswordModal, setShowPasswordModal] = useState(false)
 
-    // Charger le profil pour récupérer le type de licence
+    // Photo de profil
+    const [profilePhotoUrl, setProfilePhotoUrl] = useState(null)
+    const [photoUploading, setPhotoUploading] = useState(false)
+
+    // Charger le profil pour récupérer le type de licence et la photo
     useEffect(() => {
         const loadProfile = async () => {
             if (user?.id) {
@@ -33,6 +37,9 @@ export default function Settings() {
                 if (profile) {
                     setLicenseType(profile.licenseType)
                 }
+                // Charger la photo de profil
+                const photoUrl = await storageService.getProfilePhotoUrl(user.id)
+                setProfilePhotoUrl(photoUrl)
             }
         }
         loadProfile()
@@ -86,6 +93,51 @@ export default function Settings() {
         await notificationService.sendTestNotification()
     }
 
+    // Handlers pour la photo de profil
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Vérifier le type de fichier
+        if (!file.type.startsWith('image/')) {
+            alert('Veuillez sélectionner une image')
+            return
+        }
+
+        // Vérifier la taille (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('L\'image ne doit pas dépasser 5 Mo')
+            return
+        }
+
+        setPhotoUploading(true)
+        const result = await storageService.uploadProfilePhoto(user.id, file)
+        setPhotoUploading(false)
+
+        if (result.success) {
+            setProfilePhotoUrl(result.url)
+        } else {
+            alert(result.error || 'Erreur lors de l\'upload de la photo')
+        }
+
+        // Reset input
+        e.target.value = ''
+    }
+
+    const handleDeletePhoto = async () => {
+        if (!window.confirm('Supprimer votre photo de profil ?')) return
+
+        setPhotoUploading(true)
+        const result = await storageService.deleteProfilePhoto(user.id)
+        setPhotoUploading(false)
+
+        if (result.success) {
+            setProfilePhotoUrl(null)
+        } else {
+            alert(result.error || 'Erreur lors de la suppression')
+        }
+    }
+
     const handleSave = async (e) => {
         e.preventDefault()
         if (!name.trim()) return
@@ -136,6 +188,108 @@ export default function Settings() {
                     <User size={18} />
                     Mon Compte
                 </h2>
+
+                {/* Photo de profil */}
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    marginBottom: '1.5rem',
+                    paddingBottom: '1.5rem',
+                    borderBottom: '1px solid #E2E8F0'
+                }}>
+                    <div style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        background: 'var(--color-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '1rem',
+                        position: 'relative'
+                    }}>
+                        {profilePhotoUrl ? (
+                            <img
+                                src={profilePhotoUrl}
+                                alt="Photo de profil"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                }}
+                            />
+                        ) : (
+                            <span style={{
+                                color: 'white',
+                                fontSize: '2.5rem',
+                                fontWeight: '600'
+                            }}>
+                                {user?.name?.charAt(0).toUpperCase() || '?'}
+                            </span>
+                        )}
+                        {photoUploading && (
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                background: 'rgba(0,0,0,0.5)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontSize: '0.8rem'
+                            }}>
+                                Chargement...
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            background: 'var(--color-bg)',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem'
+                        }}>
+                            <Camera size={16} />
+                            {profilePhotoUrl ? 'Changer' : 'Ajouter une photo'}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoUpload}
+                                style={{ display: 'none' }}
+                                disabled={photoUploading}
+                            />
+                        </label>
+                        {profilePhotoUrl && (
+                            <button
+                                type="button"
+                                onClick={handleDeletePhoto}
+                                disabled={photoUploading}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.5rem 1rem',
+                                    background: '#FEE2E2',
+                                    color: '#DC2626',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                <Trash2 size={16} />
+                                Supprimer
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 <form onSubmit={handleSave}>
                     <div style={{ marginBottom: '1rem' }}>

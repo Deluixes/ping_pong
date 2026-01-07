@@ -169,9 +169,22 @@ export default function ClubMembers() {
                                 justifyContent: 'center',
                                 fontWeight: 'bold',
                                 fontSize: '0.9rem',
-                                flexShrink: 0
+                                flexShrink: 0,
+                                overflow: 'hidden'
                             }}>
-                                {member.name?.charAt(0).toUpperCase() || '?'}
+                                {member.profilePhotoUrl ? (
+                                    <img
+                                        src={member.profilePhotoUrl}
+                                        alt={member.name}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                        }}
+                                    />
+                                ) : (
+                                    member.name?.charAt(0).toUpperCase() || '?'
+                                )}
                             </div>
 
                             {/* Nom */}

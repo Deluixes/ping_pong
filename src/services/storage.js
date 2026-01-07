@@ -325,7 +325,7 @@ class StorageService {
     async getAllApprovedMembers(includeTEST = false) {
         const { data, error } = await supabase
             .from('members')
-            .select('user_id, name, license_type')
+            .select('user_id, name, license_type, profile_photo_url')
             .eq('status', 'approved')
             .order('name', { ascending: true })
 
@@ -337,7 +337,8 @@ class StorageService {
         let result = data.map(m => ({
             userId: m.user_id,
             name: m.name,
-            licenseType: m.license_type || null
+            licenseType: m.license_type || null,
+            profilePhotoUrl: m.profile_photo_url || null
         }))
 
         if (!includeTEST) {
@@ -1536,6 +1537,106 @@ class StorageService {
                 () => callback()
             )
             .subscribe()
+    }
+
+    // ============================================
+    // PROFILE PHOTOS
+    // ============================================
+
+    async uploadProfilePhoto(userId, file) {
+        try {
+            const fileExt = file.name.split('.').pop().toLowerCase()
+            const fileName = `${userId}/avatar.${fileExt}`
+
+            // Supprimer l'ancienne photo si elle existe
+            const { data: files } = await supabase.storage
+                .from('profile-photos')
+                .list(userId)
+
+            if (files && files.length > 0) {
+                const filesToRemove = files.map(f => `${userId}/${f.name}`)
+                await supabase.storage
+                    .from('profile-photos')
+                    .remove(filesToRemove)
+            }
+
+            // Upload la nouvelle photo
+            const { error: uploadError } = await supabase.storage
+                .from('profile-photos')
+                .upload(fileName, file, { upsert: true })
+
+            if (uploadError) {
+                console.error('Error uploading photo:', uploadError)
+                return { success: false, error: uploadError.message }
+            }
+
+            // Obtenir l'URL publique
+            const { data: { publicUrl } } = supabase.storage
+                .from('profile-photos')
+                .getPublicUrl(fileName)
+
+            // Ajouter un timestamp pour forcer le rafraîchissement du cache
+            const urlWithTimestamp = `${publicUrl}?t=${Date.now()}`
+
+            // Sauvegarder l'URL dans la table members
+            const { error: updateError } = await supabase
+                .from('members')
+                .update({ profile_photo_url: urlWithTimestamp })
+                .eq('user_id', userId)
+
+            if (updateError) {
+                console.error('Error updating member photo URL:', updateError)
+                return { success: false, error: updateError.message }
+            }
+
+            return { success: true, url: urlWithTimestamp }
+        } catch (error) {
+            console.error('Error in uploadProfilePhoto:', error)
+            return { success: false, error: error.message }
+        }
+    }
+
+    async deleteProfilePhoto(userId) {
+        try {
+            // Lister les fichiers dans le dossier de l'utilisateur
+            const { data: files } = await supabase.storage
+                .from('profile-photos')
+                .list(userId)
+
+            if (files && files.length > 0) {
+                const filesToRemove = files.map(f => `${userId}/${f.name}`)
+                await supabase.storage
+                    .from('profile-photos')
+                    .remove(filesToRemove)
+            }
+
+            // Mettre à jour la table members
+            const { error } = await supabase
+                .from('members')
+                .update({ profile_photo_url: null })
+                .eq('user_id', userId)
+
+            if (error) {
+                console.error('Error clearing photo URL:', error)
+                return { success: false, error: error.message }
+            }
+
+            return { success: true }
+        } catch (error) {
+            console.error('Error in deleteProfilePhoto:', error)
+            return { success: false, error: error.message }
+        }
+    }
+
+    async getProfilePhotoUrl(userId) {
+        const { data, error } = await supabase
+            .from('members')
+            .select('profile_photo_url')
+            .eq('user_id', userId)
+            .single()
+
+        if (error || !data) return null
+        return data.profile_photo_url
     }
 
     unsubscribe(subscription) {
