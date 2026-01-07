@@ -443,7 +443,8 @@ class StorageService {
             odId: inv.user_id,
             name: inv.user_name,
             status: inv.status,
-            invitedBy: inv.invited_by
+            invitedBy: inv.invited_by,
+            duration: inv.duration || 1
         }))
     }
 

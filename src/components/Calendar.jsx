@@ -309,6 +309,7 @@ export default function Calendar() {
     const getParticipants = (slotId) => {
         const slotEvents = getSlotEvents(slotId)
         const participants = []
+        const currentSlotIndex = getSlotIndex(slotId)
 
         // Les owners (réservations directes)
         slotEvents.forEach(e => {
@@ -321,16 +322,23 @@ export default function Calendar() {
             })
         })
 
-        // Les invités (depuis la table slot_invitations)
-        const slotInvitations = invitations.filter(inv => inv.slotId === slotId)
-        slotInvitations.forEach(inv => {
-            participants.push({
-                id: inv.odId,
-                name: inv.name,
-                isGuest: true,
-                status: inv.status,
-                invitedBy: inv.invitedBy
-            })
+        // Les invités - prendre en compte la duration pour afficher sur tous les slots couverts
+        invitations.forEach(inv => {
+            const invSlotIndex = getSlotIndex(inv.slotId)
+            const invDuration = inv.duration || 1
+
+            // Vérifier si le slot actuel est couvert par cette invitation
+            if (currentSlotIndex >= invSlotIndex &&
+                currentSlotIndex < invSlotIndex + invDuration) {
+                participants.push({
+                    id: inv.odId,
+                    name: inv.name,
+                    isGuest: true,
+                    status: inv.status,
+                    invitedBy: inv.invitedBy,
+                    duration: invDuration
+                })
+            }
         })
 
         return participants
@@ -1760,7 +1768,13 @@ export default function Calendar() {
                                         {isCourse && count > 0 && (
                                             <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
                                                 <Users size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                                                {participants.map(p => p.name).join(', ')}
+                                                {participants.map((p, idx) => (
+                                                    <span key={p.id || idx}>
+                                                        {p.name}
+                                                        {p.status === 'pending' && <span style={{ opacity: 0.7 }}> (en attente)</span>}
+                                                        {idx < participants.length - 1 && ', '}
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
