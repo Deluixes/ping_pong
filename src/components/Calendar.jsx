@@ -1766,12 +1766,35 @@ export default function Calendar() {
                                         </div>
                                         {/* Participants pour cours indicatifs */}
                                         {isCourse && count > 0 && (
-                                            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                                                 <Users size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
                                                 {participants.map((p, idx) => (
-                                                    <span key={p.id || idx}>
+                                                    <span
+                                                        key={p.id || idx}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.15rem'
+                                                        }}
+                                                    >
                                                         {p.name}
                                                         {p.status === 'pending' && <span style={{ opacity: 0.7 }}> (en attente)</span>}
+                                                        {isAdmin && p.id && p.id !== user.id && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleAdminDelete(slot.id, p.id, p.name, p.isGuest) }}
+                                                                style={{
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    color: '#EF4444',
+                                                                    cursor: 'pointer',
+                                                                    padding: '0 2px',
+                                                                    display: 'inline-flex'
+                                                                }}
+                                                                title="Supprimer (admin)"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
                                                         {idx < participants.length - 1 && ', '}
                                                     </span>
                                                 ))}
