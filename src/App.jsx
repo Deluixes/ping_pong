@@ -146,7 +146,7 @@ function AppContent() {
                     } />
                     <Route path="/invitations" element={
                         <PrivateRoute>
-                            <MyInvitations />
+                            <MyInvitations onNotificationChange={refreshNotificationCount} />
                         </PrivateRoute>
                     } />
                     <Route path="/club" element={

@@ -6,7 +6,17 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ArrowLeft, Check, X, RefreshCw, Mail, Calendar } from 'lucide-react'
 
-export default function MyInvitations() {
+// Helper pour formater la durée
+const formatDuration = (slots) => {
+    if (!slots || slots === 1) return '30 min'
+    const hours = Math.floor(slots / 2)
+    const mins = (slots % 2) * 30
+    if (hours === 0) return `${mins} min`
+    if (mins === 0) return `${hours}h`
+    return `${hours}h ${mins}`
+}
+
+export default function MyInvitations({ onNotificationChange }) {
     const navigate = useNavigate()
     const { user } = useAuth()
     const [invitations, setInvitations] = useState([])
@@ -33,12 +43,14 @@ export default function MyInvitations() {
     const handleAccept = async (inv) => {
         await storageService.acceptInvitation(inv.slotId, inv.date, user.id)
         await loadInvitations()
+        onNotificationChange?.()
     }
 
     const handleDecline = async (inv) => {
         if (window.confirm('Refuser cette invitation ?')) {
             await storageService.declineInvitation(inv.slotId, inv.date, user.id)
             await loadInvitations()
+            onNotificationChange?.()
         }
     }
 
@@ -90,7 +102,7 @@ export default function MyInvitations() {
                                     {format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}
                                 </div>
                                 <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                                    Créneau de {inv.slotId}
+                                    Créneau de {inv.slotId} ({formatDuration(inv.duration)})
                                 </div>
                                 {inv.invitedBy && (
                                     <div style={{ color: 'var(--color-primary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
