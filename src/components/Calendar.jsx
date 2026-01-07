@@ -681,7 +681,14 @@ export default function Calendar() {
             return
         }
 
-        // Tout est ok, ouvrir le modal d'inscription
+        // S'il y a des participants, afficher directement la liste des joueurs
+        if (participants.length > 0) {
+            setSelectedSlotId(slotId)
+            handleShowParticipants(slotId)
+            return
+        }
+
+        // Sinon, ouvrir le modal d'inscription
         setSelectedSlotId(slotId)
         setSelectedDuration(null)
         setModalStep('duration')
@@ -1608,13 +1615,34 @@ export default function Calendar() {
                             </p>
                         )}
 
-                        <button
-                            onClick={() => setShowParticipantsList(false)}
-                            className="btn btn-primary"
-                            style={{ width: '100%', marginTop: '1.5rem' }}
-                        >
-                            Fermer
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                            {/* Bouton S'inscrire si pas inscrit */}
+                            {!getUserRegistration(selectedSlotId) && !isUserOnSlot(selectedSlotId) && (
+                                <button
+                                    onClick={() => {
+                                        setShowParticipantsList(false)
+                                        setSelectedDuration(null)
+                                        setModalStep('duration')
+                                    }}
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                >
+                                    <UserPlus size={18} />
+                                    S'inscrire
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setShowParticipantsList(false)}
+                                className="btn"
+                                style={{
+                                    flex: 1,
+                                    background: getUserRegistration(selectedSlotId) || isUserOnSlot(selectedSlotId) ? 'var(--color-primary)' : 'var(--color-bg)',
+                                    color: getUserRegistration(selectedSlotId) || isUserOnSlot(selectedSlotId) ? 'white' : 'inherit'
+                                }}
+                            >
+                                Fermer
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
