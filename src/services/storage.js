@@ -273,7 +273,7 @@ class StorageService {
     async getMemberProfile(userId) {
         const { data, error } = await supabase
             .from('members')
-            .select('user_id, email, name, status, role, license_type')
+            .select('user_id, email, name, status, role, license_type, must_change_password')
             .eq('user_id', userId)
             .single()
 
@@ -287,8 +287,33 @@ class StorageService {
             name: data.name,
             status: data.status,
             role: data.role || 'member',
-            licenseType: data.license_type || null
+            licenseType: data.license_type || null,
+            mustChangePassword: data.must_change_password || false
         }
+    }
+
+    async getMustChangePassword(userId) {
+        const { data, error } = await supabase
+            .from('members')
+            .select('must_change_password')
+            .eq('user_id', userId)
+            .single()
+
+        if (error || !data) return false
+        return data.must_change_password || false
+    }
+
+    async clearMustChangePassword(userId) {
+        const { error } = await supabase
+            .from('members')
+            .update({ must_change_password: false })
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error clearing must_change_password:', error)
+            return { success: false }
+        }
+        return { success: true }
     }
 
     async getAllApprovedMembers() {

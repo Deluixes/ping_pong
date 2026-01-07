@@ -10,14 +10,20 @@ import PlanningSettings from './components/PlanningSettings'
 import MyInvitations from './components/MyInvitations'
 import MyClub from './components/MyClub'
 import SlideMenu from './components/SlideMenu'
+import ChangePassword from './components/ChangePassword'
 import { GROUP_NAME, storageService } from './services/storage'
 import { Menu, Bell } from 'lucide-react'
 
-function PrivateRoute({ children, requireApproval = true }) {
-    const { user, loading, memberStatus } = useAuth()
+function PrivateRoute({ children, requireApproval = true, allowPasswordChange = false }) {
+    const { user, loading, memberStatus, mustChangePassword } = useAuth()
 
     if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
     if (!user) return <Navigate to="/login" />
+
+    // Force password change for migrated users (unless on password change page)
+    if (mustChangePassword && !allowPasswordChange) {
+        return <ChangePassword forced={true} />
+    }
 
     // Admins bypass approval requirement
     if (requireApproval && memberStatus !== 'approved' && !user.isAdmin) {
@@ -128,6 +134,11 @@ function AppContent() {
             <main className="container" style={{ flex: 1 }}>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/reset-password" element={
+                        <PrivateRoute requireApproval={false} allowPasswordChange={true}>
+                            <ChangePassword forced={true} />
+                        </PrivateRoute>
+                    } />
                     <Route path="/settings" element={
                         <PrivateRoute requireApproval={false}>
                             <Settings />

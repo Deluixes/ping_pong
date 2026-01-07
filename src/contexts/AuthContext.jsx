@@ -9,23 +9,27 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
     const [memberStatus, setMemberStatus] = useState('none')
+    const [mustChangePassword, setMustChangePassword] = useState(false)
     const [simulatedRole, setSimulatedRole] = useState(null) // Rôle simulé (null = pas de simulation)
 
     const checkMemberStatus = useCallback(async (userId) => {
         try {
-            // Récupérer le profil complet (inclut licenseType et name)
+            // Récupérer le profil complet (inclut licenseType, name et mustChangePassword)
             const profile = await storageService.getMemberProfile(userId)
             const status = profile?.status || 'none'
             const role = profile?.role || 'member'
             const licenseType = profile?.licenseType || null
             const name = profile?.name || null // Nom depuis la table members
+            const needsPasswordChange = profile?.mustChangePassword || false
 
             setMemberStatus(status)
-            return { status, role, licenseType, name }
+            setMustChangePassword(needsPasswordChange)
+            return { status, role, licenseType, name, mustChangePassword: needsPasswordChange }
         } catch (error) {
             console.error('Error checking member status:', error)
             setMemberStatus('none')
-            return { status: 'none', role: 'member', licenseType: null, name: null }
+            setMustChangePassword(false)
+            return { status: 'none', role: 'member', licenseType: null, name: null, mustChangePassword: false }
         }
     }, [])
 
@@ -144,21 +148,76 @@ export const AuthProvider = ({ children }) => {
         }
     }, [user?.id])
 
-    const sendMagicLink = async (email, name) => {
+    // Inscription avec mot de passe
+    const signUp = async (email, password, name) => {
         setAuthError(null)
         try {
-            const { error } = await supabase.auth.signInWithOtp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
+                password,
                 options: {
                     data: { name },
                     emailRedirectTo: window.location.origin
                 }
             })
+            if (error) throw error
+            return { success: true, data }
+        } catch (error) {
+            console.error('Signup error:', error)
+            setAuthError(error.message)
+            return { success: false, error: error.message }
+        }
+    }
 
+    // Connexion avec mot de passe
+    const signIn = async (email, password) => {
+        setAuthError(null)
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            })
+            if (error) throw error
+            return { success: true, data }
+        } catch (error) {
+            console.error('Sign in error:', error)
+            setAuthError(error.message)
+            return { success: false, error: error.message }
+        }
+    }
+
+    // Réinitialisation du mot de passe (envoi email)
+    const resetPassword = async (email) => {
+        setAuthError(null)
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`
+            })
             if (error) throw error
             return { success: true }
         } catch (error) {
-            console.error('Magic link error:', error)
+            console.error('Reset password error:', error)
+            setAuthError(error.message)
+            return { success: false, error: error.message }
+        }
+    }
+
+    // Changement de mot de passe (utilisateur connecté)
+    const changePassword = async (newPassword) => {
+        setAuthError(null)
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            })
+            if (error) throw error
+            // Après changement réussi, marquer comme n'ayant plus besoin de changer
+            if (user?.id) {
+                await storageService.clearMustChangePassword(user.id)
+                setMustChangePassword(false)
+            }
+            return { success: true }
+        } catch (error) {
+            console.error('Change password error:', error)
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
@@ -257,7 +316,11 @@ export const AuthProvider = ({ children }) => {
             loading,
             authError,
             memberStatus,
-            sendMagicLink,
+            mustChangePassword,
+            signUp,
+            signIn,
+            resetPassword,
+            changePassword,
             requestAccess,
             updateName,
             logout,

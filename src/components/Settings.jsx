@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { storageService } from '../services/storage'
 import { notificationService } from '../services/notifications'
-import { ArrowLeft, Save, User, Mail, Award, Bell, BellOff, Smartphone } from 'lucide-react'
+import { ArrowLeft, Save, User, Mail, Award, Bell, BellOff, Smartphone, Lock } from 'lucide-react'
+import ChangePassword from './ChangePassword'
 
 export default function Settings() {
     const { user, updateName, logout } = useAuth()
@@ -22,6 +23,7 @@ export default function Settings() {
     })
     const [notifLoading, setNotifLoading] = useState(false)
     const [notifPermission, setNotifPermission] = useState('default')
+    const [showPasswordModal, setShowPasswordModal] = useState(false)
 
     // Charger le profil pour récupérer le type de licence
     useEffect(() => {
@@ -231,6 +233,30 @@ export default function Settings() {
                 </form>
             </div>
 
+            {/* Password Section */}
+            <div className="card" style={{ marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Lock size={18} />
+                    Mot de passe
+                </h2>
+
+                <button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="btn"
+                    style={{
+                        width: '100%',
+                        background: 'var(--color-bg)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem'
+                    }}
+                >
+                    <Lock size={16} />
+                    Modifier le mot de passe
+                </button>
+            </div>
+
             {/* Notifications Section */}
             <div className="card" style={{ marginBottom: '1rem' }}>
                 <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -396,6 +422,35 @@ export default function Settings() {
             <p style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                 Ping Pong Club PWA v1.0
             </p>
+
+            {/* Password Change Modal */}
+            {showPasswordModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '1rem'
+                }}>
+                    <div className="card" style={{
+                        width: '100%',
+                        maxWidth: '400px',
+                        maxHeight: '90vh',
+                        overflow: 'auto'
+                    }}>
+                        <ChangePassword
+                            forced={false}
+                            onClose={() => setShowPasswordModal(false)}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
