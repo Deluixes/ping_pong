@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
@@ -49,11 +49,11 @@ function AppContent() {
     const [notificationCount, setNotificationCount] = useState(0)
     const showMainUI = user && (memberStatus === 'approved' || user?.isAdmin)
 
-    const refreshNotificationCount = () => {
+    const refreshNotificationCount = useCallback(() => {
         if (user) {
             storageService.getPendingInvitationsCount(user.id).then(setNotificationCount)
         }
-    }
+    }, [user])
 
     useEffect(() => {
         refreshNotificationCount()
@@ -66,7 +66,7 @@ function AppContent() {
         return () => {
             storageService.unsubscribe(invitationsSub)
         }
-    }, [user])
+    }, [refreshNotificationCount])
 
     return (
         <div className="app-container">
