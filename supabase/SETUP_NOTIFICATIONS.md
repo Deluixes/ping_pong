@@ -2,14 +2,22 @@
 
 Ce guide explique comment configurer les notifications push pour l'application Ping Pong Club.
 
-## 1. Clés VAPID
+## 1. Configuration OneSignal
 
-Générer des clés VAPID avec la commande :
-```bash
-npx web-push generate-vapid-keys
-```
+### 1.1 Créer un compte OneSignal
 
-Conserver les clés générées pour les étapes suivantes.
+1. Aller sur https://onesignal.com
+2. Créer un compte gratuit
+3. Créer une nouvelle application (Web Push)
+
+### 1.2 Configurer l'application OneSignal
+
+1. Dans le dashboard OneSignal, aller dans **Settings > Platforms**
+2. Sélectionner **Web**
+3. Configurer :
+   - **Site URL** : `https://votre-domaine.vercel.app`
+   - **Default Icon URL** : URL de votre icône (optionnel)
+4. Copier l'**App ID**
 
 ## 2. Configuration Frontend (Vercel)
 
@@ -17,7 +25,7 @@ Dans Vercel > Settings > Environment Variables, ajouter :
 
 | Variable | Valeur |
 |----------|--------|
-| `VITE_VAPID_PUBLIC_KEY` | Votre clé publique VAPID |
+| `VITE_ONESIGNAL_APP_ID` | Votre App ID OneSignal |
 
 ## 3. Configuration Supabase
 
@@ -28,28 +36,13 @@ Dans Vercel > Settings > Environment Variables, ajouter :
 3. Copier/coller le contenu de `supabase/migrations/push_notifications.sql`
 4. Exécuter
 
-### 3.2 Configurer les Secrets
+Ce script crée les tables :
+- `push_subscriptions` - Stockage des abonnements
+- `notification_preferences` - Préférences utilisateur
 
-Dans le Dashboard Supabase : Settings > Edge Functions > Secrets
+### 3.2 Configurer les Webhooks (optionnel)
 
-Ajouter ces secrets :
-
-| Nom | Valeur |
-|-----|--------|
-| `VAPID_PUBLIC_KEY` | Votre clé publique VAPID |
-| `VAPID_PRIVATE_KEY` | Votre clé privée VAPID |
-| `VAPID_SUBJECT` | `mailto:votre-email@example.com` |
-
-### 3.3 Créer les Edge Functions
-
-Dans le Dashboard Supabase : Edge Functions > Create function
-
-Créer 3 fonctions :
-- `send-push-notification`
-- `on-invitation-created`
-- `on-slot-opened`
-
-### 3.4 Configurer les Webhooks
+Si vous voulez envoyer des notifications automatiques depuis Supabase :
 
 Dans le Dashboard Supabase : Database > Webhooks > Create webhook
 
@@ -81,13 +74,12 @@ Dans le Dashboard Supabase : Database > Webhooks > Create webhook
 
 1. Vérifier que le navigateur supporte les notifications (Chrome, Firefox, Safari 16.4+)
 2. Vérifier que les permissions sont accordées
-3. Vérifier les logs des Edge Functions dans Supabase
+3. Vérifier la console du navigateur pour les erreurs OneSignal
 
 ### Erreur "Configuration manquante"
 
-Vérifier que `VITE_VAPID_PUBLIC_KEY` est bien configuré dans Vercel
+Vérifier que `VITE_ONESIGNAL_APP_ID` est bien configuré dans Vercel
 
-### Les webhooks ne se déclenchent pas
+### Les notifications fonctionnent en dev mais pas en prod
 
-1. Vérifier que les webhooks sont activés dans Supabase
-2. Vérifier les logs dans Database > Webhooks
+Vérifier que l'URL du site est correctement configurée dans OneSignal (doit correspondre à votre domaine Vercel)

@@ -11,6 +11,7 @@ import MyInvitations from './components/MyInvitations'
 import MyClub from './components/MyClub'
 import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
+import DevIndicator from './components/DevIndicator'
 import { GROUP_NAME, storageService } from './services/storage'
 import { Menu, Bell } from 'lucide-react'
 
@@ -171,6 +172,8 @@ function AppContent() {
                     } />
                 </Routes>
             </main>
+
+            <DevIndicator />
         </div>
     )
 }
