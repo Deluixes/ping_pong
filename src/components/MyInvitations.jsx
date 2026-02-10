@@ -84,7 +84,7 @@ export default function MyInvitations({ onNotificationChange }) {
                 >
                     <ArrowLeft size={20} />
                 </button>
-                <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Mes invitations</h1>
+                <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Invitations reçues</h1>
                 <button
                     onClick={handleRefresh}
                     className="btn"

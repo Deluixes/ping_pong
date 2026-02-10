@@ -242,7 +242,7 @@ export default function SlideMenu({ isOpen, onClose }) {
                         }}
                     >
                         <Mail size={20} />
-                        <span style={{ flex: 1 }}>Mes invitations</span>
+                        <span style={{ flex: 1 }}>Invitations reçues</span>
                         {invitationsCount > 0 && (
                             <span style={{
                                 background: '#F59E0B',
