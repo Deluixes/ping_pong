@@ -7,7 +7,12 @@
       "Bash(npx husky init:*)",
       "Bash(git add:*)",
       "Bash(npx lint-staged)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(npx vitest run)",
+      "Bash(npx vite build:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
