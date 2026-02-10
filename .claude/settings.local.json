@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(wc:*)",
+      "Bash(npm install:*)",
+      "Bash(npx husky init:*)",
+      "Bash(git add:*)",
+      "Bash(npx lint-staged)",
+      "Bash(git reset:*)"
     ]
   }
 }

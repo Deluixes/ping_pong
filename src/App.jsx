@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import ErrorBoundary from './components/ErrorBoundary'
 import Login from './components/Login'
 import Calendar from './components/Calendar'
 import Settings from './components/Settings'
@@ -75,15 +76,17 @@ function AppContent() {
                 <>
                     <SlideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-                    <header style={{
-                        background: 'var(--color-primary)',
-                        color: 'white',
-                        padding: '0.75rem 1rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        boxShadow: 'var(--shadow-md)'
-                    }}>
+                    <header
+                        style={{
+                            background: 'var(--color-primary)',
+                            color: 'white',
+                            padding: '0.75rem 1rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            boxShadow: 'var(--shadow-md)',
+                        }}
+                    >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <button
                                 onClick={() => setMenuOpen(true)}
@@ -94,7 +97,7 @@ function AppContent() {
                                     padding: '0.5rem',
                                     color: 'white',
                                     cursor: 'pointer',
-                                    display: 'flex'
+                                    display: 'flex',
                                 }}
                             >
                                 <Menu size={22} />
@@ -106,22 +109,27 @@ function AppContent() {
                             </Link>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Link to="/invitations" style={{ position: 'relative', color: 'white', display: 'flex' }}>
+                            <Link
+                                to="/invitations"
+                                style={{ position: 'relative', color: 'white', display: 'flex' }}
+                            >
                                 <Bell size={20} />
                                 {notificationCount > 0 && (
-                                    <span style={{
-                                        position: 'absolute',
-                                        top: '-5px',
-                                        right: '-5px',
-                                        background: '#EF4444',
-                                        color: 'white',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 'bold',
-                                        padding: '2px 5px',
-                                        borderRadius: '10px',
-                                        minWidth: '16px',
-                                        textAlign: 'center'
-                                    }}>
+                                    <span
+                                        style={{
+                                            position: 'absolute',
+                                            top: '-5px',
+                                            right: '-5px',
+                                            background: '#EF4444',
+                                            color: 'white',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 'bold',
+                                            padding: '2px 5px',
+                                            borderRadius: '10px',
+                                            minWidth: '16px',
+                                            textAlign: 'center',
+                                        }}
+                                    >
                                         {notificationCount}
                                     </span>
                                 )}
@@ -135,41 +143,62 @@ function AppContent() {
             <main className="container" style={{ flex: 1 }}>
                 <Routes>
                     <Route path="/login" element={<Login />} />
-                    <Route path="/reset-password" element={
-                        <PrivateRoute requireApproval={false} allowPasswordChange={true}>
-                            <ChangePassword forced={true} />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/settings" element={
-                        <PrivateRoute requireApproval={false}>
-                            <Settings />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/invitations" element={
-                        <PrivateRoute>
-                            <MyInvitations onNotificationChange={refreshNotificationCount} />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/club" element={
-                        <PrivateRoute>
-                            <MyClub />
-                        </PrivateRoute>
-                    } />
-                    <Route path="/admin" element={
-                        <AdminRoute>
-                            <AdminPanel />
-                        </AdminRoute>
-                    } />
-                    <Route path="/admin/planning" element={
-                        <AdminRoute>
-                            <PlanningSettings />
-                        </AdminRoute>
-                    } />
-                    <Route path="/" element={
-                        <PrivateRoute>
-                            <Calendar />
-                        </PrivateRoute>
-                    } />
+                    <Route
+                        path="/reset-password"
+                        element={
+                            <PrivateRoute requireApproval={false} allowPasswordChange={true}>
+                                <ChangePassword forced={true} />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/settings"
+                        element={
+                            <PrivateRoute requireApproval={false}>
+                                <Settings />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/invitations"
+                        element={
+                            <PrivateRoute>
+                                <MyInvitations onNotificationChange={refreshNotificationCount} />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/club"
+                        element={
+                            <PrivateRoute>
+                                <MyClub />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin"
+                        element={
+                            <AdminRoute>
+                                <AdminPanel />
+                            </AdminRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/planning"
+                        element={
+                            <AdminRoute>
+                                <PlanningSettings />
+                            </AdminRoute>
+                        }
+                    />
+                    <Route
+                        path="/"
+                        element={
+                            <PrivateRoute>
+                                <Calendar />
+                            </PrivateRoute>
+                        }
+                    />
                 </Routes>
             </main>
 
@@ -180,11 +209,13 @@ function AppContent() {
 
 function App() {
     return (
-        <Router>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
-        </Router>
+        <ErrorBoundary>
+            <Router>
+                <AuthProvider>
+                    <AppContent />
+                </AuthProvider>
+            </Router>
+        </ErrorBoundary>
     )
 }
 
