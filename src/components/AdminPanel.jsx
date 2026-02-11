@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import clsx from 'clsx'
 import { useNavigate } from 'react-router-dom'
-import { storageService, GROUP_NAME } from '../services/storage'
+import { storageService } from '../services/storage'
+import { GROUP_NAME } from '../constants'
+import {
+    getAvailableRoles as getAvailableRolesUtil,
+    canEditMemberRole as canEditMemberRoleUtil,
+} from '../utils/permissions'
 import { useAuth } from '../contexts/AuthContext'
 import {
     ArrowLeft,
@@ -31,31 +36,10 @@ export default function AdminPanel() {
     const [editForm, setEditForm] = useState({ name: '', licenseType: null, role: 'member' })
     const [savingEdit, setSavingEdit] = useState(false)
 
-    // Calcule les rôles disponibles selon le rôle de l'utilisateur courant
-    const getAvailableRoles = () => {
-        const roles = [
-            { value: 'member', label: 'Membre' },
-            { value: 'admin_salles', label: 'Gestion Salle' },
-        ]
-        // Seul super_admin peut créer des admins
-        if (currentUser?.role === 'super_admin') {
-            roles.push({ value: 'admin', label: 'Admin' })
-        }
-        return roles
-    }
+    const getAvailableRoles = () => getAvailableRolesUtil(currentUser?.role)
 
-    // Vérifie si l'utilisateur courant peut modifier ce membre
-    const canEditMemberRole = (member) => {
-        // On ne peut pas modifier son propre rôle
-        if (member.userId === currentUser?.id) return false
-        // super_admin peut modifier tout le monde sauf les autres super_admin
-        if (currentUser?.role === 'super_admin') return member.role !== 'super_admin'
-        // admin peut modifier admin_salles et member
-        if (currentUser?.role === 'admin') {
-            return member.role !== 'admin' && member.role !== 'super_admin'
-        }
-        return false
-    }
+    const canEditMemberRole = (member) =>
+        canEditMemberRoleUtil(currentUser?.role, currentUser?.id, member.role, member.userId)
 
     const loadData = async () => {
         const data = await storageService.getMembers(currentUser?.role === 'super_admin')

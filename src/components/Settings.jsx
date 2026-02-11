@@ -16,6 +16,7 @@ import {
     Camera,
     Trash2,
 } from 'lucide-react'
+import { MAX_PHOTO_SIZE } from '../constants'
 import ChangePassword from './ChangePassword'
 import clsx from 'clsx'
 import styles from './Settings.module.css'
@@ -120,7 +121,7 @@ export default function Settings() {
         }
 
         // Vérifier la taille (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > MAX_PHOTO_SIZE) {
             alert("L'image ne doit pas dépasser 5 Mo")
             return
         }

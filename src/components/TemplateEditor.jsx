@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
 import { ArrowLeft, Plus, Edit2, Trash2, X, RefreshCw, Clock, Calendar } from 'lucide-react'
+import { DAYS_FR, DEFAULT_OPENING_TIME, DEFAULT_CLOSING_TIME } from '../constants'
+import { formatTime } from '../utils/time'
 import styles from './TemplateEditor.module.css'
-
-const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
 export default function TemplateEditor({ template, onBack, onUpdate }) {
     const [loading, setLoading] = useState(true)
@@ -30,8 +30,8 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
     const [editingHour, setEditingHour] = useState(null)
     const [hourFormData, setHourFormData] = useState({
         dayOfWeek: 1,
-        startTime: '08:00',
-        endTime: '23:00',
+        startTime: DEFAULT_OPENING_TIME,
+        endTime: DEFAULT_CLOSING_TIME,
     })
     const [savingHour, setSavingHour] = useState(false)
 
@@ -108,8 +108,8 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
         setEditingHour(null)
         setHourFormData({
             dayOfWeek: 1,
-            startTime: '08:00',
-            endTime: '23:00',
+            startTime: DEFAULT_OPENING_TIME,
+            endTime: DEFAULT_CLOSING_TIME,
         })
         setShowHourModal(true)
     }
@@ -144,8 +144,6 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
         await storageService.deleteTemplateHour(hour.id)
         setHours((prev) => prev.filter((h) => h.id !== hour.id))
     }
-
-    const formatTime = (time) => time?.slice(0, 5) || ''
 
     // Grouper par jour
     const slotsByDay = slots.reduce((acc, slot) => {
@@ -223,7 +221,7 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
                             .sort(([a], [b]) => Number(a) - Number(b))
                             .map(([day, daySlots]) => (
                                 <div key={day} className={styles.dayGroup}>
-                                    <h3 className={styles.dayTitle}>{DAYS[day]}</h3>
+                                    <h3 className={styles.dayTitle}>{DAYS_FR[day]}</h3>
                                     <div className={styles.dayList}>
                                         {daySlots.map((slot) => (
                                             <div
@@ -311,7 +309,7 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
                             .sort(([a], [b]) => Number(a) - Number(b))
                             .map(([day, dayHours]) => (
                                 <div key={day} className={styles.dayGroup}>
-                                    <h3 className={styles.dayTitle}>{DAYS[day]}</h3>
+                                    <h3 className={styles.dayTitle}>{DAYS_FR[day]}</h3>
                                     <div className={styles.dayList}>
                                         {dayHours.map((hour) => (
                                             <div
@@ -416,7 +414,7 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
                                     }
                                     className="form-input"
                                 >
-                                    {DAYS.map((day, i) => (
+                                    {DAYS_FR.map((day, i) => (
                                         <option key={i} value={i}>
                                             {day}
                                         </option>
@@ -553,7 +551,7 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
                                     }
                                     className="form-input"
                                 >
-                                    {DAYS.map((day, i) => (
+                                    {DAYS_FR.map((day, i) => (
                                         <option key={i} value={i}>
                                             {day}
                                         </option>

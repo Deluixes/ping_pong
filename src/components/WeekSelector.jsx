@@ -25,9 +25,8 @@ import {
     Plus,
     Trash2,
 } from 'lucide-react'
+import { DAYS_FR } from '../constants'
 import styles from './WeekSelector.module.css'
-
-const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
 export default function WeekSelector({ templates, onClose }) {
     const [currentMonth, setCurrentMonth] = useState(new Date())

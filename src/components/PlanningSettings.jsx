@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
+import { DEFAULT_TOTAL_TABLES } from '../constants'
 import {
     ArrowLeft,
     Check,
@@ -24,7 +25,7 @@ export default function PlanningSettings() {
     const [loading, setLoading] = useState(true)
 
     // Settings state
-    const [totalTables, setTotalTables] = useState(8)
+    const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
     const [savingSettings, setSavingSettings] = useState(false)
     const [settingsSaved, setSettingsSaved] = useState(false)
 

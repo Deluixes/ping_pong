@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Lock, Eye, EyeOff, Check, X } from 'lucide-react'
 import clsx from 'clsx'
+import { validatePassword } from '../utils/validation'
 import styles from './ChangePassword.module.css'
 
 export default function ChangePassword({ forced = false, onClose = null }) {
@@ -14,13 +15,6 @@ export default function ChangePassword({ forced = false, onClose = null }) {
     const [success, setSuccess] = useState(false)
     const { changePassword, authError } = useAuth()
     const navigate = useNavigate()
-
-    const validatePassword = (pwd) => {
-        if (pwd.length < 8) {
-            return 'Le mot de passe doit contenir au moins 8 caractères'
-        }
-        return null
-    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()

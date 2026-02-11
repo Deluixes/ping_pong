@@ -5,26 +5,8 @@ import { storageService } from '../services/storage'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ArrowLeft, Check, X, RefreshCw, Mail, Calendar } from 'lucide-react'
+import { formatDuration, getEndTime } from '../utils/time'
 import styles from './MyInvitations.module.css'
-
-// Helper pour formater la durée
-const formatDuration = (slots) => {
-    if (!slots || slots === 1) return '30 min'
-    const hours = Math.floor(slots / 2)
-    const mins = (slots % 2) * 30
-    if (hours === 0) return `${mins} min`
-    if (mins === 0) return `${hours}h`
-    return `${hours}h${mins}`
-}
-
-// Helper pour calculer l'heure de fin
-const getEndTime = (startTime, slots) => {
-    const [hours, minutes] = startTime.split(':').map(Number)
-    const totalMinutes = hours * 60 + minutes + (slots || 1) * 30
-    const endHours = Math.floor(totalMinutes / 60)
-    const endMins = totalMinutes % 60
-    return `${endHours}h${endMins > 0 ? endMins.toString().padStart(2, '0') : ''}`
-}
 
 export default function MyInvitations({ onNotificationChange }) {
     const navigate = useNavigate()

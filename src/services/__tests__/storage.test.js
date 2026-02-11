@@ -52,7 +52,8 @@ vi.mock('../../lib/supabase', () => ({
     },
 }))
 
-import { storageService, GROUP_NAME } from '../storage'
+import { storageService } from '../storage'
+import { GROUP_NAME } from '../../constants'
 
 // ==================== SETUP ====================
 

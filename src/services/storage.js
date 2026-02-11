@@ -4,22 +4,18 @@
  */
 
 import { supabase } from '../lib/supabase'
-
-export const GROUP_NAME = 'Ping-Pong Ramonville'
+import { timeToMinutes } from '../utils/time'
 
 class StorageService {
     // ==================== UTILS ====================
 
-    // Convertit une heure au format "HH:MM" ou "HH:MM:SS" en minutes
+    // Délègue vers l'utilitaire centralisé
     _timeToMinutes(time) {
-        const [hours, minutes] = time.split(':').map(Number)
-        return hours * 60 + minutes
+        return timeToMinutes(time)
     }
 
-    // Convertit un slot_id au format "H:MM" ou "HH:MM" en minutes
     _slotIdToMinutes(slotId) {
-        const [hours, minutes] = slotId.split(':').map(Number)
-        return hours * 60 + minutes
+        return timeToMinutes(slotId)
     }
 
     // Vérifie si deux créneaux se chevauchent (même jour + heures qui se superposent)
@@ -52,27 +48,25 @@ class StorageService {
         }
 
         // Map to legacy format for compatibility
-        return data.map(r => ({
+        return data.map((r) => ({
             slotId: r.slot_id,
             date: r.date,
             userId: r.user_id,
             userName: r.user_name,
             duration: r.duration,
-            overbooked: r.overbooked || false
+            overbooked: r.overbooked || false,
         }))
     }
 
     async registerForSlot(slotId, date, userId, userName, duration = 1, overbooked = false) {
-        const { error } = await supabase
-            .from('reservations')
-            .insert({
-                slot_id: slotId,
-                date: date,
-                user_id: userId,
-                user_name: userName,
-                duration: duration,
-                overbooked: overbooked
-            })
+        const { error } = await supabase.from('reservations').insert({
+            slot_id: slotId,
+            date: date,
+            user_id: userId,
+            user_name: userName,
+            duration: duration,
+            overbooked: overbooked,
+        })
 
         if (error && error.code !== '23505') {
             // Ignore duplicate key errors (user already registered)
@@ -176,31 +170,31 @@ class StorageService {
         // Filtrer les membres TEST_ si pas super admin
         const filterTEST = (members) => {
             if (includeTEST) return members
-            return members.filter(m => !m.name?.startsWith('TEST_'))
+            return members.filter((m) => !m.name?.startsWith('TEST_'))
         }
 
         const pending = data
-            .filter(m => m.status === 'pending')
-            .map(m => ({
+            .filter((m) => m.status === 'pending')
+            .map((m) => ({
                 userId: m.user_id,
                 email: m.email,
                 name: m.name,
                 requestedAt: m.requested_at,
                 // Pending members don't really have a role yet, but default is member
                 role: 'member',
-                licenseType: m.license_type || null
+                licenseType: m.license_type || null,
             }))
 
         const approved = data
-            .filter(m => m.status === 'approved')
-            .map(m => ({
+            .filter((m) => m.status === 'approved')
+            .map((m) => ({
                 userId: m.user_id,
                 email: m.email,
                 name: m.name,
                 requestedAt: m.requested_at,
                 approvedAt: m.approved_at,
                 role: m.role || 'member',
-                licenseType: m.license_type || null
+                licenseType: m.license_type || null,
             }))
 
         return { pending: filterTEST(pending), approved: filterTEST(approved) }
@@ -235,10 +229,7 @@ class StorageService {
     }
 
     async updateMemberRole(userId, role) {
-        const { error } = await supabase
-            .from('members')
-            .update({ role })
-            .eq('user_id', userId)
+        const { error } = await supabase.from('members').update({ role }).eq('user_id', userId)
 
         if (error) {
             console.error('Error updating member role:', error)
@@ -263,10 +254,7 @@ class StorageService {
     }
 
     async updateMemberName(userId, name) {
-        const { error } = await supabase
-            .from('members')
-            .update({ name })
-            .eq('user_id', userId)
+        const { error } = await supabase.from('members').update({ name }).eq('user_id', userId)
 
         if (error) {
             console.error('Error updating member name:', error)
@@ -294,7 +282,7 @@ class StorageService {
             status: data.status,
             role: data.role || 'member',
             licenseType: data.license_type || null,
-            mustChangePassword: data.must_change_password || false
+            mustChangePassword: data.must_change_password || false,
         }
     }
 
@@ -334,15 +322,15 @@ class StorageService {
             return []
         }
 
-        let result = data.map(m => ({
+        let result = data.map((m) => ({
             userId: m.user_id,
             name: m.name,
             licenseType: m.license_type || null,
-            profilePhotoUrl: m.profile_photo_url || null
+            profilePhotoUrl: m.profile_photo_url || null,
         }))
 
         if (!includeTEST) {
-            result = result.filter(m => !m.name?.startsWith('TEST_'))
+            result = result.filter((m) => !m.name?.startsWith('TEST_'))
         }
 
         return result
@@ -369,15 +357,13 @@ class StorageService {
             return { status }
         }
 
-        const { error } = await supabase
-            .from('members')
-            .insert({
-                user_id: userId,
-                email: email,
-                name: name,
-                status: 'pending',
-                role: role
-            })
+        const { error } = await supabase.from('members').insert({
+            user_id: userId,
+            email: email,
+            name: name,
+            status: 'pending',
+            role: role,
+        })
 
         if (error) {
             console.error('Error requesting access:', error)
@@ -396,7 +382,7 @@ class StorageService {
             .from('members')
             .update({
                 status: 'approved',
-                approved_at: new Date().toISOString()
+                approved_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
 
@@ -409,10 +395,7 @@ class StorageService {
     }
 
     async rejectMember(userId) {
-        const { error } = await supabase
-            .from('members')
-            .delete()
-            .eq('user_id', userId)
+        const { error } = await supabase.from('members').delete().eq('user_id', userId)
 
         if (error) {
             console.error('Error rejecting member:', error)
@@ -436,28 +419,25 @@ class StorageService {
             .eq('date', date)
 
         if (error) return []
-        return data.map(inv => ({
+        return data.map((inv) => ({
             odId: inv.user_id,
             name: inv.user_name,
             status: inv.status,
-            invitedBy: inv.invited_by
+            invitedBy: inv.invited_by,
         }))
     }
 
     async getAllInvitationsForDate(date) {
-        const { data, error } = await supabase
-            .from('slot_invitations')
-            .select('*')
-            .eq('date', date)
+        const { data, error } = await supabase.from('slot_invitations').select('*').eq('date', date)
 
         if (error) return []
-        return data.map(inv => ({
+        return data.map((inv) => ({
             slotId: inv.slot_id,
             odId: inv.user_id,
             name: inv.user_name,
             status: inv.status,
             invitedBy: inv.invited_by,
-            duration: inv.duration || 1
+            duration: inv.duration || 1,
         }))
     }
 
@@ -471,7 +451,7 @@ class StorageService {
         if (error) return []
 
         // Récupérer les noms des inviteurs
-        const inviterIds = [...new Set(data.map(inv => inv.invited_by).filter(Boolean))]
+        const inviterIds = [...new Set(data.map((inv) => inv.invited_by).filter(Boolean))]
         let inviterNames = {}
 
         if (inviterIds.length > 0) {
@@ -481,17 +461,17 @@ class StorageService {
                 .in('user_id', inviterIds)
 
             if (members) {
-                members.forEach(m => {
+                members.forEach((m) => {
                     inviterNames[m.user_id] = m.name
                 })
             }
         }
 
-        return data.map(inv => ({
+        return data.map((inv) => ({
             slotId: inv.slot_id,
             date: inv.date,
             invitedBy: inviterNames[inv.invited_by] || null,
-            duration: inv.duration || 1
+            duration: inv.duration || 1,
         }))
     }
 
@@ -507,17 +487,15 @@ class StorageService {
     }
 
     async inviteToSlot(slotId, date, userId, userName, invitedBy, duration = 1) {
-        const { error } = await supabase
-            .from('slot_invitations')
-            .insert({
-                slot_id: slotId,
-                date: date,
-                user_id: userId,
-                user_name: userName,
-                status: 'pending',
-                invited_by: invitedBy,
-                duration: duration
-            })
+        const { error } = await supabase.from('slot_invitations').insert({
+            slot_id: slotId,
+            date: date,
+            user_id: userId,
+            user_name: userName,
+            status: 'pending',
+            invited_by: invitedBy,
+            duration: duration,
+        })
 
         return { success: !error || error.code === '23505' }
     }
@@ -604,7 +582,7 @@ class StorageService {
             return []
         }
 
-        return data.map(s => ({
+        return data.map((s) => ({
             id: s.id,
             dayOfWeek: s.day_of_week,
             startTime: s.start_time,
@@ -612,7 +590,7 @@ class StorageService {
             group: s.group_name,
             coach: s.coach,
             name: s.name,
-            enabled: s.enabled
+            enabled: s.enabled,
         }))
     }
 
@@ -626,7 +604,7 @@ class StorageService {
                 group_name: slot.group || null,
                 coach: slot.coach,
                 name: slot.name,
-                enabled: true
+                enabled: true,
             })
             .select()
             .single()
@@ -647,7 +625,7 @@ class StorageService {
                 end_time: slot.endTime,
                 group_name: slot.group || null,
                 coach: slot.coach,
-                name: slot.name
+                name: slot.name,
             })
             .eq('id', id)
 
@@ -659,10 +637,7 @@ class StorageService {
     }
 
     async toggleBlockedSlot(id, enabled) {
-        const { error } = await supabase
-            .from('blocked_slots')
-            .update({ enabled })
-            .eq('id', id)
+        const { error } = await supabase.from('blocked_slots').update({ enabled }).eq('id', id)
 
         if (error) {
             console.error('Error toggling blocked slot:', error)
@@ -672,10 +647,7 @@ class StorageService {
     }
 
     async deleteBlockedSlot(id) {
-        const { error } = await supabase
-            .from('blocked_slots')
-            .delete()
-            .eq('id', id)
+        const { error } = await supabase.from('blocked_slots').delete().eq('id', id)
 
         if (error) {
             console.error('Error deleting blocked slot:', error)
@@ -698,12 +670,12 @@ class StorageService {
             return []
         }
 
-        return data.map(h => ({
+        return data.map((h) => ({
             id: h.id,
             dayOfWeek: h.day_of_week,
             startTime: h.start_time,
             endTime: h.end_time,
-            enabled: h.enabled
+            enabled: h.enabled,
         }))
     }
 
@@ -714,7 +686,7 @@ class StorageService {
                 day_of_week: hour.dayOfWeek,
                 start_time: hour.startTime,
                 end_time: hour.endTime,
-                enabled: true
+                enabled: true,
             })
             .select()
             .single()
@@ -732,7 +704,7 @@ class StorageService {
             .update({
                 day_of_week: hour.dayOfWeek,
                 start_time: hour.startTime,
-                end_time: hour.endTime
+                end_time: hour.endTime,
             })
             .eq('id', id)
 
@@ -744,10 +716,7 @@ class StorageService {
     }
 
     async toggleOpeningHour(id, enabled) {
-        const { error } = await supabase
-            .from('opening_hours')
-            .update({ enabled })
-            .eq('id', id)
+        const { error } = await supabase.from('opening_hours').update({ enabled }).eq('id', id)
 
         if (error) {
             console.error('Error toggling opening hour:', error)
@@ -757,10 +726,7 @@ class StorageService {
     }
 
     async deleteOpeningHour(id) {
-        const { error } = await supabase
-            .from('opening_hours')
-            .delete()
-            .eq('id', id)
+        const { error } = await supabase.from('opening_hours').delete().eq('id', id)
 
         if (error) {
             console.error('Error deleting opening hour:', error)
@@ -799,10 +765,7 @@ class StorageService {
     }
 
     async updateTemplate(id, name) {
-        const { error } = await supabase
-            .from('week_templates')
-            .update({ name })
-            .eq('id', id)
+        const { error } = await supabase.from('week_templates').update({ name }).eq('id', id)
 
         if (error) {
             console.error('Error updating template:', error)
@@ -812,10 +775,7 @@ class StorageService {
     }
 
     async deleteTemplate(id) {
-        const { error } = await supabase
-            .from('week_templates')
-            .delete()
-            .eq('id', id)
+        const { error } = await supabase.from('week_templates').delete().eq('id', id)
 
         if (error) {
             console.error('Error deleting template:', error)
@@ -837,7 +797,7 @@ class StorageService {
             return []
         }
 
-        return data.map(s => ({
+        return data.map((s) => ({
             id: s.id,
             templateId: s.template_id,
             dayOfWeek: s.day_of_week,
@@ -846,7 +806,7 @@ class StorageService {
             name: s.name,
             coach: s.coach,
             group: s.group_name,
-            isBlocking: s.is_blocking
+            isBlocking: s.is_blocking,
         }))
     }
 
@@ -861,7 +821,7 @@ class StorageService {
                 name: slot.name,
                 coach: slot.coach || null,
                 group_name: slot.group || null,
-                is_blocking: slot.isBlocking !== false
+                is_blocking: slot.isBlocking !== false,
             })
             .select()
             .single()
@@ -883,7 +843,7 @@ class StorageService {
                 name: slot.name,
                 coach: slot.coach || null,
                 group_name: slot.group || null,
-                is_blocking: slot.isBlocking !== false
+                is_blocking: slot.isBlocking !== false,
             })
             .eq('id', id)
 
@@ -895,10 +855,7 @@ class StorageService {
     }
 
     async deleteTemplateSlot(id) {
-        const { error } = await supabase
-            .from('template_slots')
-            .delete()
-            .eq('id', id)
+        const { error } = await supabase.from('template_slots').delete().eq('id', id)
 
         if (error) {
             console.error('Error deleting template slot:', error)
@@ -920,12 +877,12 @@ class StorageService {
             return []
         }
 
-        return data.map(h => ({
+        return data.map((h) => ({
             id: h.id,
             templateId: h.template_id,
             dayOfWeek: h.day_of_week,
             startTime: h.start_time,
-            endTime: h.end_time
+            endTime: h.end_time,
         }))
     }
 
@@ -936,7 +893,7 @@ class StorageService {
                 template_id: templateId,
                 day_of_week: hour.dayOfWeek,
                 start_time: hour.startTime,
-                end_time: hour.endTime
+                end_time: hour.endTime,
             })
             .select()
             .single()
@@ -954,7 +911,7 @@ class StorageService {
             .update({
                 day_of_week: hour.dayOfWeek,
                 start_time: hour.startTime,
-                end_time: hour.endTime
+                end_time: hour.endTime,
             })
             .eq('id', id)
 
@@ -966,10 +923,7 @@ class StorageService {
     }
 
     async deleteTemplateHour(id) {
-        const { error } = await supabase
-            .from('template_hours')
-            .delete()
-            .eq('id', id)
+        const { error } = await supabase.from('template_hours').delete().eq('id', id)
 
         if (error) {
             console.error('Error deleting template hour:', error)
@@ -984,7 +938,7 @@ class StorageService {
         // Récupérer les données du template
         const [templateResult, templateSlots] = await Promise.all([
             supabase.from('week_templates').select('name').eq('id', templateId).single(),
-            this.getTemplateSlots(templateId)
+            this.getTemplateSlots(templateId),
         ])
 
         if (!templateResult.data) {
@@ -994,7 +948,7 @@ class StorageService {
         const result = {
             templateName: templateResult.data.name,
             configuredWeeks: [], // Semaines déjà configurées
-            conflicts: [] // Créneaux en conflit par semaine
+            conflicts: [], // Créneaux en conflit par semaine
         }
 
         for (const weekStart of weekStarts) {
@@ -1003,7 +957,7 @@ class StorageService {
             if (existingConfig) {
                 result.configuredWeeks.push({
                     weekStart,
-                    templateName: existingConfig.templateName
+                    templateName: existingConfig.templateName,
                 })
 
                 // Calculer les dates de la semaine pour le nouveau template
@@ -1016,14 +970,14 @@ class StorageService {
                 }
 
                 // Convertir les slots du template en slots avec dates
-                const newSlots = templateSlots.map(slot => {
+                const newSlots = templateSlots.map((slot) => {
                     const dateIndex = slot.dayOfWeek === 0 ? 6 : slot.dayOfWeek - 1
                     return {
                         date: dates[dateIndex],
                         startTime: slot.startTime,
                         endTime: slot.endTime,
                         name: slot.name,
-                        dayOfWeek: slot.dayOfWeek
+                        dayOfWeek: slot.dayOfWeek,
                     }
                 })
 
@@ -1038,14 +992,14 @@ class StorageService {
                                     date: newSlot.date,
                                     startTime: newSlot.startTime,
                                     endTime: newSlot.endTime,
-                                    name: newSlot.name
+                                    name: newSlot.name,
                                 },
                                 existingSlot: {
                                     date: existingSlot.date,
                                     startTime: existingSlot.startTime,
                                     endTime: existingSlot.endTime,
-                                    name: existingSlot.name
-                                }
+                                    name: existingSlot.name,
+                                },
                             })
                             break // Un seul conflit par slot suffit
                         }
@@ -1061,7 +1015,7 @@ class StorageService {
         return {
             success: true,
             hasConfiguredWeeks: result.configuredWeeks.length > 0,
-            ...result
+            ...result,
         }
     }
 
@@ -1082,15 +1036,25 @@ class StorageService {
 
         // Charger les slots et hours associés
         const [slotsResult, hoursResult] = await Promise.all([
-            supabase.from('week_slots').select('*').eq('week_config_id', config.id).order('date').order('start_time'),
-            supabase.from('week_hours').select('*').eq('week_config_id', config.id).order('date').order('start_time')
+            supabase
+                .from('week_slots')
+                .select('*')
+                .eq('week_config_id', config.id)
+                .order('date')
+                .order('start_time'),
+            supabase
+                .from('week_hours')
+                .select('*')
+                .eq('week_config_id', config.id)
+                .order('date')
+                .order('start_time'),
         ])
 
         return {
             id: config.id,
             weekStart: config.week_start,
             templateName: config.template_name,
-            slots: (slotsResult.data || []).map(s => ({
+            slots: (slotsResult.data || []).map((s) => ({
                 id: s.id,
                 date: s.date,
                 startTime: s.start_time,
@@ -1098,14 +1062,14 @@ class StorageService {
                 name: s.name,
                 coach: s.coach,
                 group: s.group_name,
-                isBlocking: s.is_blocking
+                isBlocking: s.is_blocking,
             })),
-            hours: (hoursResult.data || []).map(h => ({
+            hours: (hoursResult.data || []).map((h) => ({
                 id: h.id,
                 date: h.date,
                 startTime: h.start_time,
-                endTime: h.end_time
-            }))
+                endTime: h.end_time,
+            })),
         }
     }
 
@@ -1146,7 +1110,7 @@ class StorageService {
         const [templateResult, slotsResult, hoursResult] = await Promise.all([
             supabase.from('week_templates').select('name').eq('id', templateId).single(),
             this.getTemplateSlots(templateId),
-            this.getTemplateHours(templateId)
+            this.getTemplateHours(templateId),
         ])
 
         if (!templateResult.data) {
@@ -1176,12 +1140,15 @@ class StorageService {
                     // Mode écraser : supprimer les anciens slots et hours
                     await Promise.all([
                         supabase.from('week_slots').delete().eq('week_config_id', existing.id),
-                        supabase.from('week_hours').delete().eq('week_config_id', existing.id)
+                        supabase.from('week_hours').delete().eq('week_config_id', existing.id),
                     ])
                     existingSlots = []
                     existingHours = []
                     // Mettre à jour le nom du template
-                    await supabase.from('week_configs').update({ template_name: templateName }).eq('id', configId)
+                    await supabase
+                        .from('week_configs')
+                        .update({ template_name: templateName })
+                        .eq('id', configId)
                 }
                 // En mode merge, on garde les slots/hours existants et on n'ajoute que les non-conflictuels
             } else {
@@ -1219,14 +1186,18 @@ class StorageService {
                     name: slot.name,
                     coach: slot.coach || null,
                     group_name: slot.group || null,
-                    is_blocking: slot.isBlocking
+                    is_blocking: slot.isBlocking,
                 }
 
                 // En mode merge, vérifier s'il y a un conflit avec un slot existant
                 if (mode === 'merge' && existingSlots.length > 0) {
-                    const hasConflict = existingSlots.some(existingSlot =>
+                    const hasConflict = existingSlots.some((existingSlot) =>
                         this._slotsOverlap(
-                            { date: newSlot.date, startTime: newSlot.start_time, endTime: newSlot.end_time },
+                            {
+                                date: newSlot.date,
+                                startTime: newSlot.start_time,
+                                endTime: newSlot.end_time,
+                            },
                             existingSlot
                         )
                     )
@@ -1238,9 +1209,13 @@ class StorageService {
 
                 // En mode merge_keep_new, supprimer les slots existants en conflit
                 if (mode === 'merge_keep_new' && existingSlots.length > 0) {
-                    const conflictingSlots = existingSlots.filter(existingSlot =>
+                    const conflictingSlots = existingSlots.filter((existingSlot) =>
                         this._slotsOverlap(
-                            { date: newSlot.date, startTime: newSlot.start_time, endTime: newSlot.end_time },
+                            {
+                                date: newSlot.date,
+                                startTime: newSlot.start_time,
+                                endTime: newSlot.end_time,
+                            },
                             existingSlot
                         )
                     )
@@ -1264,14 +1239,18 @@ class StorageService {
                     week_config_id: configId,
                     date: dates[dateIndex],
                     start_time: hour.startTime,
-                    end_time: hour.endTime
+                    end_time: hour.endTime,
                 }
 
                 // En mode merge, vérifier s'il y a un conflit avec une plage existante
                 if (mode === 'merge' && existingHours.length > 0) {
-                    const hasConflict = existingHours.some(existingHour =>
+                    const hasConflict = existingHours.some((existingHour) =>
                         this._slotsOverlap(
-                            { date: newHour.date, startTime: newHour.start_time, endTime: newHour.end_time },
+                            {
+                                date: newHour.date,
+                                startTime: newHour.start_time,
+                                endTime: newHour.end_time,
+                            },
                             existingHour
                         )
                     )
@@ -1282,9 +1261,13 @@ class StorageService {
 
                 // En mode merge_keep_new, supprimer les plages horaires existantes en conflit
                 if (mode === 'merge_keep_new' && existingHours.length > 0) {
-                    const conflictingHours = existingHours.filter(existingHour =>
+                    const conflictingHours = existingHours.filter((existingHour) =>
                         this._slotsOverlap(
-                            { date: newHour.date, startTime: newHour.start_time, endTime: newHour.end_time },
+                            {
+                                date: newHour.date,
+                                startTime: newHour.start_time,
+                                endTime: newHour.end_time,
+                            },
                             existingHour
                         )
                     )
@@ -1301,7 +1284,7 @@ class StorageService {
             }
 
             // 6. Supprimer les réservations qui chevauchent les créneaux bloquants UNIQUEMENT
-            const blockingSlots = newSlots.filter(s => s.is_blocking)
+            const blockingSlots = newSlots.filter((s) => s.is_blocking)
             for (const slot of blockingSlots) {
                 const { data: dayReservations } = await supabase
                     .from('reservations')
@@ -1312,13 +1295,13 @@ class StorageService {
                     const slotStartMinutes = this._timeToMinutes(slot.start_time)
                     const slotEndMinutes = this._timeToMinutes(slot.end_time)
 
-                    const conflicting = dayReservations.filter(r => {
+                    const conflicting = dayReservations.filter((r) => {
                         const resMinutes = this._slotIdToMinutes(r.slot_id)
                         return resMinutes >= slotStartMinutes && resMinutes < slotEndMinutes
                     })
 
                     if (conflicting.length > 0) {
-                        const ids = conflicting.map(r => r.id)
+                        const ids = conflicting.map((r) => r.id)
                         await supabase.from('reservations').delete().in('id', ids)
                         totalDeleted += conflicting.length
                     }
@@ -1365,10 +1348,7 @@ class StorageService {
     }
 
     async deleteWeekSlot(id) {
-        const { error } = await supabase
-            .from('week_slots')
-            .delete()
-            .eq('id', id)
+        const { error } = await supabase.from('week_slots').delete().eq('id', id)
 
         if (error) {
             console.error('Error deleting week slot:', error)
@@ -1388,7 +1368,7 @@ class StorageService {
                 name: slot.name,
                 coach: slot.coach || null,
                 group_name: slot.group || null,
-                is_blocking: slot.isBlocking !== false
+                is_blocking: slot.isBlocking !== false,
             })
             .select()
             .single()
@@ -1413,10 +1393,7 @@ class StorageService {
     }
 
     async deleteWeekConfig(weekStart) {
-        const { error } = await supabase
-            .from('week_configs')
-            .delete()
-            .eq('week_start', weekStart)
+        const { error } = await supabase.from('week_configs').delete().eq('week_start', weekStart)
 
         if (error) {
             console.error('Error deleting week config:', error)
@@ -1428,23 +1405,20 @@ class StorageService {
     // ==================== OPENED SLOTS ====================
 
     async getOpenedSlotsForDate(date) {
-        const { data, error } = await supabase
-            .from('opened_slots')
-            .select('*')
-            .eq('date', date)
+        const { data, error } = await supabase.from('opened_slots').select('*').eq('date', date)
 
         if (error) {
             console.error('Error fetching opened slots:', error)
             return []
         }
 
-        return data.map(s => ({
+        return data.map((s) => ({
             id: s.id,
             date: s.date,
             slotId: s.slot_id,
             openedBy: s.opened_by,
             target: s.target,
-            createdAt: s.created_at
+            createdAt: s.created_at,
         }))
     }
 
@@ -1455,7 +1429,7 @@ class StorageService {
                 date: date,
                 slot_id: slotId,
                 opened_by: openedBy,
-                target: target
+                target: target,
             })
             .select()
             .single()
@@ -1484,10 +1458,7 @@ class StorageService {
     }
 
     async updateOpenedSlotTarget(id, target) {
-        const { error } = await supabase
-            .from('opened_slots')
-            .update({ target })
-            .eq('id', id)
+        const { error } = await supabase.from('opened_slots').update({ target }).eq('id', id)
 
         if (error) {
             console.error('Error updating opened slot target:', error)
@@ -1502,9 +1473,8 @@ class StorageService {
     subscribeToReservations(callback) {
         return supabase
             .channel('reservations-changes')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'reservations' },
-                () => callback()
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () =>
+                callback()
             )
             .subscribe()
     }
@@ -1512,9 +1482,8 @@ class StorageService {
     subscribeToMembers(callback) {
         return supabase
             .channel('members-changes')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'members' },
-                () => callback()
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () =>
+                callback()
             )
             .subscribe()
     }
@@ -1522,7 +1491,8 @@ class StorageService {
     subscribeToInvitations(callback) {
         return supabase
             .channel('invitations-changes')
-            .on('postgres_changes',
+            .on(
+                'postgres_changes',
                 { event: '*', schema: 'public', table: 'slot_invitations' },
                 () => callback()
             )
@@ -1532,9 +1502,8 @@ class StorageService {
     subscribeToOpenedSlots(callback) {
         return supabase
             .channel('opened-slots-changes')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'opened_slots' },
-                () => callback()
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'opened_slots' }, () =>
+                callback()
             )
             .subscribe()
     }
@@ -1549,15 +1518,11 @@ class StorageService {
             const fileName = `${userId}/avatar.${fileExt}`
 
             // Supprimer l'ancienne photo si elle existe
-            const { data: files } = await supabase.storage
-                .from('profile-photos')
-                .list(userId)
+            const { data: files } = await supabase.storage.from('profile-photos').list(userId)
 
             if (files && files.length > 0) {
-                const filesToRemove = files.map(f => `${userId}/${f.name}`)
-                await supabase.storage
-                    .from('profile-photos')
-                    .remove(filesToRemove)
+                const filesToRemove = files.map((f) => `${userId}/${f.name}`)
+                await supabase.storage.from('profile-photos').remove(filesToRemove)
             }
 
             // Upload la nouvelle photo
@@ -1571,9 +1536,9 @@ class StorageService {
             }
 
             // Obtenir l'URL publique
-            const { data: { publicUrl } } = supabase.storage
-                .from('profile-photos')
-                .getPublicUrl(fileName)
+            const {
+                data: { publicUrl },
+            } = supabase.storage.from('profile-photos').getPublicUrl(fileName)
 
             // Ajouter un timestamp pour forcer le rafraîchissement du cache
             const urlWithTimestamp = `${publicUrl}?t=${Date.now()}`
@@ -1599,15 +1564,11 @@ class StorageService {
     async deleteProfilePhoto(userId) {
         try {
             // Lister les fichiers dans le dossier de l'utilisateur
-            const { data: files } = await supabase.storage
-                .from('profile-photos')
-                .list(userId)
+            const { data: files } = await supabase.storage.from('profile-photos').list(userId)
 
             if (files && files.length > 0) {
-                const filesToRemove = files.map(f => `${userId}/${f.name}`)
-                await supabase.storage
-                    .from('profile-photos')
-                    .remove(filesToRemove)
+                const filesToRemove = files.map((f) => `${userId}/${f.name}`)
+                await supabase.storage.from('profile-photos').remove(filesToRemove)
             }
 
             // Mettre à jour la table members

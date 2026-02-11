@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
 import { useAuth } from '../contexts/AuthContext'
-import { GROUP_NAME } from '../services/storage'
+import { GROUP_NAME } from '../constants'
 import { UserPlus, Clock, LogOut, RefreshCw } from 'lucide-react'
 import styles from './PendingApproval.module.css'
 

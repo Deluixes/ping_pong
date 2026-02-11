@@ -5,8 +5,13 @@ import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
 
 import {
-    TIME_SLOTS,
+    DEFAULT_OPENING_TIME,
+    DEFAULT_CLOSING_TIME,
+    MAX_GUESTS,
     DEFAULT_TOTAL_TABLES,
+} from '../constants'
+import {
+    TIME_SLOTS,
     DURATION_OPTIONS,
     getCachedEvents,
     setCachedEvents,
@@ -396,7 +401,7 @@ export default function Calendar() {
         const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
         const dayHours = weekHours.filter((h) => h.date === dateStr)
         if (!isWeekConfigured || dayHours.length === 0) {
-            return slotTime >= '08:00' && slotTime < '23:00'
+            return slotTime >= DEFAULT_OPENING_TIME && slotTime < DEFAULT_CLOSING_TIME
         }
         return dayHours.some((h) => {
             const startTime = h.startTime.slice(0, 5)
@@ -612,7 +617,7 @@ export default function Calendar() {
     }
 
     const addGuestField = () => {
-        if (guests.length < 3) {
+        if (guests.length < MAX_GUESTS) {
             setGuests([...guests, { odId: '', name: '' }])
         }
     }

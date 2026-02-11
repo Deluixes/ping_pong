@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { storageService, GROUP_NAME } from '../services/storage'
+import { storageService } from '../services/storage'
+import { GROUP_NAME, CLUB_URL } from '../constants'
 import {
     X,
     Calendar,
@@ -175,7 +176,7 @@ export default function SlideMenu({ isOpen, onClose }) {
 
                 {/* Lien site du club */}
                 <a
-                    href="https://www.usramonvillett.fr/"
+                    href={CLUB_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={onClose}

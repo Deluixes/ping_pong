@@ -1,7 +1,9 @@
-// Generate 30-min slots from 8:00 to 23:00 (for unconfigured weeks)
+import { DEFAULT_OPENING_HOUR, DEFAULT_CLOSING_HOUR, CACHE_DURATION_MS } from '../../constants'
+
+// Generate 30-min slots from default opening to closing hours (for unconfigured weeks)
 const generateTimeSlots = () => {
     const slots = []
-    for (let hour = 8; hour < 23; hour++) {
+    for (let hour = DEFAULT_OPENING_HOUR; hour < DEFAULT_CLOSING_HOUR; hour++) {
         slots.push({ id: `${hour}:00`, label: `${hour}:00`, hour, minute: 0 })
         slots.push({ id: `${hour}:30`, label: `${hour}:30`, hour, minute: 30 })
     }
@@ -9,7 +11,6 @@ const generateTimeSlots = () => {
 }
 
 export const TIME_SLOTS = generateTimeSlots()
-export const DEFAULT_TOTAL_TABLES = 8
 
 export const DURATION_OPTIONS = [
     { slots: 1, label: '30 min', value: 1 },
@@ -28,8 +29,7 @@ export const getCachedEvents = () => {
         const cached = localStorage.getItem('pingpong_events')
         if (cached) {
             const { events, timestamp } = JSON.parse(cached)
-            // Cache valid for 5 minutes
-            if (Date.now() - timestamp < 5 * 60 * 1000) {
+            if (Date.now() - timestamp < CACHE_DURATION_MS) {
                 return events
             }
         }
