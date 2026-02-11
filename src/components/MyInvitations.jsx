@@ -5,6 +5,7 @@ import { storageService } from '../services/storage'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ArrowLeft, Check, X, RefreshCw, Mail, Calendar } from 'lucide-react'
+import styles from './MyInvitations.module.css'
 
 // Helper pour formater la durée
 const formatDuration = (slots) => {
@@ -64,31 +65,20 @@ export default function MyInvitations({ onNotificationChange }) {
     }
 
     if (loading) {
-        return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+        return <div className={styles.loading}>Chargement...</div>
     }
 
     return (
-        <div style={{ paddingBottom: '2rem' }}>
+        <div className={styles.wrapper}>
             {/* Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '1.5rem',
-                marginTop: '1rem'
-            }}>
-                <button
-                    onClick={() => navigate('/')}
-                    className="btn"
-                    style={{ background: 'var(--color-bg)', padding: '0.5rem' }}
-                >
+            <div className="page-header">
+                <button onClick={() => navigate('/')} className="btn btn-back">
                     <ArrowLeft size={20} />
                 </button>
-                <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Invitations reçues</h1>
+                <h1 className="page-title">Invitations reçues</h1>
                 <button
                     onClick={handleRefresh}
-                    className="btn"
-                    style={{ marginLeft: 'auto', background: 'var(--color-bg)', padding: '0.5rem' }}
+                    className={`btn btn-back ${styles.refreshBtn}`}
                     disabled={refreshing}
                 >
                     <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
@@ -96,84 +86,49 @@ export default function MyInvitations({ onNotificationChange }) {
             </div>
 
             {invitations.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <Mail size={48} style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }} />
-                    <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
-                        Aucune invitation en attente
-                    </p>
+                <div className={`card ${styles.emptyCard}`}>
+                    <Mail size={48} className={styles.emptyIcon} />
+                    <p className={styles.emptyText}>Aucune invitation en attente</p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className={styles.list}>
                     {invitations.map((inv, i) => (
-                        <div key={`${inv.slotId}-${inv.date}-${i}`} className="card" style={{ padding: '1rem' }}>
-                            <div style={{ marginBottom: '0.75rem' }}>
-                                <div style={{ fontWeight: '600', textTransform: 'capitalize' }}>
+                        <div
+                            key={`${inv.slotId}-${inv.date}-${i}`}
+                            className={`card ${styles.invCard}`}
+                        >
+                            <div className={styles.invInfo}>
+                                <div className={styles.invDate}>
                                     {format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}
                                 </div>
-                                <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                                    Créneau de {inv.slotId.replace(':', 'h')} à {getEndTime(inv.slotId, inv.duration)} ({formatDuration(inv.duration)})
+                                <div className={styles.invSlot}>
+                                    Créneau de {inv.slotId.replace(':', 'h')} à{' '}
+                                    {getEndTime(inv.slotId, inv.duration)} (
+                                    {formatDuration(inv.duration)})
                                 </div>
                                 {inv.invitedBy && (
-                                    <div style={{ color: 'var(--color-primary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                                        Invité par {inv.invitedBy}
-                                    </div>
+                                    <div className={styles.invBy}>Invité par {inv.invitedBy}</div>
                                 )}
                             </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className={styles.invActions}>
                                 <button
-                                    onClick={() => navigate(`/?date=${inv.date}&slot=${inv.slotId}`)}
-                                    style={{
-                                        background: 'var(--color-primary)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.75rem',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem',
-                                        fontWeight: '500'
-                                    }}
+                                    onClick={() =>
+                                        navigate(`/?date=${inv.date}&slot=${inv.slotId}`)
+                                    }
+                                    className={styles.calendarBtn}
                                     title="Voir sur le planning"
                                 >
                                     <Calendar size={18} />
                                 </button>
                                 <button
                                     onClick={() => handleAccept(inv)}
-                                    style={{
-                                        flex: 1,
-                                        background: '#10B981',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.75rem',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem',
-                                        fontWeight: '500'
-                                    }}
+                                    className={styles.acceptBtn}
                                 >
                                     <Check size={18} /> Accepter
                                 </button>
                                 <button
                                     onClick={() => handleDecline(inv)}
-                                    style={{
-                                        flex: 1,
-                                        background: '#EF4444',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.75rem',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem',
-                                        fontWeight: '500'
-                                    }}
+                                    className={styles.declineBtn}
                                 >
                                     <X size={18} /> Refuser
                                 </button>

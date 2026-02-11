@@ -1,0 +1,110 @@
+/* OpenSlotModal — component-specific styles */
+
+.modalTitle {
+    margin: 0;
+    color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.subtitle {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.section {
+    margin-bottom: 1rem;
+}
+
+.durationChipsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.durationChip {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: var(--color-text);
+    font-weight: 400;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.durationChipActive {
+    border: 2px solid var(--color-primary);
+    background: #eff6ff;
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: white;
+}
+
+.radioLabelAll {
+    border: 2px solid var(--color-primary);
+    background: #f0fdf4;
+}
+
+.radioLabelLoisir {
+    border: 2px solid #0369a1;
+    background: #e0f2fe;
+}
+
+.radioLabelCompetition {
+    border: 2px solid #92400e;
+    background: #fef3c7;
+}
+
+.radioTitle {
+    font-weight: 500;
+}
+
+.radioTitleLoisir {
+    color: #0369a1;
+}
+
+.radioTitleCompetition {
+    color: #92400e;
+}
+
+.radioSubtitle {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.footerButtons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cancelBtn {
+    flex: 1;
+    background: var(--color-bg);
+}
+
+.confirmBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}

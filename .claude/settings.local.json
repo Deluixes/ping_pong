@@ -12,7 +12,16 @@
       "Bash(npx vite build:*)",
       "Bash(npx eslint:*)",
       "Bash(npm test:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(sort:*)",
+      "Bash(dir \"C:\\\\Users\\\\JD946~1.DAU\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-J-Daulion-Documents-Claude-Code-ping-pong\\\\tasks\"\" 2>nul || echo \"Directory not found \")",
+      "Bash(cmd /c:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:*)",
+      "Bash(\"c:\\\\Users\\\\J.Daulion\\\\Documents\\\\Claude Code\\\\ping_pong\\\\_check_styles.js\" << 'ENDOFSCRIPT'\nconst fs = require\\('fs'\\);\nconst path = require\\('path'\\);\n\nfunction check\\(jsxPath\\) {\n  const dir = path.dirname\\(jsxPath\\);\n  const base = path.basename\\(jsxPath, '.jsx'\\);\n  const cssPath = path.join\\(dir, base + '.module.css'\\);\n  \n  if \\(!fs.existsSync\\(cssPath\\)\\) {\n    const jsx = fs.readFileSync\\(jsxPath, 'utf8'\\);\n    const importMatch = jsx.match\\(/from\\\\s+['\"]\\(.+\\\\.module\\\\.css\\)['\"]/\\);\n    if \\(!importMatch\\) {\n      console.log\\('NO CSS MODULE: ' + jsxPath\\);\n      return;\n    }\n    const resolvedCss = path.resolve\\(dir, importMatch[1]\\);\n    if \\(!fs.existsSync\\(resolvedCss\\)\\) {\n      console.log\\('CSS NOT FOUND: ' + resolvedCss + ' \\(from ' + jsxPath + '\\)'\\);\n      return;\n    }\n    checkPair\\(jsxPath, resolvedCss\\);\n    return;\n  }\n  checkPair\\(jsxPath, cssPath\\);\n}\n\nfunction checkPair\\(jsxPath, cssPath\\) {\n  const jsx = fs.readFileSync\\(jsxPath, 'utf8'\\);\n  const css = fs.readFileSync\\(cssPath, 'utf8'\\);\n  \n  // Extract styles.xxx from JSX\n  const usedClasses = new Set\\(\\);\n  const re = /styles\\\\.\\(\\\\w+\\)/g;\n  let m;\n  while \\(\\(m = re.exec\\(jsx\\)\\) !== null\\) {\n    usedClasses.add\\(m[1]\\);\n  }\n  \n  // Extract .xxx from CSS\n  const definedClasses = new Set\\(\\);\n  const cssRe = /\\\\.\\([a-zA-Z_][\\\\w-]*\\)\\\\s*[\\\\{,]/g;\n  while \\(\\(m = cssRe.exec\\(css\\)\\) !== null\\) {\n    definedClasses.add\\(m[1]\\);\n  }\n  \n  // Check for missing\n  const missing = [...usedClasses].filter\\(c => !definedClasses.has\\(c\\)\\);\n  const unused = [...definedClasses].filter\\(c => !usedClasses.has\\(c\\)\\);\n  \n  if \\(missing.length > 0 || unused.length > 0\\) {\n    console.log\\('\\\\n=== ' + path.basename\\(jsxPath\\) + ' ==='\\);\n    if \\(missing.length > 0\\) {\n      console.log\\('  MISSING in CSS: ' + missing.join\\(', '\\)\\);\n    }\n    if \\(unused.length > 0\\) {\n      console.log\\('  UNUSED in CSS: ' + unused.join\\(', '\\)\\);\n    }\n  }\n}\n\n// Get all JSX files\nconst files = [];\nconst scanDir = \\(d\\) => {\n  for \\(const f of fs.readdirSync\\(d\\)\\) {\n    const fp = path.join\\(d, f\\);\n    if \\(fs.statSync\\(fp\\).isDirectory\\(\\)\\) scanDir\\(fp\\);\n    else if \\(f.endsWith\\('.jsx'\\) && !f.includes\\('.test.'\\)\\) files.push\\(fp\\);\n  }\n};\nscanDir\\('src/components'\\);\nfiles.push\\('src/App.jsx'\\);\n\nfor \\(const f of files\\) {\n  check\\(f\\);\n}\n\nconsole.log\\('\\\\nDone checking ' + files.length + ' files.'\\);\nENDOFSCRIPT)",
+      "Bash(node:*)",
+      "Bash(del \"c:\\\\Users\\\\J.Daulion\\\\Documents\\\\Claude Code\\\\ping_pong\\\\check_css_classes.js\")"
     ]
   }
 }

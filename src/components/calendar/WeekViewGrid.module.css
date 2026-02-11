@@ -1,0 +1,131 @@
+/* Container */
+.container {
+    overflow-x: auto;
+}
+
+/* Grid layout */
+.grid {
+    display: grid;
+    grid-template-columns: 50px repeat(7, 1fr);
+    gap: 1px;
+    background: #e2e8f0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    min-width: 600px;
+}
+
+/* Empty top-left corner cell */
+.cornerCell {
+    background: var(--color-secondary);
+    padding: 0.5rem;
+    color: white;
+    font-weight: bold;
+    font-size: 0.7rem;
+}
+
+/* Day header cells */
+.dayHeader {
+    padding: 0.5rem 0.25rem;
+    font-weight: bold;
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+.dayHeaderDefault {
+    background: var(--color-secondary);
+    color: white;
+}
+
+.dayHeaderSelected {
+    background: var(--color-primary);
+    color: white;
+}
+
+.dayHeaderToday {
+    background: #f0fdf4;
+    color: #166534;
+}
+
+/* Day number inside header */
+.dayNumber {
+    font-size: 0.85rem;
+}
+
+/* Hour label column */
+.hourLabel {
+    background: #f9fafb;
+    padding: 0.25rem;
+    font-size: 0.65rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+}
+
+/* Slot cells */
+.slotCell {
+    padding: 0.15rem;
+    min-height: 24px;
+    font-size: 0.55rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.slotDefault {
+    background: white;
+    color: #6b7280;
+}
+
+.slotIndicative {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.slotBlocking {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.slotOpened {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Legend */
+.legend {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.legendSwatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legendSwatchOpened {
+    background: #dcfce7;
+}
+
+.legendSwatchCours {
+    background: #dbeafe;
+}
+
+.legendSwatchEntrainement {
+    background: #f3f4f6;
+}

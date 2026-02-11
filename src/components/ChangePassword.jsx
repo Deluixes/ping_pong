@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Lock, Eye, EyeOff, Check, X } from 'lucide-react'
+import clsx from 'clsx'
+import styles from './ChangePassword.module.css'
 
 export default function ChangePassword({ forced = false, onClose = null }) {
     const [newPassword, setNewPassword] = useState('')
@@ -58,35 +60,17 @@ export default function ChangePassword({ forced = false, onClose = null }) {
     // Vue succès
     if (success) {
         return (
-            <div className="change-password-container" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: forced ? '80vh' : 'auto',
-                padding: forced ? '2rem' : '1rem'
-            }}>
-                <div className={forced ? 'card' : ''} style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-                    <div style={{
-                        width: '80px',
-                        height: '80px',
-                        borderRadius: '50%',
-                        background: '#D1FAE5',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 1.5rem'
-                    }}>
+            <div className={clsx(styles.container, forced && styles.containerForced)}>
+                <div className={clsx(styles.inner, styles.innerSuccess, forced && 'card')}>
+                    <div className={styles.successIcon}>
                         <Check size={40} color="#059669" />
                     </div>
 
-                    <h2 style={{ marginBottom: '1rem', color: 'var(--color-secondary)' }}>
-                        Mot de passe modifié !
-                    </h2>
+                    <h2 className={styles.successHeading}>Mot de passe modifié !</h2>
 
-                    <p style={{ color: 'var(--color-text-muted)' }}>
+                    <p className={styles.successText}>
                         {forced
-                            ? 'Vous allez être redirigé vers l\'accueil...'
+                            ? "Vous allez être redirigé vers l'accueil..."
                             : 'Votre mot de passe a été mis à jour avec succès.'}
                     </p>
                 </div>
@@ -95,99 +79,46 @@ export default function ChangePassword({ forced = false, onClose = null }) {
     }
 
     return (
-        <div className="change-password-container" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: forced ? '80vh' : 'auto',
-            padding: forced ? '2rem' : '1rem'
-        }}>
-            <div className={forced ? 'card' : ''} style={{ width: '100%', maxWidth: '400px' }}>
+        <div className={clsx(styles.container, forced && styles.containerForced)}>
+            <div className={clsx(styles.inner, forced && 'card')}>
                 {/* Header */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '1.5rem'
-                }}>
-                    <h2 style={{
-                        fontSize: '1.2rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        margin: 0
-                    }}>
+                <div className={styles.header}>
+                    <h2 className={styles.title}>
                         <Lock size={20} />
                         {forced ? 'Créer votre mot de passe' : 'Modifier le mot de passe'}
                     </h2>
                     {!forced && onClose && (
-                        <button
-                            onClick={onClose}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: 'var(--color-text-muted)',
-                                padding: '0.25rem'
-                            }}
-                        >
+                        <button onClick={onClose} className="icon-btn icon-btn--muted">
                             <X size={20} />
                         </button>
                     )}
                 </div>
 
                 {forced && (
-                    <div style={{
-                        background: '#FEF3C7',
-                        border: '1px solid #F59E0B',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '0.75rem',
-                        marginBottom: '1.5rem',
-                        color: '#92400E',
-                        fontSize: '0.85rem'
-                    }}>
-                        Pour des raisons de sécurité, vous devez définir un nouveau mot de passe avant de continuer.
+                    <div className={clsx('alert', 'alert--warning', styles.warningBox)}>
+                        Pour des raisons de sécurité, vous devez définir un nouveau mot de passe
+                        avant de continuer.
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit}>
                     {/* New password field */}
-                    <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                            Nouveau mot de passe
-                        </label>
-                        <div style={{ position: 'relative' }}>
+                    <div className={styles.fieldGroup}>
+                        <label className="form-label">Nouveau mot de passe</label>
+                        <div className={styles.passwordWrapper}>
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 placeholder="••••••••"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    paddingRight: '2.5rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid #DDD',
-                                    fontSize: '1rem'
-                                }}
+                                className={clsx('form-input', styles.passwordInput)}
                                 required
                                 autoFocus
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                style={{
-                                    position: 'absolute',
-                                    right: '0.75rem',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    color: 'var(--color-text-muted)',
-                                    padding: '0.25rem'
-                                }}
+                                className={clsx('icon-btn', 'icon-btn--muted', styles.toggleBtn)}
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -195,45 +126,28 @@ export default function ChangePassword({ forced = false, onClose = null }) {
                     </div>
 
                     {/* Confirm password field */}
-                    <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                            Confirmer le mot de passe
-                        </label>
+                    <div className={styles.fieldGroupLast}>
+                        <label className="form-label">Confirmer le mot de passe</label>
                         <input
                             type={showPassword ? 'text' : 'password'}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="••••••••"
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid #DDD',
-                                fontSize: '1rem'
-                            }}
+                            className="form-input"
                             required
                         />
                     </div>
 
                     {/* Error message */}
                     {(error || authError) && (
-                        <div style={{
-                            background: '#FEE2E2',
-                            border: '1px solid #EF4444',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '0.75rem',
-                            marginBottom: '1rem',
-                            color: '#991B1B',
-                            fontSize: '0.85rem'
-                        }}>
+                        <div className={clsx('alert', 'alert--error', styles.errorAlert)}>
                             {error || authError}
                         </div>
                     )}
 
                     <button
                         type="submit"
-                        className="btn btn-primary"
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                        className={clsx('btn', 'btn-primary', 'btn-full', styles.submitBtn)}
                         disabled={isSubmitting}
                     >
                         <Lock size={18} />
@@ -241,9 +155,7 @@ export default function ChangePassword({ forced = false, onClose = null }) {
                     </button>
                 </form>
 
-                <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                    Le mot de passe doit contenir au moins 8 caractères.
-                </p>
+                <p className={styles.hint}>Le mot de passe doit contenir au moins 8 caractères.</p>
             </div>
         </div>
     )

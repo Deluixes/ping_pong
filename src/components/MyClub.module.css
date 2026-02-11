@@ -1,0 +1,18 @@
+.wrapper {
+    padding-bottom: 2rem;
+}
+
+.emptyCard {
+    text-align: center;
+    padding: 2rem;
+}
+
+.emptyIcon {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+.emptyText {
+    color: var(--color-text-muted);
+    margin: 0;
+}

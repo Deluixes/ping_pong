@@ -1,0 +1,77 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 2rem;
+    text-align: center;
+}
+
+.logo {
+    margin-bottom: 1.5rem;
+    color: var(--color-primary);
+}
+
+.clubName {
+    margin-top: 0.75rem;
+    font-size: 1.4rem;
+}
+
+.infoBox {
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.infoText {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.pendingBox {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.pendingTitle {
+    margin: 0 0 0.5rem;
+    color: #92400e;
+    font-size: 1.1rem;
+}
+
+.pendingText {
+    margin: 0;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+.card {
+    max-width: 400px;
+    width: 100%;
+}
+
+.pendingIcon {
+    margin-bottom: 0.75rem;
+}
+
+.refreshBtn {
+    margin-bottom: 0.75rem;
+    background: var(--color-bg);
+}
+
+.logoutBtn {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid #e2e8f0;
+}
+
+.footerText {
+    margin-top: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}

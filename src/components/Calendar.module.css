@@ -1,0 +1,12 @@
+.wrapper {
+    padding-bottom: 2rem;
+}
+
+.loading {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.reloadBtn {
+    margin-top: 1rem;
+}

@@ -1,0 +1,241 @@
+/* ===== Modal Override ===== */
+
+.maxHeight70 {
+    max-height: 70vh;
+}
+
+/* ===== Header ===== */
+
+.title {
+    margin: 0;
+    color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ===== Subtitle ===== */
+
+.subtitle {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* ===== Duration Step ===== */
+
+.durationList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.durationBtn {
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-primary);
+    background: white;
+    color: var(--color-primary);
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s;
+}
+
+.durationEmoji {
+    font-size: 1.5rem;
+}
+
+.durationTimeRange {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.noDurationError {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    text-align: center;
+    color: #991b1b;
+}
+
+/* ===== Choice Step ===== */
+
+.choiceList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.backLink {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.backLinkChoice {
+    composes: backLink;
+    margin-bottom: 0.5rem;
+}
+
+.backLinkGuests {
+    composes: backLink;
+    margin-bottom: 1rem;
+}
+
+.registerBtn {
+    background: #f0fdf4;
+    color: #166534;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 2px solid #22c55e;
+}
+
+.inviteOnlyBtn {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 2px solid #3b82f6;
+}
+
+.choiceIconWrap {
+    width: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.choiceIcon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.choiceTextWrap {
+    text-align: left;
+    flex: 1;
+}
+
+.choiceTextTitle {
+    font-weight: 600;
+}
+
+.choiceTextSub {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* ===== Guests Step ===== */
+
+.durationSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--color-primary-light);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.durationSummaryLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fontMedium {
+    font-weight: 500;
+}
+
+.changeDurationBtn {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+}
+
+.overbookingWarning {
+    margin-bottom: 1rem;
+}
+
+.overbookingText {
+    margin: 0;
+    color: #92400e;
+    font-weight: 500;
+}
+
+.inviteSectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+}
+
+.infoBox {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.guestFieldList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.guestRow {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.guestSelect {
+    flex: 1;
+    background: white;
+    font-size: 0.95rem;
+}
+
+.removeBtn {
+    background: #fee2e2;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0 0.75rem;
+    color: #991b1b;
+    cursor: pointer;
+}
+
+.addPlayerBtn {
+    width: 100%;
+    background: var(--color-bg);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.noMembersEmpty {
+    background: var(--color-bg);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}

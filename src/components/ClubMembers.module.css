@@ -1,0 +1,179 @@
+/* ===== Loading ===== */
+
+.loading {
+    padding: 2rem;
+    text-align: center;
+}
+
+/* ===== Search ===== */
+
+.searchWrapper {
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+}
+
+.searchInput {
+    padding-left: 2.5rem;
+    font-size: 0.9rem;
+}
+
+/* ===== License Filter ===== */
+
+.filterGroup {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.filterBtn {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: var(--color-text);
+    font-weight: 400;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.15s;
+}
+
+/* All (primary) active */
+.filterBtnAllActive {
+    border: 2px solid var(--color-primary);
+    background: rgba(249, 115, 22, 0.1);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* Loisir (blue) active */
+.filterBtnLActive {
+    border: 2px solid #1d4ed8;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+/* Competition (purple) active */
+.filterBtnCActive {
+    border: 2px solid #7c3aed;
+    background: #f3e8ff;
+    color: #7c3aed;
+    font-weight: 600;
+}
+
+/* ===== Member Count ===== */
+
+.memberCount {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+/* ===== Empty State ===== */
+
+.emptyState {
+    text-align: center;
+    padding: 2rem;
+}
+
+.emptyIcon {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+.emptyText {
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* ===== Member List ===== */
+
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.memberRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.memberRow:hover {
+    background: #f9fafb;
+}
+
+.memberName {
+    flex: 1;
+    font-weight: 500;
+}
+
+/* ===== License Badges ===== */
+
+.badgeLoisir {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badgeCompetition {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.badgeLg {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    font-weight: bold;
+}
+
+/* ===== Modal ===== */
+
+.modalPadding {
+    padding: 1rem;
+}
+
+.modalContent {
+    max-width: 300px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.closeBtn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+}
+
+.modalAvatar {
+    margin: 0 auto 1rem;
+}
+
+.modalInitial {
+    font-size: 4rem;
+    font-weight: bold;
+}
+
+.modalName {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+}

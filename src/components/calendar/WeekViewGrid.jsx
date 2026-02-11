@@ -1,6 +1,8 @@
 import React from 'react'
 import { addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import clsx from 'clsx'
+import styles from './WeekViewGrid.module.css'
 
 export default function WeekViewGrid({
     weekStart,
@@ -10,28 +12,10 @@ export default function WeekViewGrid({
     onSelectDay,
 }) {
     return (
-        <div style={{ overflowX: 'auto' }}>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: '50px repeat(7, 1fr)',
-                    gap: '1px',
-                    background: '#E2E8F0',
-                    borderRadius: 'var(--radius-md)',
-                    overflow: 'hidden',
-                    minWidth: '600px',
-                }}
-            >
+        <div className={styles.container}>
+            <div className={styles.grid}>
                 {/* Header avec jours */}
-                <div
-                    style={{
-                        background: 'var(--color-secondary)',
-                        padding: '0.5rem',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '0.7rem',
-                    }}
-                ></div>
+                <div className={styles.cornerCell}></div>
                 {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
                     const day = addDays(weekStart, dayOffset)
                     const isToday = isSameDay(day, new Date())
@@ -39,21 +23,15 @@ export default function WeekViewGrid({
                     return (
                         <div
                             key={dayOffset}
-                            style={{
-                                background: isSelected
-                                    ? 'var(--color-primary)'
-                                    : isToday
-                                      ? '#F0FDF4'
-                                      : 'var(--color-secondary)',
-                                padding: '0.5rem 0.25rem',
-                                color: isSelected ? 'white' : isToday ? '#166534' : 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.7rem',
-                                textAlign: 'center',
-                            }}
+                            className={clsx(
+                                styles.dayHeader,
+                                isSelected && styles.dayHeaderSelected,
+                                isToday && !isSelected && styles.dayHeaderToday,
+                                !isSelected && !isToday && styles.dayHeaderDefault
+                            )}
                         >
                             <div>{format(day, 'EEE', { locale: fr })}</div>
-                            <div style={{ fontSize: '0.85rem' }}>{format(day, 'd')}</div>
+                            <div className={styles.dayNumber}>{format(day, 'd')}</div>
                         </div>
                     )
                 })}
@@ -62,20 +40,7 @@ export default function WeekViewGrid({
                 {Array.from({ length: 15 }, (_, i) => i + 8).map((hour) => (
                     <React.Fragment key={hour}>
                         {/* Colonne heure */}
-                        <div
-                            style={{
-                                background: '#F9FAFB',
-                                padding: '0.25rem',
-                                fontSize: '0.65rem',
-                                color: '#6B7280',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: '500',
-                            }}
-                        >
-                            {hour}h
-                        </div>
+                        <div className={styles.hourLabel}>{hour}h</div>
                         {/* 7 colonnes pour les jours */}
                         {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
                             const day = addDays(weekStart, dayOffset)
@@ -98,15 +63,15 @@ export default function WeekViewGrid({
                                 (os) => os.slotId === slotId
                             )
 
-                            let bgColor = 'white'
                             let content = ''
-                            let textColor = '#6B7280'
+                            let isIndicative = false
+                            let isBlocking = false
+                            let isOpened = false
 
                             if (matchingWeekSlot) {
                                 if (matchingWeekSlot.isBlocking === false) {
                                     // Cours indicatif
-                                    bgColor = '#DBEAFE'
-                                    textColor = '#1D4ED8'
+                                    isIndicative = true
                                     const startHour = parseInt(
                                         matchingWeekSlot.startTime.split(':')[0]
                                     )
@@ -114,8 +79,7 @@ export default function WeekViewGrid({
                                         content = matchingWeekSlot.name?.substring(0, 8) || 'Cours'
                                 } else {
                                     // Entraînement bloquant
-                                    bgColor = '#F3F4F6'
-                                    textColor = '#6B7280'
+                                    isBlocking = true
                                     const startHour = parseInt(
                                         matchingWeekSlot.startTime.split(':')[0]
                                     )
@@ -124,27 +88,23 @@ export default function WeekViewGrid({
                                 }
                             } else if (matchingOpenedSlot) {
                                 // Créneau ouvert
-                                bgColor = '#DCFCE7'
-                                textColor = '#166534'
+                                isOpened = true
                             }
 
                             return (
                                 <div
                                     key={dayOffset}
                                     onClick={() => onSelectDay(day)}
-                                    style={{
-                                        background: bgColor,
-                                        padding: '0.15rem',
-                                        minHeight: '24px',
-                                        fontSize: '0.55rem',
-                                        color: textColor,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        textAlign: 'center',
-                                        overflow: 'hidden',
-                                        cursor: 'pointer',
-                                    }}
+                                    className={clsx(
+                                        styles.slotCell,
+                                        isIndicative && styles.slotIndicative,
+                                        isBlocking && styles.slotBlocking,
+                                        isOpened && styles.slotOpened,
+                                        !isIndicative &&
+                                            !isBlocking &&
+                                            !isOpened &&
+                                            styles.slotDefault
+                                    )}
                                 >
                                     {content}
                                 </div>
@@ -155,46 +115,18 @@ export default function WeekViewGrid({
             </div>
 
             {/* Légende */}
-            <div
-                style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    marginTop: '0.75rem',
-                    flexWrap: 'wrap',
-                    fontSize: '0.75rem',
-                    color: '#6B7280',
-                }}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <div
-                        style={{
-                            width: '12px',
-                            height: '12px',
-                            background: '#DCFCE7',
-                            borderRadius: '2px',
-                        }}
-                    ></div>
+            <div className={styles.legend}>
+                <div className={styles.legendItem}>
+                    <div className={clsx(styles.legendSwatch, styles.legendSwatchOpened)}></div>
                     <span>Ouvert</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <div
-                        style={{
-                            width: '12px',
-                            height: '12px',
-                            background: '#DBEAFE',
-                            borderRadius: '2px',
-                        }}
-                    ></div>
+                <div className={styles.legendItem}>
+                    <div className={clsx(styles.legendSwatch, styles.legendSwatchCours)}></div>
                     <span>Cours</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <div className={styles.legendItem}>
                     <div
-                        style={{
-                            width: '12px',
-                            height: '12px',
-                            background: '#F3F4F6',
-                            borderRadius: '2px',
-                        }}
+                        className={clsx(styles.legendSwatch, styles.legendSwatchEntrainement)}
                     ></div>
                     <span>Entraînement</span>
                 </div>

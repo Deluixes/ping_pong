@@ -1,5 +1,7 @@
+import clsx from 'clsx'
 import { Users, X, Lock, Unlock, Trash2 } from 'lucide-react'
 import { TIME_SLOTS } from './calendarUtils'
+import styles from './DayViewSlots.module.css'
 
 export default function DayViewSlots({
     viewMode,
@@ -23,7 +25,7 @@ export default function DayViewSlots({
     onDeleteWeekSlot,
 }) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className={styles.slotList}>
             {TIME_SLOTS.filter((slot) => {
                 // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
                 const blockedInfo = getBlockedSlotInfo(slot.id)
@@ -116,49 +118,21 @@ function BlockedSlotRow({
     const isCourse = blockedInfo.isBlocking === false
     const isTraining = blockedInfo.isBlocking !== false
 
-    let bgColor, timeColor, textColor
-    if (isCourse) {
-        bgColor = isParticipating ? '#F0FDF4' : '#EFF6FF'
-        timeColor = isParticipating ? '#22C55E' : '#3B82F6'
-        textColor = '#1D4ED8'
-    } else {
-        bgColor = '#F3F4F6'
-        timeColor = '#9CA3AF'
-        textColor = '#6B7280'
-    }
-
     return (
         <div
-            style={{
-                display: 'flex',
-                alignItems: 'stretch',
-                background: bgColor,
-                borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                boxShadow: 'var(--shadow-sm)',
-                border: isParticipating
-                    ? '2px solid #22C55E'
-                    : isCourse
-                      ? '1px solid #93C5FD'
-                      : '1px solid #E2E8F0',
-                opacity: isTraining ? 0.8 : 1,
-            }}
+            className={clsx(styles.blockedRow, {
+                [styles.blockedRowCourseParticipating]: isCourse && isParticipating,
+                [styles.blockedRowCourse]: isCourse && !isParticipating,
+                [styles.blockedRowTraining]: isTraining,
+            })}
         >
             {/* Time Label */}
             <div
-                style={{
-                    width: '60px',
-                    padding: '0.75rem 0.5rem',
-                    background: timeColor,
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '0.85rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.25rem',
-                }}
+                className={clsx(styles.timeLabel, {
+                    [styles.timeLabelCourseParticipating]: isCourse && isParticipating,
+                    [styles.timeLabelCourse]: isCourse && !isParticipating,
+                    [styles.timeLabelTraining]: isTraining,
+                })}
             >
                 <span>{slot.label}</span>
             </div>
@@ -166,84 +140,35 @@ function BlockedSlotRow({
             {/* Slot Info */}
             <div
                 onClick={isParticipating && isCourse ? () => onSlotClick(slot.id) : undefined}
-                style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: '0.15rem',
-                    minWidth: 0,
-                    cursor: isParticipating && isCourse ? 'pointer' : 'default',
-                }}
+                className={clsx(styles.slotInfo, {
+                    [styles.slotInfoClickable]: isParticipating && isCourse,
+                })}
             >
                 <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        color: textColor,
-                        flexWrap: 'wrap',
-                    }}
+                    className={clsx(styles.infoRow, {
+                        [styles.courseInfoText]: isCourse,
+                        [styles.trainingInfoText]: isTraining,
+                    })}
                 >
-                    <span style={{ fontSize: '1rem' }}>🏓</span>
-                    <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
-                        {blockedInfo.name}
-                    </span>
-                    {isCourse && (
-                        <span
-                            style={{
-                                fontSize: '0.7rem',
-                                background: '#DBEAFE',
-                                color: '#1D4ED8',
-                                padding: '0.1rem 0.4rem',
-                                borderRadius: '4px',
-                            }}
-                        >
-                            Info
-                        </span>
-                    )}
+                    <span className={styles.pingPongIcon}>🏓</span>
+                    <span className={styles.slotName}>{blockedInfo.name}</span>
+                    {isCourse && <span className={styles.infoBadge}>Info</span>}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                <div className={styles.coachText}>
                     {blockedInfo.coach}
                     {blockedInfo.group && (
-                        <span
-                            style={{
-                                marginLeft: '0.5rem',
-                                background: '#E5E7EB',
-                                padding: '0.1rem 0.4rem',
-                                borderRadius: '4px',
-                            }}
-                        >
-                            {blockedInfo.group}
-                        </span>
+                        <span className={styles.groupBadge}>{blockedInfo.group}</span>
                     )}
                 </div>
                 {/* Participants pour cours indicatifs */}
                 {isCourse && count > 0 && (
-                    <div
-                        style={{
-                            fontSize: '0.75rem',
-                            color: '#6B7280',
-                            marginTop: '0.25rem',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '0.25rem',
-                        }}
-                    >
-                        <Users size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                    <div className={styles.participantsList}>
+                        <Users size={12} />
                         {participants.map((p, idx) => (
-                            <span
-                                key={p.id || idx}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.15rem',
-                                }}
-                            >
+                            <span key={p.id || idx} className={styles.participantName}>
                                 {p.name}
                                 {p.status === 'pending' && (
-                                    <span style={{ opacity: 0.7 }}> (en attente)</span>
+                                    <span className={styles.pendingTag}> (en attente)</span>
                                 )}
                                 {isAdmin && p.id && p.id !== userId && (
                                     <button
@@ -251,14 +176,7 @@ function BlockedSlotRow({
                                             e.stopPropagation()
                                             onAdminDelete(slot.id, p.id, p.name, p.isGuest)
                                         }}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: '#EF4444',
-                                            cursor: 'pointer',
-                                            padding: '0 2px',
-                                            display: 'inline-flex',
-                                        }}
+                                        className={styles.adminDeleteBtn}
                                         title="Supprimer (admin)"
                                     >
                                         <Trash2 size={12} />
@@ -275,30 +193,14 @@ function BlockedSlotRow({
             {viewMode === 'edit' && isAdmin ? (
                 <button
                     onClick={() => onDeleteWeekSlot(blockedInfo.id)}
-                    style={{
-                        width: '50px',
-                        background: '#FEE2E2',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#DC2626',
-                        cursor: 'pointer',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnDelete)}
                     title="Supprimer ce créneau"
                 >
                     <Trash2 size={18} />
                 </button>
             ) : isTraining ? (
                 <div
-                    style={{
-                        width: '50px',
-                        background: '#E5E7EB',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#9CA3AF',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnLocked)}
                     title="Entraînement réservé"
                 >
                     <Lock size={18} />
@@ -306,16 +208,7 @@ function BlockedSlotRow({
             ) : isParticipating ? (
                 <button
                     onClick={() => onUnregister(slot.id)}
-                    style={{
-                        width: '50px',
-                        border: 'none',
-                        background: '#22C55E',
-                        color: 'white',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnUnregister)}
                     title="Se désinscrire"
                 >
                     <X size={20} />
@@ -323,30 +216,14 @@ function BlockedSlotRow({
             ) : canReserveOnWeek ? (
                 <button
                     onClick={() => onSlotClick(slot.id)}
-                    style={{
-                        width: '50px',
-                        border: 'none',
-                        background: '#DBEAFE',
-                        color: '#3B82F6',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnRegisterCourse)}
                     title="S'inscrire"
                 >
                     +
                 </button>
             ) : (
                 <div
-                    style={{
-                        width: '50px',
-                        background: '#E5E7EB',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#9CA3AF',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnLocked)}
                     title="Réservations fermées"
                 >
                     <Lock size={18} />
@@ -379,43 +256,14 @@ function NormalSlotRow({
     const isClosed = !availability.available
     const isOpened = availability.type === 'opened'
 
-    // Couleurs selon l'état
-    let bgColor = 'var(--color-surface)'
-    let timeColor = 'var(--color-bg)'
-    let borderColor = '1px solid #E2E8F0'
-    let statusText = 'Fermé'
-    let statusColor = '#9CA3AF'
-
-    if (isParticipating) {
-        bgColor = '#F0FDF4'
-        timeColor = '#22C55E'
-        borderColor = '2px solid #22C55E'
-    } else if (isOpened) {
-        bgColor = '#F0FDF4'
-        timeColor = '#22C55E'
-        borderColor = '1px solid #86EFAC'
-        statusText = 'Ouvert'
-        statusColor = '#22C55E'
-    } else if (isClosed) {
-        bgColor = '#F9FAFB'
-        timeColor = '#D1D5DB'
-        borderColor = '1px solid #E5E7EB'
-        statusText = 'Fermé'
-        statusColor = '#9CA3AF'
-    }
-
     // Badge de restriction si ouvert avec target spécifique
     const targetBadge =
         isOpened && availability.target !== 'all' ? (
             <span
-                style={{
-                    fontSize: '0.65rem',
-                    background: availability.target === 'competition' ? '#FEF3C7' : '#E0F2FE',
-                    color: availability.target === 'competition' ? '#92400E' : '#0369A1',
-                    padding: '0.1rem 0.4rem',
-                    borderRadius: '4px',
-                    fontWeight: '600',
-                }}
+                className={clsx(styles.targetBadge, {
+                    [styles.targetBadgeCompetition]: availability.target === 'competition',
+                    [styles.targetBadgeLoisir]: availability.target !== 'competition',
+                })}
             >
                 {availability.target === 'competition' ? 'Compét' : 'Loisir'}
             </span>
@@ -423,31 +271,21 @@ function NormalSlotRow({
 
     return (
         <div
-            style={{
-                display: 'flex',
-                alignItems: 'stretch',
-                background: bgColor,
-                borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                boxShadow: 'var(--shadow-sm)',
-                border: borderColor,
-            }}
+            className={clsx(styles.normalRow, {
+                [styles.normalRowParticipating]: isParticipating,
+                [styles.normalRowOpened]: isOpened && !isParticipating,
+                [styles.normalRowClosed]: isClosed && !isOpened && !isParticipating,
+                [styles.normalRowDefault]: !isParticipating && !isOpened && !isClosed,
+            })}
         >
             {/* Time Label */}
             <div
-                style={{
-                    width: '60px',
-                    padding: '0.75rem 0.5rem',
-                    background: timeColor,
-                    color: isParticipating || isOpened ? 'white' : '#6B7280',
-                    fontWeight: 'bold',
-                    fontSize: '0.85rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.25rem',
-                }}
+                className={clsx(styles.timeLabel, {
+                    [styles.timeLabelParticipating]: isParticipating,
+                    [styles.timeLabelOpened]: isOpened && !isParticipating,
+                    [styles.timeLabelClosed]: isClosed && !isOpened && !isParticipating,
+                    [styles.timeLabelDefault]: !isParticipating && !isOpened && !isClosed,
+                })}
             >
                 <span>{slot.label}</span>
             </div>
@@ -455,50 +293,24 @@ function NormalSlotRow({
             {/* Participants Info */}
             <div
                 onClick={isParticipating ? () => onSlotClick(slot.id) : undefined}
-                style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: '0.25rem',
-                    minWidth: 0,
-                    cursor: isParticipating ? 'pointer' : 'default',
-                }}
+                className={clsx(styles.slotInfo, {
+                    [styles.slotInfoClickable]: isParticipating,
+                })}
             >
                 {count > 0 ? (
                     <>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                flexWrap: 'wrap',
-                            }}
-                        >
+                        <div className={styles.infoRow}>
                             <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                    color: isOverbooked ? '#EF4444' : 'var(--color-secondary)',
-                                }}
+                                className={clsx(styles.participantCount, {
+                                    [styles.participantCountOverbooked]: isOverbooked,
+                                    [styles.participantCountNormal]: !isOverbooked,
+                                })}
                             >
                                 <Users size={14} />
-                                <span
-                                    style={{
-                                        fontWeight: 'bold',
-                                        fontSize: '0.9rem',
-                                    }}
-                                >
+                                <span className={styles.countText}>
                                     {acceptedCount}/{maxPersons}
                                     {count > acceptedCount && (
-                                        <span
-                                            style={{
-                                                color: '#9CA3AF',
-                                                fontWeight: 'normal',
-                                            }}
-                                        >
+                                        <span className={styles.pendingCount}>
                                             {' '}
                                             (+{count - acceptedCount})
                                         </span>
@@ -506,47 +318,23 @@ function NormalSlotRow({
                                 </span>
                             </div>
                             {isOverbooked && (
-                                <span
-                                    style={{
-                                        fontSize: '0.75rem',
-                                        color: '#EF4444',
-                                        fontWeight: '500',
-                                    }}
-                                >
-                                    ⚠️ Surbooké
-                                </span>
+                                <span className={styles.overbookedLabel}>⚠️ Surbooké</span>
                             )}
                             {targetBadge}
                         </div>
-                        <div
-                            style={{
-                                fontSize: '0.8rem',
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '0.25rem',
-                            }}
-                        >
+                        <div className={styles.participantNames}>
                             {participants.map((p, idx) => (
                                 <span
                                     key={`${p.id || p.name}-${idx}`}
+                                    className={styles.participantName}
                                     style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.15rem',
                                         color: getParticipantColor(p, slot.id),
                                         fontWeight: p.status === 'pending' ? '400' : '500',
                                     }}
                                 >
                                     {p.name}
                                     {p.status === 'pending' && (
-                                        <span
-                                            style={{
-                                                fontSize: '0.7rem',
-                                                opacity: 0.7,
-                                            }}
-                                        >
-                                            (en attente)
-                                        </span>
+                                        <span className={styles.pendingTag}>(en attente)</span>
                                     )}
                                     {isAdmin && p.id && p.id !== userId && (
                                         <button
@@ -554,14 +342,7 @@ function NormalSlotRow({
                                                 e.stopPropagation()
                                                 onAdminDelete(slot.id, p.id, p.name, p.isGuest)
                                             }}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                color: '#EF4444',
-                                                cursor: 'pointer',
-                                                padding: '0 2px',
-                                                display: 'inline-flex',
-                                            }}
+                                            className={styles.adminDeleteBtn}
                                             title="Supprimer (admin)"
                                         >
                                             <Trash2 size={12} />
@@ -573,30 +354,19 @@ function NormalSlotRow({
                         </div>
                     </>
                 ) : (
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                        }}
-                    >
+                    <div className={styles.infoRow}>
                         <span
-                            style={{
-                                color: statusColor,
-                                fontSize: '0.85rem',
-                            }}
+                            className={clsx(styles.statusText, {
+                                [styles.statusClosed]: isClosed && !isOpened,
+                                [styles.statusOpened]: isOpened,
+                            })}
                         >
-                            {statusText}
+                            {isOpened ? 'Ouvert' : 'Fermé'}
                         </span>
                         {targetBadge}
                         {/* Message si mauvaise licence */}
                         {isOpened && !userCanRegister && availability.target !== 'all' && (
-                            <span
-                                style={{
-                                    fontSize: '0.75rem',
-                                    color: '#9CA3AF',
-                                }}
-                            >
+                            <span className={styles.licenceHint}>
                                 (licence {availability.target === 'competition' ? 'C' : 'L'}{' '}
                                 requise)
                             </span>
@@ -611,16 +381,7 @@ function NormalSlotRow({
                 isOpened ? (
                     <button
                         onClick={() => onCloseSlot(slot.id)}
-                        style={{
-                            width: '50px',
-                            border: 'none',
-                            background: '#FEE2E2',
-                            color: '#DC2626',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
+                        className={clsx(styles.actionBtn, styles.actionBtnClose)}
                         title="Fermer ce créneau"
                     >
                         <Lock size={18} />
@@ -628,30 +389,14 @@ function NormalSlotRow({
                 ) : isClosed ? (
                     <button
                         onClick={() => onSlotClick(slot.id)}
-                        style={{
-                            width: '50px',
-                            border: 'none',
-                            background: '#E0F2FE',
-                            color: '#0369A1',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
+                        className={clsx(styles.actionBtn, styles.actionBtnOpen)}
                         title="Ouvrir ce créneau"
                     >
                         <Unlock size={18} />
                     </button>
                 ) : (
                     <div
-                        style={{
-                            width: '50px',
-                            background: '#E5E7EB',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#9CA3AF',
-                        }}
+                        className={clsx(styles.actionBtn, styles.actionBtnLocked)}
                         title="Créneau géré par le template"
                     >
                         <Lock size={18} />
@@ -661,16 +406,7 @@ function NormalSlotRow({
             isParticipating ? (
                 <button
                     onClick={() => onUnregister(slot.id)}
-                    style={{
-                        width: '50px',
-                        border: 'none',
-                        background: '#22C55E',
-                        color: 'white',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnUnregister)}
                     title="Se désinscrire"
                 >
                     <X size={20} />
@@ -678,30 +414,14 @@ function NormalSlotRow({
             ) : userCanRegister && canReserveOnWeek ? (
                 <button
                     onClick={() => onSlotClick(slot.id)}
-                    style={{
-                        width: '50px',
-                        border: 'none',
-                        background: '#DCFCE7',
-                        color: '#22C55E',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnRegister)}
                     title="S'inscrire"
                 >
                     +
                 </button>
             ) : (
                 <div
-                    style={{
-                        width: '50px',
-                        background: '#E5E7EB',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#9CA3AF',
-                    }}
+                    className={clsx(styles.actionBtn, styles.actionBtnLocked)}
                     title={
                         isClosed
                             ? 'Créneau fermé'

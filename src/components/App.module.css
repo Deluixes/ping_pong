@@ -1,0 +1,76 @@
+.loading {
+    padding: 2rem;
+    text-align: center;
+}
+
+.header {
+    background: var(--color-primary);
+    color: white;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-md);
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.menuBtn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    color: white;
+    cursor: pointer;
+    display: flex;
+}
+
+.logoLink {
+    text-decoration: none;
+    color: white;
+}
+
+.logoTitle {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.bellLink {
+    position: relative;
+    color: white;
+    display: flex;
+}
+
+.notifBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.userName {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.main {
+    flex: 1;
+}

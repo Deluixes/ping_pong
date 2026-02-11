@@ -1,0 +1,322 @@
+/* ===== Main Container ===== */
+.slotList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* ===== BlockedSlotRow ===== */
+.blockedRow {
+    display: flex;
+    align-items: stretch;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.blockedRowCourse {
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+}
+
+.blockedRowCourseParticipating {
+    background: #f0fdf4;
+    border: 2px solid #22c55e;
+}
+
+.blockedRowTraining {
+    background: #f3f4f6;
+    border: 1px solid #e2e8f0;
+    opacity: 0.8;
+}
+
+/* ===== Time Label (shared base) ===== */
+.timeLabel {
+    width: 60px;
+    padding: 0.75rem 0.5rem;
+    color: white;
+    font-weight: bold;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.timeLabelCourse {
+    background: #3b82f6;
+}
+
+.timeLabelCourseParticipating {
+    background: #22c55e;
+}
+
+.timeLabelTraining {
+    background: #9ca3af;
+}
+
+/* ===== Slot Info ===== */
+.slotInfo {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+    cursor: default;
+}
+
+.slotInfoClickable {
+    cursor: pointer;
+}
+
+/* ===== Info Row ===== */
+.infoRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.courseInfoText {
+    color: #1d4ed8;
+}
+
+.trainingInfoText {
+    color: #6b7280;
+}
+
+/* ===== Badges & Text ===== */
+.infoBadge {
+    font-size: 0.7rem;
+    background: #dbeafe;
+    color: #1d4ed8;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+.coachText {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.groupBadge {
+    margin-left: 0.5rem;
+    background: #e5e7eb;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+/* ===== Participants List (blocked slots) ===== */
+.participantsList {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.participantName {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.pendingTag {
+    opacity: 0.7;
+}
+
+.adminDeleteBtn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0 2px;
+    display: inline-flex;
+}
+
+/* ===== Action Buttons (shared base) ===== */
+.actionBtn {
+    width: 50px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.actionBtnDelete {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.actionBtnLocked {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: default;
+}
+
+.actionBtnUnregister {
+    background: #22c55e;
+    color: white;
+}
+
+.actionBtnRegisterCourse {
+    background: #dbeafe;
+    color: #3b82f6;
+}
+
+/* ===== Misc (blocked) ===== */
+.pingPongIcon {
+    font-size: 1rem;
+}
+
+.slotName {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* ===== NormalSlotRow ===== */
+.normalRow {
+    display: flex;
+    align-items: stretch;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.normalRowParticipating {
+    background: #f0fdf4;
+    border: 2px solid #22c55e;
+}
+
+.normalRowOpened {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+}
+
+.normalRowClosed {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+
+.normalRowDefault {
+    background: var(--color-surface);
+    border: 1px solid #e2e8f0;
+}
+
+/* ===== Normal Time Labels ===== */
+.timeLabelParticipating {
+    background: #22c55e;
+    color: white;
+}
+
+.timeLabelOpened {
+    background: #22c55e;
+    color: white;
+}
+
+.timeLabelClosed {
+    background: #d1d5db;
+    color: #6b7280;
+}
+
+.timeLabelDefault {
+    background: var(--color-bg);
+    color: #6b7280;
+}
+
+/* ===== Participant Count ===== */
+.participantCount {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.participantCountOverbooked {
+    color: #ef4444;
+}
+
+.participantCountNormal {
+    color: var(--color-secondary);
+}
+
+.countText {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.pendingCount {
+    color: #9ca3af;
+    font-weight: normal;
+}
+
+.overbookedLabel {
+    font-size: 0.75rem;
+    color: #ef4444;
+    font-weight: 500;
+}
+
+/* ===== Target Badge ===== */
+.targetBadge {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.targetBadgeCompetition {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.targetBadgeLoisir {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+/* ===== Participant Names (normal slots) ===== */
+.participantNames {
+    font-size: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+/* ===== Status Text ===== */
+.statusText {
+    font-size: 0.85rem;
+}
+
+.statusClosed {
+    color: #9ca3af;
+}
+
+.statusOpened {
+    color: #22c55e;
+}
+
+/* ===== Licence Hint ===== */
+.licenceHint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+/* ===== Normal Action Buttons ===== */
+.actionBtnClose {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.actionBtnOpen {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.actionBtnRegister {
+    background: #dcfce7;
+    color: #22c55e;
+}

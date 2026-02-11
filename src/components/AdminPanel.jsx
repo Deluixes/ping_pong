@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import clsx from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { storageService, GROUP_NAME } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Check, X, UserCheck, UserX, Users, RefreshCw, Edit2, Award, Shield, Search } from 'lucide-react'
+import {
+    ArrowLeft,
+    Check,
+    X,
+    UserCheck,
+    UserX,
+    Users,
+    RefreshCw,
+    Edit2,
+    Award,
+    Shield,
+    Search,
+} from 'lucide-react'
+import styles from './AdminPanel.module.css'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
@@ -21,7 +35,7 @@ export default function AdminPanel() {
     const getAvailableRoles = () => {
         const roles = [
             { value: 'member', label: 'Membre' },
-            { value: 'admin_salles', label: 'Gestion Salle' }
+            { value: 'admin_salles', label: 'Gestion Salle' },
         ]
         // Seul super_admin peut créer des admins
         if (currentUser?.role === 'super_admin') {
@@ -93,7 +107,7 @@ export default function AdminPanel() {
         setEditForm({
             name: member.name,
             licenseType: member.licenseType,
-            role: member.role || 'member'
+            role: member.role || 'member',
         })
     }
 
@@ -111,7 +125,10 @@ export default function AdminPanel() {
             await storageService.updateMemberName(editingMember.userId, editForm.name.trim())
             // Mettre à jour le nom dans les réservations et invitations
             await storageService.updateUserNameInEvents(editingMember.userId, editForm.name.trim())
-            await storageService.updateUserNameInInvitations(editingMember.userId, editForm.name.trim())
+            await storageService.updateUserNameInInvitations(
+                editingMember.userId,
+                editForm.name.trim()
+            )
         }
 
         // Mettre à jour la licence
@@ -129,66 +146,48 @@ export default function AdminPanel() {
 
     // Filtre et regroupe les membres par catégorie
     const groupedMembers = useMemo(() => {
-        const filtered = members.approved.filter(m =>
-            m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            m.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        const filtered = members.approved.filter(
+            (m) =>
+                m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                m.email?.toLowerCase().includes(searchTerm.toLowerCase())
         )
 
         return {
-            admins: filtered.filter(m => m.role === 'super_admin' || m.role === 'admin'),
-            gestionnaires: filtered.filter(m => m.role === 'admin_salles'),
-            membres: filtered.filter(m => m.role === 'member' || !m.role)
+            admins: filtered.filter((m) => m.role === 'super_admin' || m.role === 'admin'),
+            gestionnaires: filtered.filter((m) => m.role === 'admin_salles'),
+            membres: filtered.filter((m) => m.role === 'member' || !m.role),
         }
     }, [members.approved, searchTerm])
 
     if (loading) {
-        return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+        return <div className={styles.loading}>Chargement...</div>
     }
 
     // Composant pour afficher un membre dans la liste
     const MemberRow = ({ member }) => (
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.75rem',
-                background: 'white',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid #E5E7EB'
-            }}
-        >
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className={styles.memberRow}>
+            <div className={styles.memberInfo}>
+                <div className={styles.memberName}>
                     {member.name}
                     {member.licenseType && (
-                        <span style={{
-                            fontSize: '0.7rem',
-                            background: member.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
-                            color: member.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
-                            padding: '2px 6px',
-                            borderRadius: '999px',
-                            fontWeight: 'bold'
-                        }}>
+                        <span
+                            className={clsx(
+                                styles.licenseBadge,
+                                member.licenseType === 'C'
+                                    ? styles.licenseBadgeC
+                                    : styles.licenseBadgeL
+                            )}
+                        >
                             {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
                         </span>
                     )}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {member.email}
-                </div>
+                <div className={styles.memberEmail}>{member.email}</div>
             </div>
 
             <button
                 onClick={() => openEditModal(member)}
-                style={{
-                    background: '#F3F4F6',
-                    color: '#374151',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.5rem',
-                    cursor: 'pointer'
-                }}
+                className={styles.editBtn}
                 title="Modifier"
             >
                 <Edit2 size={18} />
@@ -197,23 +196,16 @@ export default function AdminPanel() {
     )
 
     // Composant pour afficher une section de groupe
-    const GroupSection = ({ title, members, color, icon }) => {
+    const GroupSection = ({ title, members, titleClass, icon }) => {
         if (members.length === 0) return null
         return (
-            <div style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{
-                    fontSize: '0.9rem',
-                    marginBottom: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: color
-                }}>
+            <div className={styles.groupSection}>
+                <h3 className={clsx(styles.groupSectionTitle, titleClass)}>
                     {icon}
                     {title} ({members.length})
                 </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {members.map(member => (
+                <div className={styles.memberList}>
+                    {members.map((member) => (
                         <MemberRow key={member.userId} member={member} />
                     ))}
                 </div>
@@ -222,27 +214,16 @@ export default function AdminPanel() {
     }
 
     return (
-        <div style={{ paddingBottom: '2rem' }}>
+        <div className={styles.wrapper}>
             {/* Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '1.5rem',
-                marginTop: '1rem'
-            }}>
-                <button
-                    onClick={() => navigate('/')}
-                    className="btn"
-                    style={{ background: 'var(--color-bg)', padding: '0.5rem' }}
-                >
+            <div className="page-header">
+                <button onClick={() => navigate('/')} className="btn btn-back">
                     <ArrowLeft size={20} />
                 </button>
-                <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Gestion des membres</h1>
+                <h1 className="page-title">Gestion des membres</h1>
                 <button
                     onClick={handleRefresh}
-                    className="btn"
-                    style={{ marginLeft: 'auto', background: 'var(--color-bg)', padding: '0.5rem' }}
+                    className={clsx('btn btn-back', styles.refreshBtn)}
                     disabled={refreshing}
                 >
                     <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
@@ -250,79 +231,37 @@ export default function AdminPanel() {
             </div>
 
             {/* Group Name */}
-            <div style={{
-                background: 'var(--color-primary)',
-                color: 'white',
-                padding: '1rem',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: '1.5rem',
-                textAlign: 'center'
-            }}>
-                <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{GROUP_NAME}</h2>
+            <div className={styles.groupBanner}>
+                <h2 className={styles.groupBannerTitle}>{GROUP_NAME}</h2>
             </div>
 
             {/* Pending Requests */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-                <h2 style={{
-                    fontSize: '1rem',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: '#F59E0B'
-                }}>
+            <div className={clsx('card', styles.pendingCard)}>
+                <h2 className={clsx(styles.sectionTitle, styles.sectionTitleWarning)}>
                     <UserCheck size={18} />
                     Demandes en attente ({members.pending.length})
                 </h2>
 
                 {members.pending.length === 0 ? (
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>
-                        Aucune demande en attente
-                    </p>
+                    <p className={styles.emptyText}>Aucune demande en attente</p>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {members.pending.map(member => (
-                            <div
-                                key={member.userId}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    padding: '0.75rem',
-                                    background: '#FEF3C7',
-                                    borderRadius: 'var(--radius-md)'
-                                }}
-                            >
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '500' }}>{member.name}</div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {member.email}
-                                    </div>
+                    <div className={styles.memberList}>
+                        {members.pending.map((member) => (
+                            <div key={member.userId} className={styles.pendingRow}>
+                                <div className={styles.memberInfo}>
+                                    <div className={styles.memberName}>{member.name}</div>
+                                    <div className={styles.memberEmail}>{member.email}</div>
                                 </div>
                                 <button
                                     onClick={() => handleApprove(member.userId)}
-                                    style={{
-                                        background: '#10B981',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.5rem',
-                                        cursor: 'pointer'
-                                    }}
+                                    className={styles.approveBtn}
                                     title="Approuver"
                                 >
                                     <Check size={18} />
                                 </button>
                                 <button
                                     onClick={() => handleReject(member.userId)}
-                                    style={{
-                                        background: '#EF4444',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '0.5rem',
-                                        cursor: 'pointer'
-                                    }}
+                                    className={styles.rejectBtn}
                                     title="Refuser"
                                 >
                                     <X size={18} />
@@ -335,77 +274,53 @@ export default function AdminPanel() {
 
             {/* Approved Members */}
             <div className="card">
-                <h2 style={{
-                    fontSize: '1rem',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: '#10B981'
-                }}>
+                <h2 className={clsx(styles.sectionTitle, styles.sectionTitleSuccess)}>
                     <Users size={18} />
                     Membres approuvés ({members.approved.length})
                 </h2>
 
                 {/* Barre de recherche */}
-                <div style={{
-                    position: 'relative',
-                    marginBottom: '1rem'
-                }}>
-                    <Search
-                        size={18}
-                        style={{
-                            position: 'absolute',
-                            left: '0.75rem',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            color: '#9CA3AF'
-                        }}
-                    />
+                <div className={styles.searchWrapper}>
+                    <Search size={18} className={styles.searchIcon} />
                     <input
                         type="text"
                         placeholder="Rechercher un membre..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem 0.75rem 0.75rem 2.5rem',
-                            borderRadius: 'var(--radius-md)',
-                            border: '1px solid #E5E7EB',
-                            fontSize: '0.9rem'
-                        }}
+                        className={styles.searchInput}
                     />
                 </div>
 
                 {members.approved.length === 0 ? (
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>
-                        Aucun membre approuvé
-                    </p>
+                    <p className={styles.emptyText}>Aucun membre approuvé</p>
                 ) : (
                     <div>
                         <GroupSection
                             title="Administrateurs"
                             members={groupedMembers.admins}
-                            color="#1E40AF"
+                            titleClass={styles.groupSectionTitleAdmin}
                             icon={<Shield size={16} />}
                         />
                         <GroupSection
                             title="Gestionnaires salle"
                             members={groupedMembers.gestionnaires}
-                            color="#065F46"
+                            titleClass={styles.groupSectionTitleManager}
                             icon={<Users size={16} />}
                         />
                         <GroupSection
                             title="Membres"
                             members={groupedMembers.membres}
-                            color="#6B7280"
+                            titleClass={styles.groupSectionTitleMember}
                             icon={<Users size={16} />}
                         />
-                        {searchTerm && groupedMembers.admins.length === 0 && groupedMembers.gestionnaires.length === 0 && groupedMembers.membres.length === 0 && (
-                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>
-                                Aucun membre trouvé pour "{searchTerm}"
-                            </p>
-                        )}
+                        {searchTerm &&
+                            groupedMembers.admins.length === 0 &&
+                            groupedMembers.gestionnaires.length === 0 &&
+                            groupedMembers.membres.length === 0 && (
+                                <p className={styles.noResults}>
+                                    Aucun membre trouvé pour "{searchTerm}"
+                                </p>
+                            )}
                     </div>
                 )}
             </div>
@@ -413,105 +328,52 @@ export default function AdminPanel() {
             {/* Modal d'édition */}
             {editingMember && (
                 <>
-                    <div
-                        onClick={closeEditModal}
-                        style={{
-                            position: 'fixed',
-                            top: 0, left: 0, right: 0, bottom: 0,
-                            background: 'rgba(0,0,0,0.5)',
-                            zIndex: 1000
-                        }}
-                    />
-                    <div style={{
-                        position: 'fixed',
-                        top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        background: 'white',
-                        borderRadius: 'var(--radius-lg)',
-                        padding: '1.5rem',
-                        width: '90%',
-                        maxWidth: '400px',
-                        zIndex: 1001,
-                        boxShadow: 'var(--shadow-lg)'
-                    }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '1.5rem'
-                        }}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Modifier le membre</h3>
-                            <button
-                                onClick={closeEditModal}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                            >
+                    <div onClick={closeEditModal} className="modal-overlay" />
+                    <div className="modal-dialog modal-dialog--centered">
+                        <div className="modal-header">
+                            <h3 className={styles.modalTitle}>Modifier le membre</h3>
+                            <button onClick={closeEditModal} className="icon-btn">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label style={{
-                                display: 'block',
-                                marginBottom: '0.5rem',
-                                fontWeight: '500',
-                                fontSize: '0.9rem'
-                            }}>
-                                Prénom Nom
-                            </label>
+                        <div className={styles.formGroup}>
+                            <label className="form-label">Prénom Nom</label>
                             <input
                                 type="text"
                                 value={editForm.name}
                                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid #DDD',
-                                    fontSize: '1rem'
-                                }}
+                                className="form-input"
                             />
                         </div>
 
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label style={{
-                                display: 'block',
-                                marginBottom: '0.5rem',
-                                fontWeight: '500',
-                                fontSize: '0.9rem'
-                            }}>
-                                <Award size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                        <div className={styles.formGroup}>
+                            <label className="form-label">
+                                <Award size={14} className="label-icon" />
                                 Type de licence
                             </label>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className={styles.licenseRow}>
                                 <button
                                     type="button"
                                     onClick={() => setEditForm({ ...editForm, licenseType: 'L' })}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: `2px solid ${editForm.licenseType === 'L' ? 'var(--color-primary)' : '#DDD'}`,
-                                        background: editForm.licenseType === 'L' ? '#EFF6FF' : 'white',
-                                        cursor: 'pointer',
-                                        fontWeight: editForm.licenseType === 'L' ? '600' : '400',
-                                        color: editForm.licenseType === 'L' ? 'var(--color-primary)' : 'var(--color-text)'
-                                    }}
+                                    className={clsx(
+                                        styles.licenseBtn,
+                                        editForm.licenseType === 'L'
+                                            ? styles.licenseBtnActive
+                                            : styles.licenseBtnInactive
+                                    )}
                                 >
                                     Loisir (L)
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setEditForm({ ...editForm, licenseType: 'C' })}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: `2px solid ${editForm.licenseType === 'C' ? 'var(--color-primary)' : '#DDD'}`,
-                                        background: editForm.licenseType === 'C' ? '#EFF6FF' : 'white',
-                                        cursor: 'pointer',
-                                        fontWeight: editForm.licenseType === 'C' ? '600' : '400',
-                                        color: editForm.licenseType === 'C' ? 'var(--color-primary)' : 'var(--color-text)'
-                                    }}
+                                    className={clsx(
+                                        styles.licenseBtn,
+                                        editForm.licenseType === 'C'
+                                            ? styles.licenseBtnActive
+                                            : styles.licenseBtnInactive
+                                    )}
                                 >
                                     Compétition (C)
                                 </button>
@@ -520,47 +382,37 @@ export default function AdminPanel() {
 
                         {/* Sélecteur de rôle - seulement si l'utilisateur peut modifier */}
                         {canEditMemberRole(editingMember) && (
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '0.5rem',
-                                    fontWeight: '500',
-                                    fontSize: '0.9rem'
-                                }}>
-                                    <Shield size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                            <div className={styles.formGroupLg}>
+                                <label className="form-label">
+                                    <Shield size={14} className="label-icon" />
                                     Rôle
                                 </label>
                                 <select
                                     value={editForm.role}
-                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid #DDD',
-                                        fontSize: '1rem',
-                                        background: 'white'
-                                    }}
+                                    onChange={(e) =>
+                                        setEditForm({ ...editForm, role: e.target.value })
+                                    }
+                                    className="form-input"
                                 >
-                                    {getAvailableRoles().map(r => (
-                                        <option key={r.value} value={r.value}>{r.label}</option>
+                                    {getAvailableRoles().map((r) => (
+                                        <option key={r.value} value={r.value}>
+                                            {r.label}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <div className={styles.modalActions}>
                             <button
                                 onClick={closeEditModal}
-                                className="btn"
-                                style={{ flex: 1, background: 'var(--color-bg)' }}
+                                className={clsx('btn', styles.cancelBtn)}
                             >
                                 Annuler
                             </button>
                             <button
                                 onClick={handleSaveEdit}
-                                className="btn btn-primary"
-                                style={{ flex: 1 }}
+                                className={clsx('btn btn-primary', styles.saveBtn)}
                                 disabled={savingEdit || !editForm.name.trim()}
                             >
                                 {savingEdit ? 'Enregistrement...' : 'Enregistrer'}
@@ -568,28 +420,18 @@ export default function AdminPanel() {
                         </div>
 
                         {/* Bouton supprimer - seulement si pas soi-même */}
-                        {editingMember?.userId !== currentUser?.id && canEditMemberRole(editingMember) && (
-                            <button
-                                onClick={() => handleRemove(editingMember.userId, editingMember.name)}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: '#FEE2E2',
-                                    color: '#991B1B',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                <UserX size={16} />
-                                Supprimer du groupe
-                            </button>
-                        )}
+                        {editingMember?.userId !== currentUser?.id &&
+                            canEditMemberRole(editingMember) && (
+                                <button
+                                    onClick={() =>
+                                        handleRemove(editingMember.userId, editingMember.name)
+                                    }
+                                    className={styles.removeBtn}
+                                >
+                                    <UserX size={16} />
+                                    Supprimer du groupe
+                                </button>
+                            )}
                     </div>
                 </>
             )}

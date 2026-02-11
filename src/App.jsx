@@ -15,11 +15,12 @@ import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
 import { GROUP_NAME, storageService } from './services/storage'
 import { Menu, Bell } from 'lucide-react'
+import styles from './components/App.module.css'
 
 function PrivateRoute({ children, requireApproval = true, allowPasswordChange = false }) {
     const { user, loading, memberStatus, mustChangePassword } = useAuth()
 
-    if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+    if (loading) return <div className={styles.loading}>Chargement...</div>
     if (!user) return <Navigate to="/login" />
 
     // Force password change for migrated users (unless on password change page)
@@ -38,7 +39,7 @@ function PrivateRoute({ children, requireApproval = true, allowPasswordChange = 
 function AdminRoute({ children }) {
     const { user, loading } = useAuth()
 
-    if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+    if (loading) return <div className={styles.loading}>Chargement...</div>
     if (!user) return <Navigate to="/login" />
     if (!user.isAdmin) return <Navigate to="/" />
 
@@ -76,71 +77,29 @@ function AppContent() {
                 <>
                     <SlideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-                    <header
-                        style={{
-                            background: 'var(--color-primary)',
-                            color: 'white',
-                            padding: '0.75rem 1rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            boxShadow: 'var(--shadow-md)',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <button
-                                onClick={() => setMenuOpen(true)}
-                                style={{
-                                    background: 'rgba(255,255,255,0.2)',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.5rem',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                }}
-                            >
+                    <header className={styles.header}>
+                        <div className={styles.headerLeft}>
+                            <button onClick={() => setMenuOpen(true)} className={styles.menuBtn}>
                                 <Menu size={22} />
                             </button>
-                            <Link to="/" style={{ textDecoration: 'none', color: 'white' }}>
-                                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>
-                                    🏓 {GROUP_NAME}
-                                </h2>
+                            <Link to="/" className={styles.logoLink}>
+                                <h2 className={styles.logoTitle}>🏓 {GROUP_NAME}</h2>
                             </Link>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Link
-                                to="/invitations"
-                                style={{ position: 'relative', color: 'white', display: 'flex' }}
-                            >
+                        <div className={styles.headerRight}>
+                            <Link to="/invitations" className={styles.bellLink}>
                                 <Bell size={20} />
                                 {notificationCount > 0 && (
-                                    <span
-                                        style={{
-                                            position: 'absolute',
-                                            top: '-5px',
-                                            right: '-5px',
-                                            background: '#EF4444',
-                                            color: 'white',
-                                            fontSize: '0.7rem',
-                                            fontWeight: 'bold',
-                                            padding: '2px 5px',
-                                            borderRadius: '10px',
-                                            minWidth: '16px',
-                                            textAlign: 'center',
-                                        }}
-                                    >
-                                        {notificationCount}
-                                    </span>
+                                    <span className={styles.notifBadge}>{notificationCount}</span>
                                 )}
                             </Link>
-                            <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>{user?.name}</span>
+                            <span className={styles.userName}>{user?.name}</span>
                         </div>
                     </header>
                 </>
             )}
 
-            <main className="container" style={{ flex: 1 }}>
+            <main className={styles.main}>
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route

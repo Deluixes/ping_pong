@@ -1,0 +1,106 @@
+.wrapper {
+    padding-bottom: 2rem;
+}
+
+.refreshBtn {
+    margin-left: auto;
+}
+
+.loading {
+    padding: 2rem;
+    text-align: center;
+}
+
+.emptyCard {
+    text-align: center;
+    padding: 2rem;
+}
+
+.emptyIcon {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+.emptyText {
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.invCard {
+    padding: 1rem;
+}
+
+.invInfo {
+    margin-bottom: 0.75rem;
+}
+
+.invDate {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.invSlot {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.invBy {
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.invActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.calendarBtn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.acceptBtn {
+    flex: 1;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.declineBtn {
+    flex: 1;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}

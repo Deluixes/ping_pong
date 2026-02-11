@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Lock, Check, ArrowLeft, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react'
+import clsx from 'clsx'
+import styles from './Login.module.css'
 
 export default function Login() {
     const [activeTab, setActiveTab] = useState('login') // 'login' | 'signup'
@@ -18,7 +20,7 @@ export default function Login() {
 
     // Attendre que le chargement soit terminé avant de décider quoi afficher
     if (loading) {
-        return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+        return <div className={styles.loading}>Chargement...</div>
     }
 
     if (user) {
@@ -70,8 +72,11 @@ export default function Login() {
 
             if (result.success) {
                 setStep('sent')
-            } else if (result.error?.includes('already registered') || result.error?.includes('User already registered')) {
-                setError('Cet email est déjà inscrit. Utilisez l\'onglet Connexion.')
+            } else if (
+                result.error?.includes('already registered') ||
+                result.error?.includes('User already registered')
+            ) {
+                setError("Cet email est déjà inscrit. Utilisez l'onglet Connexion.")
                 setActiveTab('login')
             }
         } else {
@@ -131,76 +136,53 @@ export default function Login() {
     }
 
     return (
-        <div className="login-container" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '80vh',
-            padding: '2rem'
-        }}>
-            <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
-
+        <div className={styles.container}>
+            <div className={clsx('card', styles.cardWrapper)}>
                 {step === 'form' && (
                     <>
                         {/* Logo */}
-                        <div style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--color-primary)' }}>
+                        <div className={styles.logoSection}>
                             <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
                                 <circle cx="24" cy="24" r="20" fill="var(--color-primary)" />
-                                <rect x="38" y="38" width="8" height="22" rx="4" fill="var(--color-secondary)" transform="rotate(-45 38 38)" />
-                                <circle cx="50" cy="14" r="6" fill="white" stroke="var(--color-secondary)" strokeWidth="2" />
+                                <rect
+                                    x="38"
+                                    y="38"
+                                    width="8"
+                                    height="22"
+                                    rx="4"
+                                    fill="var(--color-secondary)"
+                                    transform="rotate(-45 38 38)"
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="14"
+                                    r="6"
+                                    fill="white"
+                                    stroke="var(--color-secondary)"
+                                    strokeWidth="2"
+                                />
                             </svg>
-                            <h1 style={{ marginTop: '0.75rem', fontSize: '1.4rem' }}>Ping Pong Club</h1>
+                            <h1 className={styles.logoTitle}>Ping Pong Club</h1>
                         </div>
 
                         {/* Tabs */}
-                        <div style={{
-                            display: 'flex',
-                            marginBottom: '1.5rem',
-                            background: 'var(--color-bg)',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '4px'
-                        }}>
+                        <div className="tab-bar">
                             <button
                                 onClick={() => switchTab('login')}
-                                style={{
-                                    flex: 1,
-                                    padding: '0.75rem',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-md)',
-                                    background: activeTab === 'login' ? 'white' : 'transparent',
-                                    color: activeTab === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                                    fontWeight: activeTab === 'login' ? '600' : '400',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    boxShadow: activeTab === 'login' ? 'var(--shadow-sm)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
+                                className={clsx(
+                                    'tab-btn',
+                                    activeTab === 'login' && 'tab-btn--active'
+                                )}
                             >
                                 <LogIn size={16} />
                                 Connexion
                             </button>
                             <button
                                 onClick={() => switchTab('signup')}
-                                style={{
-                                    flex: 1,
-                                    padding: '0.75rem',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-md)',
-                                    background: activeTab === 'signup' ? 'white' : 'transparent',
-                                    color: activeTab === 'signup' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                                    fontWeight: activeTab === 'signup' ? '600' : '400',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    boxShadow: activeTab === 'signup' ? 'var(--shadow-sm)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
+                                className={clsx(
+                                    'tab-btn',
+                                    activeTab === 'signup' && 'tab-btn--active'
+                                )}
                             >
                                 <UserPlus size={16} />
                                 Inscription
@@ -210,82 +192,47 @@ export default function Login() {
                         <form onSubmit={handleSubmit}>
                             {/* Name field (only for signup) */}
                             {activeTab === 'signup' && (
-                                <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                                        Prénom Nom
-                                    </label>
+                                <div className={styles.formGroup}>
+                                    <label className="form-label">Prénom Nom</label>
                                     <input
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="Jean Dupont"
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: '1px solid #DDD',
-                                            fontSize: '1rem'
-                                        }}
+                                        className="form-input"
                                     />
                                 </div>
                             )}
 
                             {/* Email field */}
-                            <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                                    Email
-                                </label>
+                            <div className={styles.formGroup}>
+                                <label className="form-label">Email</label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="jean@example.com"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid #DDD',
-                                        fontSize: '1rem'
-                                    }}
+                                    className="form-input"
                                     required
                                 />
                             </div>
 
                             {/* Password field */}
-                            <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                                    Mot de passe
-                                </label>
-                                <div style={{ position: 'relative' }}>
+                            <div className={styles.formGroup}>
+                                <label className="form-label">Mot de passe</label>
+                                <div className={styles.passwordWrapper}>
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            paddingRight: '2.5rem',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: '1px solid #DDD',
-                                            fontSize: '1rem'
-                                        }}
+                                        className={clsx('form-input', styles.passwordInput)}
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        style={{
-                                            position: 'absolute',
-                                            right: '0.75rem',
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            background: 'none',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            color: 'var(--color-text-muted)',
-                                            padding: '0.25rem'
-                                        }}
+                                        className={clsx('icon-btn', styles.eyeToggle)}
                                     >
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
@@ -294,22 +241,14 @@ export default function Login() {
 
                             {/* Confirm password field (only for signup) */}
                             {activeTab === 'signup' && (
-                                <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                                        Confirmer le mot de passe
-                                    </label>
+                                <div className={styles.formGroup}>
+                                    <label className="form-label">Confirmer le mot de passe</label>
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         placeholder="••••••••"
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: '1px solid #DDD',
-                                            fontSize: '1rem'
-                                        }}
+                                        className="form-input"
                                         required
                                     />
                                 </div>
@@ -317,18 +256,11 @@ export default function Login() {
 
                             {/* Forgot password link (only for login) */}
                             {activeTab === 'login' && (
-                                <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+                                <div className={styles.forgotPasswordRow}>
                                     <button
                                         type="button"
                                         onClick={goToForgotPassword}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--color-primary)',
-                                            cursor: 'pointer',
-                                            fontSize: '0.85rem',
-                                            textDecoration: 'underline'
-                                        }}
+                                        className={styles.forgotPasswordLink}
                                     >
                                         Mot de passe oublié ?
                                     </button>
@@ -337,32 +269,27 @@ export default function Login() {
 
                             {/* Error message */}
                             {(error || authError) && (
-                                <div style={{
-                                    background: '#FEE2E2',
-                                    border: '1px solid #EF4444',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.75rem',
-                                    marginBottom: '1rem',
-                                    color: '#991B1B',
-                                    fontSize: '0.85rem'
-                                }}>
+                                <div className={clsx('alert', 'alert--error', styles.alertBox)}>
                                     {error || authError}
                                 </div>
                             )}
 
                             <button
                                 type="submit"
-                                className="btn btn-primary"
-                                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                className={clsx('btn', 'btn-primary', styles.submitBtn)}
                                 disabled={isSubmitting}
                             >
                                 <Lock size={18} />
-                                {isSubmitting ? 'Chargement...' : (activeTab === 'login' ? 'Se connecter' : 'Créer un compte')}
+                                {isSubmitting
+                                    ? 'Chargement...'
+                                    : activeTab === 'login'
+                                      ? 'Se connecter'
+                                      : 'Créer un compte'}
                             </button>
                         </form>
 
                         {activeTab === 'signup' && (
-                            <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                            <p className={styles.signupHint}>
                                 Le mot de passe doit contenir au moins 8 caractères.
                             </p>
                         )}
@@ -370,51 +297,24 @@ export default function Login() {
                 )}
 
                 {step === 'sent' && (
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{
-                            width: '80px',
-                            height: '80px',
-                            borderRadius: '50%',
-                            background: '#D1FAE5',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 1.5rem'
-                        }}>
+                    <div className={styles.sentWrapper}>
+                        <div className={styles.sentIcon}>
                             <Check size={40} color="#059669" />
                         </div>
 
-                        <h2 style={{ marginBottom: '1rem', color: 'var(--color-secondary)' }}>
-                            Compte créé !
-                        </h2>
+                        <h2 className={styles.sentTitle}>Compte créé !</h2>
 
-                        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+                        <p className={styles.sentText}>
                             Un email de confirmation a été envoyé à<br />
-                            <strong style={{ color: 'var(--color-text)' }}>{email}</strong>
+                            <strong className={styles.sentEmailHighlight}>{email}</strong>
                         </p>
 
-                        <div style={{
-                            background: 'var(--color-bg)',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '1rem',
-                            marginBottom: '1.5rem',
-                            fontSize: '0.9rem'
-                        }}>
-                            Vérifiez votre boîte mail (et les spams) pour confirmer votre inscription.
+                        <div className={styles.sentInfoBox}>
+                            Vérifiez votre boîte mail (et les spams) pour confirmer votre
+                            inscription.
                         </div>
 
-                        <button
-                            onClick={resetForm}
-                            className="btn"
-                            style={{
-                                width: '100%',
-                                background: 'var(--color-bg)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.5rem'
-                            }}
-                        >
+                        <button onClick={resetForm} className={clsx('btn', styles.backBtn)}>
                             <ArrowLeft size={18} />
                             Retour à la connexion
                         </button>
@@ -423,69 +323,48 @@ export default function Login() {
 
                 {step === 'forgot' && (
                     <div>
-                        <h2 style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                            Mot de passe oublié
-                        </h2>
+                        <h2 className={styles.forgotTitle}>Mot de passe oublié</h2>
 
-                        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
+                        <p className={styles.forgotText}>
                             Entrez votre email pour recevoir un lien de réinitialisation.
                         </p>
 
                         <form onSubmit={handleForgotPassword}>
-                            <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                                    Email
-                                </label>
+                            <div className={styles.formGroupLg}>
+                                <label className="form-label">Email</label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="jean@example.com"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid #DDD',
-                                        fontSize: '1rem'
-                                    }}
+                                    className="form-input"
                                     required
                                 />
                             </div>
 
                             {/* Error message */}
                             {(error || authError) && (
-                                <div style={{
-                                    background: '#FEE2E2',
-                                    border: '1px solid #EF4444',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.75rem',
-                                    marginBottom: '1rem',
-                                    color: '#991B1B',
-                                    fontSize: '0.85rem'
-                                }}>
+                                <div className={clsx('alert', 'alert--error', styles.alertBox)}>
                                     {error || authError}
                                 </div>
                             )}
 
                             {/* Success message */}
                             {successMessage && (
-                                <div style={{
-                                    background: '#D1FAE5',
-                                    border: '1px solid #059669',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '0.75rem',
-                                    marginBottom: '1rem',
-                                    color: '#065F46',
-                                    fontSize: '0.85rem'
-                                }}>
+                                <div
+                                    className={clsx(
+                                        'alert',
+                                        'alert--success',
+                                        styles.alertBoxSuccess
+                                    )}
+                                >
                                     {successMessage}
                                 </div>
                             )}
 
                             <button
                                 type="submit"
-                                className="btn btn-primary"
-                                style={{ width: '100%', marginBottom: '1rem' }}
+                                className={clsx('btn', 'btn-primary', styles.forgotSubmitBtn)}
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? 'Envoi...' : 'Envoyer le lien'}
@@ -494,15 +373,7 @@ export default function Login() {
                             <button
                                 type="button"
                                 onClick={resetForm}
-                                className="btn"
-                                style={{
-                                    width: '100%',
-                                    background: 'var(--color-bg)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
+                                className={clsx('btn', styles.backBtn)}
                             >
                                 <ArrowLeft size={18} />
                                 Retour à la connexion

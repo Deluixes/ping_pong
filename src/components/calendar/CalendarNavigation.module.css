@@ -1,0 +1,137 @@
+/* Week Navigation */
+.weekNav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    background: var(--color-surface);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.weekNavBtn {
+    background: var(--color-bg);
+    padding: 0.5rem;
+}
+
+.weekNavTitle {
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+/* Day Selector */
+.daySelector {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.dayBtn {
+    flex: 0 0 auto;
+    min-width: 70px;
+    padding: 0.75rem 0.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #e2e8f0;
+    background: var(--color-surface);
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+}
+
+.dayBtnSelected {
+    border: 2px solid var(--color-primary);
+    background: var(--color-primary);
+    color: white;
+}
+
+.dayLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.dayNumber {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.todayDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    margin-top: 2px;
+}
+
+.participantBadge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--color-primary);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.participantBadgeSelected {
+    background: white;
+    color: var(--color-primary);
+}
+
+/* Warning Banner */
+.warningContent {
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.warningText {
+    font-size: 0.9rem;
+}
+
+/* View Mode Selector */
+.viewModeWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.viewModeSelect {
+    padding: 0.5rem 1.5rem 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.viewModeEdit {
+    background: #fee2e2;
+    color: #991b1b;
+    font-weight: 500;
+}
+
+.viewModeManageSlots {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 500;
+}

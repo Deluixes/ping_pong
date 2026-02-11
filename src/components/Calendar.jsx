@@ -18,6 +18,7 @@ import ParticipantsModal from './calendar/ParticipantsModal'
 import CalendarNavigation from './calendar/CalendarNavigation'
 import WeekViewGrid from './calendar/WeekViewGrid'
 import DayViewSlots from './calendar/DayViewSlots'
+import styles from './Calendar.module.css'
 
 export default function Calendar() {
     const { user } = useAuth()
@@ -735,12 +736,11 @@ export default function Calendar() {
 
     if (loading) {
         return (
-            <div className="text-center mt-4">
+            <div className={styles.loading}>
                 <p>Chargement du planning...</p>
                 <button
                     onClick={() => window.location.reload()}
-                    className="btn"
-                    style={{ marginTop: '1rem' }}
+                    className={`btn ${styles.reloadBtn}`}
                 >
                     Recharger la page
                 </button>
@@ -753,7 +753,7 @@ export default function Calendar() {
     const isCurrentSlotOverbooked = currentSlotAccepted >= maxPersons
 
     return (
-        <div className="calendar-view" style={{ paddingBottom: '2rem' }}>
+        <div className={styles.wrapper}>
             <RegistrationModal
                 modalStep={modalStep}
                 selectedSlotId={selectedSlotId}
