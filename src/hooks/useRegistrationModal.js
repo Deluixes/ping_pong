@@ -5,6 +5,9 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { MAX_GUESTS } from '../constants'
 import { TIME_SLOTS, DURATION_OPTIONS } from '../components/calendar/calendarUtils'
+import { useSlotManagement } from './useSlotManagement'
+import { useParticipantsModal } from './useParticipantsModal'
+import { getViewOptions } from './getViewOptions'
 
 export function useRegistrationModal({ user, selectedDate, slotHelpers, calendarData }) {
     const { addToast } = useToast()
@@ -17,107 +20,49 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         isUserOnSlot,
         getUserRegistration,
         getAvailableDurations,
-        getAvailableOpenDurations,
         getBlockedSlotInfo,
         isSlotAvailable,
         canUserRegister,
     } = slotHelpers
 
-    const {
-        loadData,
-        loadInvitations,
-        loadOpenedSlots,
-        loadWeekConfig,
-        approvedMembers,
-        maxPersons,
-        isWeekConfigured,
-    } = calendarData
+    const { loadData, loadInvitations, maxPersons, isWeekConfigured } = calendarData
 
     const isAdmin = user?.isAdmin
     const canManageSlots = user?.isAdminSalles
 
-    // Modal state - inscription
+    // ==================== REGISTRATION STATE ====================
+
     const [modalStep, setModalStep] = useState(null)
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
     const [guests, setGuests] = useState([{ odId: '', name: '' }])
     const [inviteOnlyMode, setInviteOnlyMode] = useState(false)
 
-    // Modal choix d'action et liste joueurs
-    const [showActionChoice, setShowActionChoice] = useState(false)
-    const [showParticipantsList, setShowParticipantsList] = useState(false)
-    const [participantsToShow, setParticipantsToShow] = useState([])
-
-    // Modal ouverture creneau
-    const [showOpenSlotModal, setShowOpenSlotModal] = useState(false)
-    const [slotToOpen, setSlotToOpen] = useState(null)
-    const [selectedTarget, setSelectedTarget] = useState('all')
-    const [selectedOpenDuration, setSelectedOpenDuration] = useState(1)
-
     // Valeurs derivees
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
     const currentSlotAccepted = selectedSlotId ? getAcceptedParticipantCount(selectedSlotId) : 0
     const isCurrentSlotOverbooked = currentSlotAccepted >= maxPersons
 
-    // Options de vue selon le role
-    const getViewOptions = () => {
-        const options = [
-            { value: 'occupied', label: 'Vue des créneaux ouverts' },
-            { value: 'all', label: 'Vue de tous les créneaux' },
-            { value: 'week', label: 'Vue semaine' },
-        ]
-        if (canManageSlots) {
-            options.push({ value: 'manage_slots', label: 'Ouverture/Fermeture de créneaux' })
-        }
-        if (isAdmin && isWeekConfigured) {
-            options.push({ value: 'edit', label: 'Modification depuis le planning' })
-        }
-        return options
-    }
+    // ==================== SUB-HOOKS ====================
+
+    const slotMgmt = useSlotManagement({ user, selectedDate, slotHelpers, calendarData })
+
+    const participantsModal = useParticipantsModal({
+        slotHelpers,
+        calendarData,
+        onStartRegistration: ({ inviteOnly }) => {
+            setInviteOnlyMode(inviteOnly)
+            setGuests([{ odId: '', name: '' }])
+            if (inviteOnly) {
+                setModalStep('guests')
+            } else {
+                setSelectedDuration(null)
+                setModalStep('duration')
+            }
+        },
+    })
 
     // ==================== HANDLERS ====================
-
-    const handleOpenSlot = async () => {
-        if (!slotToOpen || !canManageSlots) return
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const startIndex = getSlotIndex(slotToOpen)
-        const openPromises = []
-        for (let i = 0; i < selectedOpenDuration; i++) {
-            const slot = TIME_SLOTS[startIndex + i]
-            if (slot) {
-                openPromises.push(
-                    storageService.openSlot(dateStr, slot.id, user.id, selectedTarget)
-                )
-            }
-        }
-        await Promise.all(openPromises)
-        setShowOpenSlotModal(false)
-        setSlotToOpen(null)
-        setSelectedTarget('all')
-        setSelectedOpenDuration(1)
-        await loadOpenedSlots()
-    }
-
-    const handleCloseSlot = async (slotId) => {
-        if (!canManageSlots) return
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const participants = getParticipants(slotId)
-        if (participants.length > 0) {
-            const confirmed = await confirm({
-                title: 'Fermer le créneau',
-                message:
-                    `${participants.length} personne(s) inscrite(s) sur ce créneau :\n` +
-                    participants.map((p) => `- ${p.name}`).join('\n') +
-                    `\n\nVoulez-vous vraiment fermer ce créneau ?\nLeurs réservations seront supprimées.`,
-                confirmLabel: 'Fermer',
-            })
-            if (!confirmed) return
-            await storageService.deleteReservationsForSlot(dateStr, slotId)
-            await loadData()
-        }
-        await storageService.closeSlot(dateStr, slotId)
-        await loadOpenedSlots()
-    }
 
     const handleSlotClick = (slotId) => {
         const userReg = getUserRegistration(slotId)
@@ -129,7 +74,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                 DURATION_OPTIONS.find((d) => d.slots === userReg?.duration) || DURATION_OPTIONS[0]
             )
             if (participants.length > 0) {
-                setShowActionChoice(true)
+                participantsModal.setShowActionChoice(true)
                 return
             }
             setInviteOnlyMode(true)
@@ -145,9 +90,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         const availability = isSlotAvailable(slotId)
         if (!availability.available) {
             if (canManageSlots) {
-                setSlotToOpen(slotId)
-                setSelectedTarget('all')
-                setShowOpenSlotModal(true)
+                slotMgmt.openSlotModal(slotId)
             } else {
                 addToast("Ce créneau n'est pas ouvert aux réservations.", 'warning')
             }
@@ -173,49 +116,13 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
         if (participants.length > 0) {
             setSelectedSlotId(slotId)
-            handleShowParticipants(slotId)
+            participantsModal.handleShowParticipants(slotId)
             return
         }
 
         setSelectedSlotId(slotId)
         setSelectedDuration(null)
         setModalStep('duration')
-    }
-
-    const handleShowParticipants = async (slotId) => {
-        const participants = getParticipants(slotId)
-        const enrichedParticipants = await Promise.all(
-            participants.map(async (p) => {
-                const member = approvedMembers.find((m) => m.userId === p.id)
-                return {
-                    ...p,
-                    profilePhotoUrl: p.id ? await storageService.getProfilePhotoUrl(p.id) : null,
-                    licenseType: member?.licenseType || null,
-                }
-            })
-        )
-        setParticipantsToShow(enrichedParticipants)
-        setShowParticipantsList(true)
-        setShowActionChoice(false)
-    }
-
-    const handleOpenInviteModal = () => {
-        setShowActionChoice(false)
-        setInviteOnlyMode(true)
-        setGuests([{ odId: '', name: '' }])
-        setModalStep('guests')
-    }
-
-    const handleDeleteWeekSlot = async (slotId) => {
-        if (!isAdmin) return
-        const confirmed = await confirm({
-            title: 'Supprimer le créneau',
-            message: 'Supprimer ce créneau de cette semaine ?',
-            confirmLabel: 'Supprimer',
-        })
-        if (!confirmed) return
-        await storageService.deleteWeekSlot(slotId)
-        await loadWeekConfig()
     }
 
     const handleGuestUnregister = async (slotId) => {
@@ -246,7 +153,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     }
 
     const updateGuest = (index, odId) => {
-        const member = approvedMembers.find((m) => m.userId === odId)
+        const member = calendarData.approvedMembers.find((m) => m.userId === odId)
         const newGuests = [...guests]
         newGuests[index] = { odId, name: member?.name || '' }
         setGuests(newGuests)
@@ -378,24 +285,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         setInviteOnlyMode(false)
     }
 
-    // Intent-based handlers (remplace les setters exposes)
-    const openRegistrationFromParticipants = () => {
-        setShowParticipantsList(false)
-        setSelectedDuration(null)
-        setModalStep('duration')
-        setInviteOnlyMode(false)
-    }
-
-    const openInviteOnlyFromParticipants = () => {
-        setShowParticipantsList(false)
-        setSelectedDuration(null)
-        setModalStep('duration')
-        setInviteOnlyMode(true)
-    }
-
-    const closeParticipantsModal = () => setShowParticipantsList(false)
-    const closeActionChoiceModal = () => setShowActionChoice(false)
-    const closeOpenSlotModal = () => setShowOpenSlotModal(false)
+    // ==================== PUBLIC API (identique a l'ancienne) ====================
 
     return {
         // Modal inscription
@@ -408,23 +298,23 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         currentSlotAccepted,
         isCurrentSlotOverbooked,
 
-        // Modal participants
-        showParticipantsList,
-        participantsToShow,
+        // Modal participants (delegue)
+        showParticipantsList: participantsModal.showParticipantsList,
+        participantsToShow: participantsModal.participantsToShow,
 
-        // Modal choix d'action
-        showActionChoice,
+        // Modal choix d'action (delegue)
+        showActionChoice: participantsModal.showActionChoice,
 
-        // Modal ouverture creneau
-        showOpenSlotModal,
-        slotToOpen,
-        selectedTarget,
-        selectedOpenDuration,
+        // Modal ouverture creneau (delegue)
+        showOpenSlotModal: slotMgmt.showOpenSlotModal,
+        slotToOpen: slotMgmt.slotToOpen,
+        selectedTarget: slotMgmt.selectedTarget,
+        selectedOpenDuration: slotMgmt.selectedOpenDuration,
 
         // Handlers
         handleSlotClick,
-        handleShowParticipants,
-        handleOpenInviteModal,
+        handleShowParticipants: participantsModal.handleShowParticipants,
+        handleOpenInviteModal: participantsModal.handleOpenInviteModal,
         handleDurationSelect,
         handleModeChoice,
         addGuestField,
@@ -433,22 +323,22 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         handleRegister,
         handleUnregister,
         handleAdminDelete,
-        handleOpenSlot,
-        handleCloseSlot,
-        handleDeleteWeekSlot,
+        handleOpenSlot: slotMgmt.handleOpenSlot,
+        handleCloseSlot: slotMgmt.handleCloseSlot,
+        handleDeleteWeekSlot: slotMgmt.handleDeleteWeekSlot,
         closeModal,
-        getViewOptions,
+        getViewOptions: () => getViewOptions({ canManageSlots, isAdmin, isWeekConfigured }),
 
-        // Intent-based modal handlers
-        openRegistrationFromParticipants,
-        openInviteOnlyFromParticipants,
-        closeParticipantsModal,
-        closeActionChoiceModal,
-        closeOpenSlotModal,
+        // Intent-based modal handlers (delegues)
+        openRegistrationFromParticipants: participantsModal.openRegistrationFromParticipants,
+        openInviteOnlyFromParticipants: participantsModal.openInviteOnlyFromParticipants,
+        closeParticipantsModal: participantsModal.closeParticipantsModal,
+        closeActionChoiceModal: participantsModal.closeActionChoiceModal,
+        closeOpenSlotModal: slotMgmt.closeOpenSlotModal,
 
         // Setters restants (necessaires pour OpenSlotModal)
-        setSelectedTarget,
-        setSelectedOpenDuration,
+        setSelectedTarget: slotMgmt.setSelectedTarget,
+        setSelectedOpenDuration: slotMgmt.setSelectedOpenDuration,
         setModalStep,
     }
 }
