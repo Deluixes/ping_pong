@@ -1,11 +1,13 @@
 import { supabase } from '../lib/supabase'
 
 export const reservationService = {
-    async getEvents() {
-        const { data, error } = await supabase
-            .from('reservations')
-            .select('*')
-            .order('date', { ascending: true })
+    async getEvents(startDate, endDate) {
+        let query = supabase.from('reservations').select('*').order('date', { ascending: true })
+
+        if (startDate) query = query.gte('date', startDate)
+        if (endDate) query = query.lte('date', endDate)
+
+        const { data, error } = await query
 
         if (error) {
             console.error('Error fetching reservations:', error)
@@ -49,9 +51,10 @@ export const reservationService = {
 
         if (error) {
             console.error('Error unregistering from slot:', error)
+            return { success: false }
         }
 
-        return reservationService.getEvents()
+        return { success: true }
     },
 
     async adminDeleteEvent(slotId, date, userId) {
@@ -64,10 +67,10 @@ export const reservationService = {
 
         if (error) {
             console.error('Error deleting event:', error)
-            return { deleted: 0, events: await reservationService.getEvents() }
+            return { success: false }
         }
 
-        return { deleted: 1, events: await reservationService.getEvents() }
+        return { success: true }
     },
 
     async deleteReservationsForSlot(date, slotId) {
@@ -95,9 +98,9 @@ export const reservationService = {
 
         if (error) {
             console.error('Error updating user name:', error)
-            return { updated: 0, events: await reservationService.getEvents() }
+            return { success: false, updated: 0 }
         }
 
-        return { updated: data?.length || 0, events: await reservationService.getEvents() }
+        return { success: true, updated: data?.length || 0 }
     },
 }

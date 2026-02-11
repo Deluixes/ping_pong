@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { format } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import { storageService } from '../services/storage'
 import { DEFAULT_TOTAL_TABLES } from '../constants'
 import { getCachedEvents, setCachedEvents } from '../components/calendar/calendarUtils'
@@ -41,24 +41,24 @@ export function useCalendarData(user, selectedDate, weekStart) {
             return
         }
         try {
-            const tablesSettings = await storageService.getSetting('total_tables')
+            const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+            const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
+            const [tablesSettings, loadedEvents, members] = await Promise.all([
+                storageService.getSetting('total_tables'),
+                storageService.getEvents(weekStartStr, weekEndStr),
+                storageService.getMembers(user?.role === 'super_admin'),
+            ])
             if (!isMountedRef.current) return
             if (tablesSettings) setTotalTables(parseInt(tablesSettings))
-
-            const loadedEvents = await storageService.getEvents()
-            if (!isMountedRef.current) return
             setEvents(loadedEvents)
             setCachedEvents(loadedEvents)
-            setLoading(false)
-
-            const members = await storageService.getMembers(user?.role === 'super_admin')
-            if (!isMountedRef.current) return
             setApprovedMembers(members.approved.filter((m) => m.userId !== currentUserId))
+            setLoading(false)
         } catch (error) {
             console.error('Error loading data:', error)
             if (isMountedRef.current) setLoading(false)
         }
-    }, [user])
+    }, [user, weekStart])
 
     const loadWeekConfig = useCallback(async () => {
         const weekStartStr = format(weekStart, 'yyyy-MM-dd')

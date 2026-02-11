@@ -77,12 +77,16 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         if (!slotToOpen || !canManageSlots) return
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const startIndex = getSlotIndex(slotToOpen)
+        const openPromises = []
         for (let i = 0; i < selectedOpenDuration; i++) {
             const slot = TIME_SLOTS[startIndex + i]
             if (slot) {
-                await storageService.openSlot(dateStr, slot.id, user.id, selectedTarget)
+                openPromises.push(
+                    storageService.openSlot(dateStr, slot.id, user.id, selectedTarget)
+                )
             }
         }
+        await Promise.all(openPromises)
         setShowOpenSlotModal(false)
         setSlotToOpen(null)
         setSelectedTarget('all')
@@ -266,35 +270,43 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         const isOverbooked = totalAfter > maxPersons
 
         try {
+            const promises = []
+
             if (!inviteOnlyMode) {
                 for (let i = 0; i < selectedDuration.slots; i++) {
                     const slot = TIME_SLOTS[startIndex + i]
-                    await storageService.registerForSlot(
-                        slot.id,
-                        dateStr,
-                        user.id,
-                        user.name,
-                        selectedDuration.slots,
-                        isOverbooked
-                    )
+                    if (slot) {
+                        promises.push(
+                            storageService.registerForSlot(
+                                slot.id,
+                                dateStr,
+                                user.id,
+                                user.name,
+                                selectedDuration.slots,
+                                isOverbooked
+                            )
+                        )
+                    }
                 }
             }
 
             const firstSlot = TIME_SLOTS[startIndex]
             for (const guest of validGuests) {
-                await storageService.inviteToSlot(
-                    firstSlot.id,
-                    dateStr,
-                    guest.odId,
-                    guest.name,
-                    user.id,
-                    selectedDuration.slots
+                promises.push(
+                    storageService.inviteToSlot(
+                        firstSlot.id,
+                        dateStr,
+                        guest.odId,
+                        guest.name,
+                        user.id,
+                        selectedDuration.slots
+                    )
                 )
             }
 
+            await Promise.all(promises)
             closeModal()
-            await loadData()
-            await loadInvitations()
+            await Promise.all([loadData(), loadInvitations()])
         } catch (error) {
             console.error('Registration error:', error)
         }
@@ -307,12 +319,16 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         if (registration) {
             const startIndex = getSlotIndex(slotId)
             const duration = registration.duration || 1
+            const unregisterPromises = []
             for (let i = 0; i < duration; i++) {
                 const slot = TIME_SLOTS[startIndex + i]
                 if (slot) {
-                    await storageService.unregisterFromSlot(slot.id, dateStr, user.id)
+                    unregisterPromises.push(
+                        storageService.unregisterFromSlot(slot.id, dateStr, user.id)
+                    )
                 }
             }
+            await Promise.all(unregisterPromises)
         }
 
         await loadData()
@@ -339,6 +355,25 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         setGuests([{ odId: '', name: '' }])
         setInviteOnlyMode(false)
     }
+
+    // Intent-based handlers (remplace les setters exposes)
+    const openRegistrationFromParticipants = () => {
+        setShowParticipantsList(false)
+        setSelectedDuration(null)
+        setModalStep('duration')
+        setInviteOnlyMode(false)
+    }
+
+    const openInviteOnlyFromParticipants = () => {
+        setShowParticipantsList(false)
+        setSelectedDuration(null)
+        setModalStep('duration')
+        setInviteOnlyMode(true)
+    }
+
+    const closeParticipantsModal = () => setShowParticipantsList(false)
+    const closeActionChoiceModal = () => setShowActionChoice(false)
+    const closeOpenSlotModal = () => setShowOpenSlotModal(false)
 
     return {
         // Modal inscription
@@ -382,15 +417,16 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         closeModal,
         getViewOptions,
 
-        // Setters exposes pour les composants modaux
-        setShowOpenSlotModal,
-        setSlotToOpen,
+        // Intent-based modal handlers
+        openRegistrationFromParticipants,
+        openInviteOnlyFromParticipants,
+        closeParticipantsModal,
+        closeActionChoiceModal,
+        closeOpenSlotModal,
+
+        // Setters restants (necessaires pour OpenSlotModal)
         setSelectedTarget,
-        setShowParticipantsList,
-        setShowActionChoice,
-        setModalStep,
-        setSelectedDuration,
-        setInviteOnlyMode,
         setSelectedOpenDuration,
+        setModalStep,
     }
 }

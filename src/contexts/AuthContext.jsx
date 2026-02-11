@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { storageService } from '../services/storage'
 import {
@@ -292,61 +292,58 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    // Calcul des permissions effectives (prend en compte le rôle simulé)
-    const getEffectivePermissions = () => {
-        const effectiveRole = simulatedRole || user?.role || 'member'
-        return {
-            effectiveRole,
-            ...derivePermissions(effectiveRole),
-        }
-    }
-
     // Obtenir les rôles qu'on peut simuler
-    const getSimulatableRoles = () => {
+    const getSimulatableRoles = useCallback(() => {
         return getSimulatableRolesUtil(user?.role || 'member')
-    }
+    }, [user?.role])
 
-    const effectivePermissions = getEffectivePermissions()
+    // User enrichi avec les permissions effectives (mémorisé)
+    const effectiveUser = useMemo(() => {
+        if (!user) return null
+        const effectiveRole = simulatedRole || user.role || 'member'
+        const perms = derivePermissions(effectiveRole)
+        return {
+            ...user,
+            realRole: user.role,
+            role: effectiveRole,
+            isSuperAdmin: perms.isSuperAdmin,
+            isAdmin: perms.isAdmin,
+            isAdminSalles: perms.isAdminSalles,
+        }
+    }, [user, simulatedRole])
 
-    // User enrichi avec les permissions effectives
-    const effectiveUser = user
-        ? {
-              ...user,
-              // Garder le vrai rôle accessible
-              realRole: user.role,
-              // Remplacer par le rôle effectif (simulé ou réel)
-              role: effectivePermissions.effectiveRole,
-              isSuperAdmin: effectivePermissions.isSuperAdmin,
-              isAdmin: effectivePermissions.isAdmin,
-              isAdminSalles: effectivePermissions.isAdminSalles,
-          }
-        : null
-
-    return (
-        <AuthContext.Provider
-            value={{
-                user: effectiveUser,
-                loading,
-                authError,
-                memberStatus,
-                mustChangePassword,
-                signUp,
-                signIn,
-                resetPassword,
-                changePassword,
-                requestAccess,
-                updateName,
-                logout,
-                refreshMemberStatus,
-                // Simulation de rôle
-                simulatedRole,
-                setSimulatedRole,
-                getSimulatableRoles,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
+    // Mémoiser la valeur du contexte pour éviter les re-renders inutiles
+    const contextValue = useMemo(
+        () => ({
+            user: effectiveUser,
+            loading,
+            authError,
+            memberStatus,
+            mustChangePassword,
+            signUp,
+            signIn,
+            resetPassword,
+            changePassword,
+            requestAccess,
+            updateName,
+            logout,
+            refreshMemberStatus,
+            simulatedRole,
+            setSimulatedRole,
+            getSimulatableRoles,
+        }),
+        [
+            effectiveUser,
+            loading,
+            authError,
+            memberStatus,
+            mustChangePassword,
+            simulatedRole,
+            getSimulatableRoles,
+        ]
     )
+
+    return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)

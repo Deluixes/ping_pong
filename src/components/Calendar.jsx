@@ -130,7 +130,7 @@ export default function Calendar() {
                     onSetSelectedTarget={modal.setSelectedTarget}
                     onSetSelectedOpenDuration={modal.setSelectedOpenDuration}
                     onOpenSlot={modal.handleOpenSlot}
-                    onClose={() => modal.setShowOpenSlotModal(false)}
+                    onClose={modal.closeOpenSlotModal}
                 />
             )}
 
@@ -140,7 +140,7 @@ export default function Calendar() {
                     selectedDate={selectedDate}
                     onShowParticipants={modal.handleShowParticipants}
                     onOpenInviteModal={modal.handleOpenInviteModal}
-                    onClose={() => modal.setShowActionChoice(false)}
+                    onClose={modal.closeActionChoiceModal}
                 />
             )}
 
@@ -151,19 +151,9 @@ export default function Calendar() {
                     participantsToShow={modal.participantsToShow}
                     isUserRegistered={!!slotHelpers.getUserRegistration(modal.selectedSlotId)}
                     isUserOnSlot={slotHelpers.isUserOnSlot(modal.selectedSlotId)}
-                    onRegister={() => {
-                        modal.setShowParticipantsList(false)
-                        modal.setSelectedDuration(null)
-                        modal.setModalStep('duration')
-                        modal.setInviteOnlyMode(false)
-                    }}
-                    onInviteOnly={() => {
-                        modal.setShowParticipantsList(false)
-                        modal.setSelectedDuration(null)
-                        modal.setModalStep('duration')
-                        modal.setInviteOnlyMode(true)
-                    }}
-                    onClose={() => modal.setShowParticipantsList(false)}
+                    onRegister={modal.openRegistrationFromParticipants}
+                    onInviteOnly={modal.openInviteOnlyFromParticipants}
+                    onClose={modal.closeParticipantsModal}
                 />
             )}
 

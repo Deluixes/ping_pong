@@ -30,16 +30,33 @@ import { openedSlotService } from './openedSlotService'
 import { realtimeService } from './realtimeService'
 import { profilePhotoService } from './profilePhotoService'
 
-export const storageService = {
-    ...reservationService,
-    ...memberService,
-    ...invitationService,
-    ...settingsService,
-    ...blockedSlotService,
-    ...openingHourService,
-    ...templateService,
-    ...weekConfigService,
-    ...openedSlotService,
-    ...realtimeService,
-    ...profilePhotoService,
+const allServices = [
+    reservationService,
+    memberService,
+    invitationService,
+    settingsService,
+    blockedSlotService,
+    openingHourService,
+    templateService,
+    weekConfigService,
+    openedSlotService,
+    realtimeService,
+    profilePhotoService,
+]
+
+// Detect name collisions in development
+if (import.meta.env.DEV) {
+    const seen = new Map()
+    for (const service of allServices) {
+        for (const key of Object.keys(service)) {
+            if (seen.has(key)) {
+                console.error(
+                    `[storageService] Duplicate method "${key}" — will be overwritten by a later service`
+                )
+            }
+            seen.set(key, true)
+        }
+    }
 }
+
+export const storageService = Object.assign({}, ...allServices)

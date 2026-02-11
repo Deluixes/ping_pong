@@ -159,15 +159,11 @@ export default function Settings() {
         if (!name.trim()) return
 
         setIsSaving(true)
-        await updateName(name.trim())
-        // Also update name in members table, reservations and invitations
-        await storageService.updateMemberName(user.id, name.trim())
-        await storageService.updateUserNameInEvents(user.id, name.trim())
-        await storageService.updateUserNameInInvitations(user.id, name.trim())
-        // Update license type
+        const updates = [updateName(name.trim()), storageService.renameUser(user.id, name.trim())]
         if (licenseType) {
-            await storageService.updateMemberLicense(user.id, licenseType)
+            updates.push(storageService.updateMemberLicense(user.id, licenseType))
         }
+        await Promise.all(updates)
         setIsSaving(false)
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)

@@ -104,25 +104,19 @@ export default function AdminPanel() {
         if (!editForm.name.trim()) return
         setSavingEdit(true)
 
-        // Mettre à jour le nom si modifié
+        const updates = [
+            storageService.updateMemberLicense(editingMember.userId, editForm.licenseType),
+        ]
+
         if (editForm.name !== editingMember.name) {
-            await storageService.updateMemberName(editingMember.userId, editForm.name.trim())
-            // Mettre à jour le nom dans les réservations et invitations
-            await storageService.updateUserNameInEvents(editingMember.userId, editForm.name.trim())
-            await storageService.updateUserNameInInvitations(
-                editingMember.userId,
-                editForm.name.trim()
-            )
+            updates.push(storageService.renameUser(editingMember.userId, editForm.name.trim()))
         }
 
-        // Mettre à jour la licence
-        await storageService.updateMemberLicense(editingMember.userId, editForm.licenseType)
-
-        // Mettre à jour le rôle si modifié et si autorisé
         if (editForm.role !== editingMember.role && canEditMemberRole(editingMember)) {
-            await storageService.updateMemberRole(editingMember.userId, editForm.role)
+            updates.push(storageService.updateMemberRole(editingMember.userId, editForm.role))
         }
 
+        await Promise.all(updates)
         await loadData()
         setSavingEdit(false)
         closeEditModal()

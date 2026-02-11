@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase'
+import { reservationService } from './reservationService'
+import { invitationService } from './invitationService'
 
 export const memberService = {
     async getMembers(includeTEST = false) {
@@ -245,5 +247,13 @@ export const memberService = {
 
     async removeMember(userId) {
         return memberService.rejectMember(userId)
+    },
+
+    async renameUser(userId, newName) {
+        await Promise.all([
+            memberService.updateMemberName(userId, newName),
+            reservationService.updateUserNameInEvents(userId, newName),
+            invitationService.updateUserNameInInvitations(userId, newName),
+        ])
     },
 }

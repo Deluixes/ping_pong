@@ -1,6 +1,10 @@
+import { useMemo, useCallback } from 'react'
 import { format, isSameWeek, startOfDay } from 'date-fns'
 import { DEFAULT_OPENING_TIME, DEFAULT_CLOSING_TIME } from '../constants'
 import { TIME_SLOTS, DURATION_OPTIONS } from '../components/calendar/calendarUtils'
+
+// Pre-compute slot index lookup (O(1) instead of O(n) findIndex)
+const SLOT_INDEX_MAP = new Map(TIME_SLOTS.map((s, i) => [s.id, i]))
 
 export function useSlotHelpers({
     events,
@@ -13,214 +17,318 @@ export function useSlotHelpers({
     maxPersons,
     user,
 }) {
-    const getSlotIndex = (slotId) => TIME_SLOTS.findIndex((s) => s.id === slotId)
+    const getSlotIndex = useCallback((slotId) => SLOT_INDEX_MAP.get(slotId) ?? -1, [])
 
-    const getSlotEvents = (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        return events.filter((e) => e.date === dateStr && e.slotId === slotId)
-    }
+    // Compute dateStr once
+    const dateStr = useMemo(() => format(selectedDate, 'yyyy-MM-dd'), [selectedDate])
 
-    const getParticipants = (slotId) => {
-        const slotEvents = getSlotEvents(slotId)
-        const participants = []
-        const currentSlotIndex = getSlotIndex(slotId)
+    // Pre-compute events for current date (single pass)
+    const dayEvents = useMemo(() => events.filter((e) => e.date === dateStr), [events, dateStr])
 
-        slotEvents.forEach((e) => {
-            participants.push({
+    // Pre-compute events grouped by slotId (single pass, O(1) lookup per slot)
+    const eventsBySlot = useMemo(() => {
+        const map = new Map()
+        for (const e of dayEvents) {
+            if (!map.has(e.slotId)) map.set(e.slotId, [])
+            map.get(e.slotId).push(e)
+        }
+        return map
+    }, [dayEvents])
+
+    // Pre-compute opened slots lookup (O(1) per slot)
+    const openedSlotsBySlotId = useMemo(() => {
+        const map = new Map()
+        for (const os of openedSlots) {
+            map.set(os.slotId, os)
+        }
+        return map
+    }, [openedSlots])
+
+    // Pre-compute blocked slot info for current date (O(1) per slot)
+    const blockedSlotsBySlotId = useMemo(() => {
+        const map = new Map()
+        const daySlots = weekSlots.filter((slot) => slot.date === dateStr)
+        for (const slot of TIME_SLOTS) {
+            const [hour, minute] = slot.id.split(':').map(Number)
+            const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+            const blocked = daySlots.find((ws) => {
+                const startTime = ws.startTime.slice(0, 5)
+                const endTime = ws.endTime.slice(0, 5)
+                return slotTime >= startTime && slotTime < endTime
+            })
+            if (blocked) map.set(slot.id, blocked)
+        }
+        return map
+    }, [weekSlots, dateStr])
+
+    // Pre-compute opening hours for current date
+    const dayOpeningHours = useMemo(
+        () => weekHours.filter((h) => h.date === dateStr),
+        [weekHours, dateStr]
+    )
+
+    // Pre-compute participants for ALL slots in a single pass
+    const participantsBySlot = useMemo(() => {
+        const map = new Map()
+
+        // Add registered users from events
+        for (const e of dayEvents) {
+            if (!map.has(e.slotId)) map.set(e.slotId, [])
+            map.get(e.slotId).push({
                 id: e.userId,
                 name: e.userName || 'Inconnu',
                 isGuest: false,
                 status: 'accepted',
                 duration: e.duration,
             })
-        })
+        }
 
-        invitations.forEach((inv) => {
-            const invSlotIndex = getSlotIndex(inv.slotId)
+        // Add invitations (spread across duration slots)
+        for (const inv of invitations) {
+            const invSlotIndex = SLOT_INDEX_MAP.get(inv.slotId) ?? -1
+            if (invSlotIndex === -1) continue
             const invDuration = inv.duration || 1
-            if (currentSlotIndex >= invSlotIndex && currentSlotIndex < invSlotIndex + invDuration) {
-                participants.push({
-                    id: inv.odId,
-                    name: inv.name,
-                    isGuest: true,
-                    status: inv.status,
-                    invitedBy: inv.invitedBy,
-                    duration: invDuration,
-                })
+            const participant = {
+                id: inv.odId,
+                name: inv.name,
+                isGuest: true,
+                status: inv.status,
+                invitedBy: inv.invitedBy,
+                duration: invDuration,
             }
-        })
-
-        return participants
-    }
-
-    const getAcceptedParticipantCount = (slotId) => {
-        return getParticipants(slotId).filter((p) => p.status === 'accepted').length
-    }
-
-    const getParticipantColor = (participant, slotId) => {
-        const acceptedCount = getAcceptedParticipantCount(slotId)
-        const isSlotOverbooked = acceptedCount > maxPersons
-        if (participant.isGuest && participant.status === 'pending') {
-            return '#9CA3AF'
+            for (let i = 0; i < invDuration; i++) {
+                const slot = TIME_SLOTS[invSlotIndex + i]
+                if (!slot) break
+                if (!map.has(slot.id)) map.set(slot.id, [])
+                map.get(slot.id).push(participant)
+            }
         }
-        return isSlotOverbooked ? '#EF4444' : '#10B981'
-    }
 
-    const isUserParticipating = (slotId) => {
-        const participants = getParticipants(slotId)
-        return participants.some((p) => p.id === user.id && (p.status === 'accepted' || !p.isGuest))
-    }
+        return map
+    }, [dayEvents, invitations])
 
-    const isUserOnSlot = (slotId) => {
-        const participants = getParticipants(slotId)
-        return participants.some((p) => p.id === user.id)
-    }
+    // Pre-compute accepted counts and user participation for ALL slots
+    const slotStats = useMemo(() => {
+        const acceptedCounts = new Map()
+        const userParticipating = new Map()
+        const userOnSlot = new Map()
 
-    const getUserRegistration = (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        return events.find((e) => e.date === dateStr && e.slotId === slotId && e.userId === user.id)
-    }
+        for (const [slotId, participants] of participantsBySlot) {
+            let acceptedCount = 0
+            let isParticipating = false
+            let isOnSlot = false
 
-    const getBlockedSlotInfo = (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const [hour, minute] = slotId.split(':').map(Number)
-        const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        return weekSlots.find((slot) => {
-            if (slot.date !== dateStr) return false
-            const startTime = slot.startTime.slice(0, 5)
-            const endTime = slot.endTime.slice(0, 5)
-            return slotTime >= startTime && slotTime < endTime
-        })
-    }
+            for (const p of participants) {
+                if (p.status === 'accepted') acceptedCount++
+                if (p.id === user?.id) {
+                    isOnSlot = true
+                    if (p.status === 'accepted' || !p.isGuest) {
+                        isParticipating = true
+                    }
+                }
+            }
 
-    const isSlotInOpeningHours = (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const [hour, minute] = slotId.split(':').map(Number)
-        const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        const dayHours = weekHours.filter((h) => h.date === dateStr)
-        if (!isWeekConfigured || dayHours.length === 0) {
-            return slotTime >= DEFAULT_OPENING_TIME && slotTime < DEFAULT_CLOSING_TIME
+            acceptedCounts.set(slotId, acceptedCount)
+            userParticipating.set(slotId, isParticipating)
+            userOnSlot.set(slotId, isOnSlot)
         }
-        return dayHours.some((h) => {
-            const startTime = h.startTime.slice(0, 5)
-            const endTime = h.endTime.slice(0, 5)
-            return slotTime >= startTime && slotTime < endTime
-        })
-    }
 
-    const getOpenedSlotInfo = (slotId) => {
-        return openedSlots.find((os) => os.slotId === slotId)
-    }
+        return { acceptedCounts, userParticipating, userOnSlot }
+    }, [participantsBySlot, user?.id])
 
-    const isSlotAvailable = (slotId) => {
-        const blockedInfo = getBlockedSlotInfo(slotId)
-        if (blockedInfo && blockedInfo.isBlocking === false) {
-            return { available: true, type: 'course', target: 'all', blockedInfo }
-        }
-        if (blockedInfo && blockedInfo.isBlocking === true) {
-            return { available: false, type: 'training', reason: 'blocked', blockedInfo }
-        }
-        const openedInfo = getOpenedSlotInfo(slotId)
-        if (openedInfo) {
-            return { available: true, type: 'opened', target: openedInfo.target, openedInfo }
-        }
-        return { available: false, type: 'closed', reason: 'not_opened' }
-    }
+    const getSlotEvents = useCallback((slotId) => eventsBySlot.get(slotId) || [], [eventsBySlot])
 
-    const isCurrentWeek = () => {
+    const getParticipants = useCallback(
+        (slotId) => participantsBySlot.get(slotId) || [],
+        [participantsBySlot]
+    )
+
+    const getAcceptedParticipantCount = useCallback(
+        (slotId) => slotStats.acceptedCounts.get(slotId) || 0,
+        [slotStats]
+    )
+
+    const getParticipantColor = useCallback(
+        (participant, slotId) => {
+            const acceptedCount = slotStats.acceptedCounts.get(slotId) || 0
+            const isSlotOverbooked = acceptedCount > maxPersons
+            if (participant.isGuest && participant.status === 'pending') {
+                return '#9CA3AF'
+            }
+            return isSlotOverbooked ? '#EF4444' : '#10B981'
+        },
+        [slotStats, maxPersons]
+    )
+
+    const isUserParticipating = useCallback(
+        (slotId) => slotStats.userParticipating.get(slotId) || false,
+        [slotStats]
+    )
+
+    const isUserOnSlot = useCallback(
+        (slotId) => slotStats.userOnSlot.get(slotId) || false,
+        [slotStats]
+    )
+
+    const getUserRegistration = useCallback(
+        (slotId) => {
+            const slotEvents = eventsBySlot.get(slotId)
+            if (!slotEvents) return undefined
+            return slotEvents.find((e) => e.userId === user?.id)
+        },
+        [eventsBySlot, user?.id]
+    )
+
+    const getBlockedSlotInfo = useCallback(
+        (slotId) => blockedSlotsBySlotId.get(slotId),
+        [blockedSlotsBySlotId]
+    )
+
+    const isSlotInOpeningHours = useCallback(
+        (slotId) => {
+            const [hour, minute] = slotId.split(':').map(Number)
+            const slotTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+            if (!isWeekConfigured || dayOpeningHours.length === 0) {
+                return slotTime >= DEFAULT_OPENING_TIME && slotTime < DEFAULT_CLOSING_TIME
+            }
+            return dayOpeningHours.some((h) => {
+                const startTime = h.startTime.slice(0, 5)
+                const endTime = h.endTime.slice(0, 5)
+                return slotTime >= startTime && slotTime < endTime
+            })
+        },
+        [isWeekConfigured, dayOpeningHours]
+    )
+
+    const getOpenedSlotInfo = useCallback(
+        (slotId) => openedSlotsBySlotId.get(slotId),
+        [openedSlotsBySlotId]
+    )
+
+    const isSlotAvailable = useCallback(
+        (slotId) => {
+            const blockedInfo = blockedSlotsBySlotId.get(slotId)
+            if (blockedInfo && blockedInfo.isBlocking === false) {
+                return { available: true, type: 'course', target: 'all', blockedInfo }
+            }
+            if (blockedInfo && blockedInfo.isBlocking === true) {
+                return { available: false, type: 'training', reason: 'blocked', blockedInfo }
+            }
+            const openedInfo = openedSlotsBySlotId.get(slotId)
+            if (openedInfo) {
+                return { available: true, type: 'opened', target: openedInfo.target, openedInfo }
+            }
+            return { available: false, type: 'closed', reason: 'not_opened' }
+        },
+        [blockedSlotsBySlotId, openedSlotsBySlotId]
+    )
+
+    const isCurrentWeek = useCallback(() => {
         const today = startOfDay(new Date())
         return isSameWeek(selectedDate, today, { weekStartsOn: 1 })
-    }
+    }, [selectedDate])
 
-    const canReserveOnWeek = () => {
+    const canReserveOnWeek = useCallback(() => {
         if (isWeekConfigured) return true
         return isCurrentWeek()
-    }
+    }, [isWeekConfigured, isCurrentWeek])
 
-    const canUserRegister = (slotId) => {
-        if (!canReserveOnWeek()) return false
-        const { available, target } = isSlotAvailable(slotId)
-        if (!available) return false
-        if (target === 'all') return true
-        if (target === 'loisir' && user?.licenseType === 'L') return true
-        if (target === 'competition' && user?.licenseType === 'C') return true
-        return false
-    }
+    const canUserRegister = useCallback(
+        (slotId) => {
+            if (!canReserveOnWeek()) return false
+            const { available, target } = isSlotAvailable(slotId)
+            if (!available) return false
+            if (target === 'all') return true
+            if (target === 'loisir' && user?.licenseType === 'L') return true
+            if (target === 'competition' && user?.licenseType === 'C') return true
+            return false
+        },
+        [canReserveOnWeek, isSlotAvailable, user?.licenseType]
+    )
 
-    const getAvailableDurations = (startSlotId) => {
-        const startIndex = getSlotIndex(startSlotId)
-        if (startIndex === -1) return []
+    const getAvailableDurations = useCallback(
+        (startSlotId) => {
+            const startIndex = SLOT_INDEX_MAP.get(startSlotId) ?? -1
+            if (startIndex === -1) return []
 
-        const available = []
-        const startAvailability = isSlotAvailable(startSlotId)
+            const available = []
+            const startAvailability = isSlotAvailable(startSlotId)
 
-        for (const duration of DURATION_OPTIONS) {
-            if (startIndex + duration.slots > TIME_SLOTS.length) break
+            for (const duration of DURATION_OPTIONS) {
+                if (startIndex + duration.slots > TIME_SLOTS.length) break
 
-            let isValidDuration = true
-            for (let i = 0; i < duration.slots; i++) {
-                const slot = TIME_SLOTS[startIndex + i]
-                const blockedInfo = getBlockedSlotInfo(slot.id)
-                if (blockedInfo && blockedInfo.isBlocking !== false) {
-                    isValidDuration = false
-                    break
-                }
-                if (startAvailability.type === 'opened' && i > 0) {
-                    const slotAvailability = isSlotAvailable(slot.id)
-                    if (!slotAvailability.available) {
+                let isValidDuration = true
+                for (let i = 0; i < duration.slots; i++) {
+                    const slot = TIME_SLOTS[startIndex + i]
+                    const blockedInfo = blockedSlotsBySlotId.get(slot.id)
+                    if (blockedInfo && blockedInfo.isBlocking !== false) {
                         isValidDuration = false
                         break
                     }
-                    if (
-                        slotAvailability.type === 'opened' &&
-                        slotAvailability.target !== 'all' &&
-                        slotAvailability.target !== startAvailability.target
-                    ) {
+                    if (startAvailability.type === 'opened' && i > 0) {
+                        const slotAvailability = isSlotAvailable(slot.id)
+                        if (!slotAvailability.available) {
+                            isValidDuration = false
+                            break
+                        }
+                        if (
+                            slotAvailability.type === 'opened' &&
+                            slotAvailability.target !== 'all' &&
+                            slotAvailability.target !== startAvailability.target
+                        ) {
+                            isValidDuration = false
+                            break
+                        }
+                    }
+                }
+
+                if (isValidDuration) available.push(duration)
+            }
+
+            return available
+        },
+        [isSlotAvailable, blockedSlotsBySlotId]
+    )
+
+    const getAvailableOpenDurations = useCallback(
+        (startSlotId) => {
+            const startIndex = SLOT_INDEX_MAP.get(startSlotId) ?? -1
+            if (startIndex === -1) return []
+
+            const available = []
+            for (const duration of DURATION_OPTIONS) {
+                if (startIndex + duration.slots > TIME_SLOTS.length) break
+                let isValidDuration = true
+                for (let i = 0; i < duration.slots; i++) {
+                    const slot = TIME_SLOTS[startIndex + i]
+                    const blockedInfo = blockedSlotsBySlotId.get(slot.id)
+                    if (blockedInfo && blockedInfo.isBlocking !== false) {
                         isValidDuration = false
                         break
                     }
                 }
+                if (isValidDuration) available.push(duration)
             }
+            return available
+        },
+        [blockedSlotsBySlotId]
+    )
 
-            if (isValidDuration) available.push(duration)
-        }
+    const getDayParticipantCount = useCallback(
+        (day) => {
+            const dayStr = format(day, 'yyyy-MM-dd')
+            const dayEvts = events.filter((e) => e.date === dayStr)
+            return new Set(dayEvts.map((e) => e.userId)).size
+        },
+        [events]
+    )
 
-        return available
-    }
-
-    const getAvailableOpenDurations = (startSlotId) => {
-        const startIndex = getSlotIndex(startSlotId)
-        if (startIndex === -1) return []
-
-        const available = []
-        for (const duration of DURATION_OPTIONS) {
-            if (startIndex + duration.slots > TIME_SLOTS.length) break
-            let isValidDuration = true
-            for (let i = 0; i < duration.slots; i++) {
-                const slot = TIME_SLOTS[startIndex + i]
-                const blockedInfo = getBlockedSlotInfo(slot.id)
-                if (blockedInfo && blockedInfo.isBlocking !== false) {
-                    isValidDuration = false
-                    break
-                }
-            }
-            if (isValidDuration) available.push(duration)
-        }
-        return available
-    }
-
-    const getDayParticipantCount = (day) => {
-        const dateStr = format(day, 'yyyy-MM-dd')
-        const dayEvents = events.filter((e) => e.date === dateStr)
-        return new Set(dayEvents.map((e) => e.userId)).size
-    }
-
-    const getEndTime = (startSlotId, durationSlots) => {
-        const startIndex = getSlotIndex(startSlotId)
+    const getEndTime = useCallback((startSlotId, durationSlots) => {
+        const startIndex = SLOT_INDEX_MAP.get(startSlotId) ?? -1
         const endSlot = TIME_SLOTS[startIndex + durationSlots]
         if (endSlot) return endSlot.label
         return '22:00'
-    }
+    }, [])
 
     return {
         getSlotIndex,
