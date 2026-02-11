@@ -27,7 +27,9 @@
       "Bash(dir:*)",
       "Bash(npx vitest run src/utils/__tests__/permissions.test.js)",
       "Bash(npx vitest run:*)",
-      "Bash(npm ls jsdom)"
+      "Bash(npm ls jsdom)",
+      "Bash(xargs:*)",
+      "Read(//c/Users/J.Daulion/Documents/Claude Code/ping_pong/**)"
     ]
   }
 }
