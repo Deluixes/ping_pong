@@ -1,84 +1,84 @@
 # Tests manuels - Refactoring weekConfigService
 
-Tests a effectuer pour valider que le refactoring de `applyTemplateToWeeks` n'a rien casse.
+Tests à effectuer pour valider que le refactoring de `applyTemplateToWeeks` n'a rien cassé.
 
 ---
 
 ## 1. Affichage du calendrier
 
 - [ ] Ouvrir l'app, se connecter
-- [ ] Le calendrier s'affiche avec les creneaux de la semaine courante
-- [ ] Les creneaux bloques (entrainements) s'affichent correctement avec leur nom/coach/groupe
-- [ ] Les horaires d'ouverture sont respectes (creneaux hors horaires non affiches)
-- [ ] Naviguer a la semaine suivante/precedente : les donnees se rechargent
-- [ ] Les creneaux ouverts manuellement s'affichent comme "Ouvert"
-- [ ] Les creneaux fermes s'affichent comme "Ferme"
+- [ ] Le calendrier s'affiche avec les créneaux de la semaine courante
+- [ ] Les créneaux bloqués (entraînements) s'affichent correctement avec leur nom/coach/groupe
+- [ ] Les horaires d'ouverture sont respectés (créneaux hors horaires non affichés)
+- [ ] Naviguer à la semaine suivante/précédente : les données se rechargent
+- [ ] Les créneaux ouverts manuellement s'affichent comme "Ouvert"
+- [ ] Les créneaux fermés s'affichent comme "Fermé"
 
 ## 2. Application d'un template (1 template, semaine vierge)
 
 - [ ] Aller dans Admin > Gestion du planning > onglet "Semaines"
 - [ ] Cliquer "Appliquer des templates aux semaines"
-- [ ] Selectionner **un** template
-- [ ] Selectionner une semaine **non configuree**
+- [ ] Sélectionner **un** template
+- [ ] Sélectionner une semaine **non configurée**
 - [ ] Cliquer "Appliquer"
-- [ ] Verifier : pas de dialogue de conflit (application directe)
+- [ ] Vérifier : pas de dialogue de conflit (application directe)
 - [ ] Retourner au calendrier et naviguer vers cette semaine
-- [ ] Verifier que les creneaux du template sont bien affiches
+- [ ] Vérifier que les créneaux du template sont bien affichés
 
-## 3. Application d'un template (ecrasement d'une semaine existante)
+## 3. Application d'un template (écrasement d'une semaine existante)
 
-- [ ] Reprendre la semaine configuree au test 2
-- [ ] Appliquer un **autre** template sur cette meme semaine
-- [ ] Le dialogue de mode doit s'afficher (la semaine est deja configuree)
-- [ ] Choisir **"Ecraser"** (overwrite)
-- [ ] Verifier sur le calendrier : les anciens creneaux sont remplaces par les nouveaux
+- [ ] Reprendre la semaine configurée au test 2
+- [ ] Appliquer un **autre** template sur cette même semaine
+- [ ] Le dialogue de mode doit s'afficher (la semaine est déjà configurée)
+- [ ] Choisir **"Écraser"** (overwrite)
+- [ ] Vérifier sur le calendrier : les anciens créneaux sont remplacés par les nouveaux
 
 ## 4. Application d'un template en mode fusion (merge)
 
-- [ ] Appliquer un template sur une semaine deja configuree
+- [ ] Appliquer un template sur une semaine déjà configurée
 - [ ] Choisir **"Fusionner (garder existants)"** (merge)
-- [ ] Verifier : les creneaux existants sont conserves
-- [ ] Les nouveaux creneaux qui ne chevauchent pas sont ajoutes
-- [ ] Les nouveaux creneaux qui chevauchent sont ignores (pas de doublon)
+- [ ] Vérifier : les créneaux existants sont conservés
+- [ ] Les nouveaux créneaux qui ne chevauchent pas sont ajoutés
+- [ ] Les nouveaux créneaux qui chevauchent sont ignorés (pas de doublon)
 
 ## 5. Application d'un template en mode fusion (merge_keep_new)
 
-- [ ] Appliquer un template sur une semaine deja configuree
+- [ ] Appliquer un template sur une semaine déjà configurée
 - [ ] Choisir **"Fusionner (garder nouveaux)"** (merge_keep_new)
-- [ ] Verifier : les nouveaux creneaux sont ajoutes
-- [ ] Les anciens creneaux en conflit sont supprimes et remplaces
+- [ ] Vérifier : les nouveaux créneaux sont ajoutés
+- [ ] Les anciens créneaux en conflit sont supprimés et remplacés
 
 ## 6. Application de plusieurs templates
 
-- [ ] Dans le selecteur de semaines, selectionner **2 templates ou plus**
-- [ ] Les appliquer a une semaine
-- [ ] Verifier que le premier template est applique en entier
-- [ ] Verifier que les templates suivants sont fusionnes (pas d'ecrasement entre eux)
+- [ ] Dans le sélecteur de semaines, sélectionner **2 templates ou plus**
+- [ ] Les appliquer à une semaine
+- [ ] Vérifier que le premier template est appliqué en entier
+- [ ] Vérifier que les templates suivants sont fusionnés (pas d'écrasement entre eux)
 
-## 7. Nettoyage des reservations
+## 7. Nettoyage des réservations
 
-- [ ] S'inscrire a un creneau sur une semaine
-- [ ] Appliquer un template qui contient un creneau **bloquant** (entrainement) couvrant ce creneau
-- [ ] Verifier que l'inscription est automatiquement supprimee
-- [ ] Les inscriptions sur les creneaux non couverts ne sont pas touchees
+- [ ] S'inscrire à un créneau sur une semaine
+- [ ] Appliquer un template qui contient un créneau **bloquant** (entraînement) couvrant ce créneau
+- [ ] Vérifier que l'inscription est automatiquement supprimée
+- [ ] Les inscriptions sur les créneaux non couverts ne sont pas touchées
 
-## 8. Suppression d'un creneau individuel (admin)
+## 8. Suppression d'un créneau individuel (admin)
 
 - [ ] Se connecter en admin
-- [ ] Sur le calendrier, passer en vue "Edition"
-- [ ] Supprimer un creneau de semaine (icone poubelle)
+- [ ] Sur le calendrier, passer en vue "Édition"
+- [ ] Supprimer un créneau de semaine (icône poubelle)
 - [ ] Confirmer la suppression
-- [ ] Verifier que le creneau disparait du calendrier
+- [ ] Vérifier que le créneau disparaît du calendrier
 
 ## 9. Analyse de conflits
 
-- [ ] Selectionner un template et une semaine deja configuree avec des creneaux qui chevauchent
+- [ ] Sélectionner un template et une semaine déjà configurée avec des créneaux qui chevauchent
 - [ ] Cliquer "Appliquer"
-- [ ] Verifier que le dialogue affiche les conflits detectes (creneaux en conflit listes)
-- [ ] Annuler pour verifier que rien n'est modifie
+- [ ] Vérifier que le dialogue affiche les conflits détectés (créneaux en conflit listés)
+- [ ] Annuler pour vérifier que rien n'est modifié
 
 ## 10. Cas limites
 
-- [ ] Appliquer un template a **plusieurs semaines** en une seule fois
-- [ ] Appliquer un template qui n'a **aucun creneau** (template vide)
-- [ ] Appliquer un template sur une semaine, puis naviguer au calendrier et verifier le temps reel (si un autre admin modifie en parallele)
+- [ ] Appliquer un template à **plusieurs semaines** en une seule fois
+- [ ] Appliquer un template qui n'a **aucun créneau** (template vide)
+- [ ] Appliquer un template sur une semaine, puis naviguer au calendrier et vérifier le temps réel (si un autre admin modifie en parallèle)
