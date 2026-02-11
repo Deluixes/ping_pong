@@ -261,11 +261,12 @@ export const AuthProvider = ({ children }) => {
             const { error } = await supabase.auth.updateUser({
                 data: { name },
             })
-            if (!error) {
-                setUser((prev) => ({ ...prev, name }))
-            }
+            if (error) return { success: false, error: error.message }
+            setUser((prev) => ({ ...prev, name }))
+            return { success: true }
         } catch (error) {
             console.error('Update name error:', error)
+            return { success: false, error: error.message }
         }
     }
 

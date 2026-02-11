@@ -173,8 +173,12 @@ export default function Settings() {
         if (licenseType) {
             updates.push(storageService.updateMemberLicense(user.id, licenseType))
         }
-        await Promise.all(updates)
+        const results = await Promise.all(updates)
         setIsSaving(false)
+        if (results.some((r) => r && !r.success)) {
+            addToast('Erreur lors de la sauvegarde du profil.', 'error')
+            return
+        }
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
     }

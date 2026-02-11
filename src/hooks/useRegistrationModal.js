@@ -233,6 +233,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             await Promise.all([loadData(), loadInvitations()])
         } catch (error) {
             console.error('Registration error:', error)
+            addToast("Erreur lors de l'inscription. Veuillez réessayer.", 'error')
         }
     }
 
@@ -272,7 +273,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             await storageService.adminDeleteInvitation(slotId, dateStr, participantId)
             await loadInvitations()
         } else {
-            await storageService.adminDeleteEvent(slotId, dateStr, participantId)
+            await storageService.unregisterFromSlot(slotId, dateStr, participantId)
             await loadData()
         }
     }

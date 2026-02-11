@@ -6,7 +6,7 @@ import { getCachedEvents, setCachedEvents } from '../components/calendar/calenda
 
 // ==================== OPTIMISTIC UPDATE HELPERS ====================
 
-function mapReservationRow(r) {
+export function mapReservationRow(r) {
     return {
         slotId: r.slot_id,
         date: r.date,
@@ -17,7 +17,7 @@ function mapReservationRow(r) {
     }
 }
 
-function applyReservationPayload(payload, setEvents, weekRange) {
+export function applyReservationPayload(payload, setEvents, weekRange) {
     const { eventType, new: newRow, old: oldRow } = payload
     const row = newRow || oldRow
     if (!row?.date || row.date < weekRange.start || row.date > weekRange.end) return false
@@ -60,7 +60,7 @@ function applyReservationPayload(payload, setEvents, weekRange) {
     return false
 }
 
-function mapInvitationRow(r) {
+export function mapInvitationRow(r) {
     return {
         slotId: r.slot_id,
         userId: r.user_id,
@@ -71,7 +71,7 @@ function mapInvitationRow(r) {
     }
 }
 
-function applyInvitationPayload(payload, setInvitations, dateStr) {
+export function applyInvitationPayload(payload, setInvitations, dateStr) {
     const { eventType, new: newRow, old: oldRow } = payload
     const row = newRow || oldRow
     if (!row?.date || row.date !== dateStr) return false
@@ -99,7 +99,7 @@ function applyInvitationPayload(payload, setInvitations, dateStr) {
     return false
 }
 
-function mapOpenedSlotRow(r) {
+export function mapOpenedSlotRow(r) {
     return {
         id: r.id,
         date: r.date,
@@ -110,7 +110,7 @@ function mapOpenedSlotRow(r) {
     }
 }
 
-function applyOpenedSlotPayload(payload, setOpenedSlots, dateStr) {
+export function applyOpenedSlotPayload(payload, setOpenedSlots, dateStr) {
     const { eventType, new: newRow, old: oldRow } = payload
     const row = newRow || oldRow
     if (!row?.date || row.date !== dateStr) return false

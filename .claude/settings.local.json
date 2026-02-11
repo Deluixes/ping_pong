@@ -24,7 +24,10 @@
       "Bash(del \"c:\\\\Users\\\\J.Daulion\\\\Documents\\\\Claude Code\\\\ping_pong\\\\check_css_classes.js\")",
       "Bash(ls -la \"C:\\\\Users\\\\J.Daulion\\\\.claude\\\\projects\\\\c--Users-J-Daulion-Documents-Claude-Code-ping-pong\\\\memory\"\" 2>/dev/null || echo \"Memory directory not found \")",
       "Bash(grep:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npx vitest run src/utils/__tests__/permissions.test.js)",
+      "Bash(npx vitest run:*)",
+      "Bash(npm ls jsdom)"
     ]
   }
 }

@@ -57,22 +57,6 @@ export const reservationService = {
         return { success: true }
     },
 
-    async adminDeleteEvent(slotId, date, userId) {
-        const { error } = await supabase
-            .from('reservations')
-            .delete()
-            .eq('slot_id', slotId)
-            .eq('date', date)
-            .eq('user_id', userId)
-
-        if (error) {
-            console.error('Error deleting event:', error)
-            return { success: false }
-        }
-
-        return { success: true }
-    },
-
     async deleteReservationsForSlot(date, slotId) {
         const { data, error } = await supabase
             .from('reservations')
