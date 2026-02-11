@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { storageService } from '../services/storage'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { MAX_GUESTS } from '../constants'
 import { TIME_SLOTS, DURATION_OPTIONS } from '../components/calendar/calendarUtils'
 
 export function useRegistrationModal({ user, selectedDate, slotHelpers, calendarData }) {
+    const { addToast } = useToast()
+    const confirm = useConfirm()
     const {
         getSlotIndex,
         getParticipants,
@@ -99,11 +103,14 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const participants = getParticipants(slotId)
         if (participants.length > 0) {
-            const confirmed = window.confirm(
-                `${participants.length} personne(s) inscrite(s) sur ce créneau :\n` +
+            const confirmed = await confirm({
+                title: 'Fermer le créneau',
+                message:
+                    `${participants.length} personne(s) inscrite(s) sur ce créneau :\n` +
                     participants.map((p) => `- ${p.name}`).join('\n') +
-                    `\n\nVoulez-vous vraiment fermer ce créneau ?\nLeurs réservations seront supprimées.`
-            )
+                    `\n\nVoulez-vous vraiment fermer ce créneau ?\nLeurs réservations seront supprimées.`,
+                confirmLabel: 'Fermer',
+            })
             if (!confirmed) return
             await storageService.deleteReservationsForSlot(dateStr, slotId)
             await loadData()
@@ -142,7 +149,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                 setSelectedTarget('all')
                 setShowOpenSlotModal(true)
             } else {
-                alert("Ce créneau n'est pas ouvert aux réservations.")
+                addToast("Ce créneau n'est pas ouvert aux réservations.", 'warning')
             }
             return
         }
@@ -150,13 +157,16 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         if (!canUserRegister(slotId)) {
             const { target } = availability
             if (target === 'loisir') {
-                alert('Ce créneau est réservé aux licences Loisir.')
+                addToast('Ce créneau est réservé aux licences Loisir.', 'warning')
             } else if (target === 'competition') {
-                alert('Ce créneau est réservé aux licences Compétition.')
+                addToast('Ce créneau est réservé aux licences Compétition.', 'warning')
             } else if (!user?.licenseType) {
-                alert("Votre type de licence n'est pas défini. Contactez un administrateur.")
+                addToast(
+                    "Votre type de licence n'est pas défini. Contactez un administrateur.",
+                    'warning'
+                )
             } else {
-                alert('Vous ne pouvez pas vous inscrire à ce créneau.')
+                addToast('Vous ne pouvez pas vous inscrire à ce créneau.', 'warning')
             }
             return
         }
@@ -197,7 +207,13 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     }
 
     const handleDeleteWeekSlot = async (slotId) => {
-        if (!isAdmin || !window.confirm('Supprimer ce créneau de cette semaine ?')) return
+        if (!isAdmin) return
+        const confirmed = await confirm({
+            title: 'Supprimer le créneau',
+            message: 'Supprimer ce créneau de cette semaine ?',
+            confirmLabel: 'Supprimer',
+        })
+        if (!confirmed) return
         await storageService.deleteWeekSlot(slotId)
         await loadWeekConfig()
     }
@@ -246,7 +262,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
         const validGuests = guests.filter((g) => g.odId)
         if (inviteOnlyMode && validGuests.length === 0) {
-            alert('Veuillez sélectionner au moins une personne à inviter.')
+            addToast('Veuillez sélectionner au moins une personne à inviter.', 'warning')
             return
         }
 
@@ -258,8 +274,9 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             if (!slot) continue
             const blockedInfo = getBlockedSlotInfo(slot.id)
             if (blockedInfo && blockedInfo.isBlocking !== false) {
-                alert(
-                    `La durée sélectionnée chevauche un créneau bloqué (${blockedInfo.name}). Veuillez réduire la durée.`
+                addToast(
+                    `La durée sélectionnée chevauche un créneau bloqué (${blockedInfo.name}). Veuillez réduire la durée.`,
+                    'warning'
                 )
                 return
             }
@@ -336,7 +353,12 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
     const handleAdminDelete = async (slotId, participantId, participantName, isGuest) => {
         if (!isAdmin) return
-        if (!window.confirm(`Supprimer ${participantName} de ce créneau ?`)) return
+        const confirmed = await confirm({
+            title: 'Supprimer',
+            message: `Supprimer ${participantName} de ce créneau ?`,
+            confirmLabel: 'Supprimer',
+        })
+        if (!confirmed) return
 
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         if (isGuest) {

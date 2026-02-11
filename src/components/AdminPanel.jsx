@@ -8,6 +8,7 @@ import {
     canEditMemberRole as canEditMemberRoleUtil,
 } from '../utils/permissions'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import {
     ArrowLeft,
     Check,
@@ -21,11 +22,13 @@ import {
     Shield,
     Search,
 } from 'lucide-react'
+import LicenseTypeSelector from './LicenseTypeSelector'
 import styles from './AdminPanel.module.css'
 
 export default function AdminPanel() {
     const navigate = useNavigate()
     const { user: currentUser } = useAuth()
+    const confirm = useConfirm()
     const [members, setMembers] = useState({ pending: [], approved: [] })
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
@@ -72,14 +75,24 @@ export default function AdminPanel() {
     }
 
     const handleReject = async (userId) => {
-        if (window.confirm('Refuser cette demande ?')) {
+        const confirmed = await confirm({
+            title: 'Refuser',
+            message: 'Refuser cette demande ?',
+            confirmLabel: 'Refuser',
+        })
+        if (confirmed) {
             await storageService.rejectMember(userId)
             await loadData()
         }
     }
 
     const handleRemove = async (userId, name) => {
-        if (window.confirm(`Retirer ${name} du groupe ?`)) {
+        const confirmed = await confirm({
+            title: 'Retirer du groupe',
+            message: `Retirer ${name} du groupe ?`,
+            confirmLabel: 'Retirer',
+        })
+        if (confirmed) {
             await storageService.removeMember(userId)
             await loadData()
             closeEditModal()
@@ -330,32 +343,10 @@ export default function AdminPanel() {
                                 <Award size={14} className="label-icon" />
                                 Type de licence
                             </label>
-                            <div className={styles.licenseRow}>
-                                <button
-                                    type="button"
-                                    onClick={() => setEditForm({ ...editForm, licenseType: 'L' })}
-                                    className={clsx(
-                                        styles.licenseBtn,
-                                        editForm.licenseType === 'L'
-                                            ? styles.licenseBtnActive
-                                            : styles.licenseBtnInactive
-                                    )}
-                                >
-                                    Loisir (L)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setEditForm({ ...editForm, licenseType: 'C' })}
-                                    className={clsx(
-                                        styles.licenseBtn,
-                                        editForm.licenseType === 'C'
-                                            ? styles.licenseBtnActive
-                                            : styles.licenseBtnInactive
-                                    )}
-                                >
-                                    Compétition (C)
-                                </button>
-                            </div>
+                            <LicenseTypeSelector
+                                value={editForm.licenseType}
+                                onChange={(type) => setEditForm({ ...editForm, licenseType: type })}
+                            />
                         </div>
 
                         {/* Sélecteur de rôle - seulement si l'utilisateur peut modifier */}

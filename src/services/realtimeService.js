@@ -4,8 +4,10 @@ export const realtimeService = {
     subscribeToReservations(callback) {
         return supabase
             .channel('reservations-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () =>
-                callback()
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'reservations' },
+                (payload) => callback(payload)
             )
             .subscribe()
     },
@@ -25,7 +27,7 @@ export const realtimeService = {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'slot_invitations' },
-                () => callback()
+                (payload) => callback(payload)
             )
             .subscribe()
     },
@@ -33,8 +35,10 @@ export const realtimeService = {
     subscribeToOpenedSlots(callback) {
         return supabase
             .channel('opened-slots-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'opened_slots' }, () =>
-                callback()
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'opened_slots' },
+                (payload) => callback(payload)
             )
             .subscribe()
     },

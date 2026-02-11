@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { DEFAULT_TOTAL_TABLES } from '../constants'
 import {
     ArrowLeft,
@@ -21,6 +22,7 @@ import styles from './PlanningSettings.module.css'
 
 export default function PlanningSettings() {
     const navigate = useNavigate()
+    const confirm = useConfirm()
     const [activeTab, setActiveTab] = useState('tables') // 'tables' | 'templates' | 'weeks'
     const [loading, setLoading] = useState(true)
 
@@ -83,7 +85,12 @@ export default function PlanningSettings() {
     }
 
     const handleDeleteTemplate = async (template) => {
-        if (!window.confirm(`Supprimer le template "${template.name}" ?`)) return
+        const confirmed = await confirm({
+            title: 'Supprimer',
+            message: `Supprimer le template "${template.name}" ?`,
+            confirmLabel: 'Supprimer',
+        })
+        if (!confirmed) return
         await storageService.deleteTemplate(template.id)
         setTemplates((prev) => prev.filter((t) => t.id !== template.id))
     }

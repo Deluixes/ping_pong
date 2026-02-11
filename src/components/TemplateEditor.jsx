@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { ArrowLeft, Plus, Edit2, Trash2, X, RefreshCw, Clock, Calendar } from 'lucide-react'
 import { DAYS_FR, DEFAULT_OPENING_TIME, DEFAULT_CLOSING_TIME } from '../constants'
 import { formatTime } from '../utils/time'
 import styles from './TemplateEditor.module.css'
 
 export default function TemplateEditor({ template, onBack, onUpdate }) {
+    const confirm = useConfirm()
     const [loading, setLoading] = useState(true)
     const [slots, setSlots] = useState([])
     const [hours, setHours] = useState([])
@@ -98,7 +100,12 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
     }
 
     const handleDeleteSlot = async (slot) => {
-        if (!window.confirm(`Supprimer "${slot.name}" ?`)) return
+        const confirmed = await confirm({
+            title: 'Supprimer',
+            message: `Supprimer "${slot.name}" ?`,
+            confirmLabel: 'Supprimer',
+        })
+        if (!confirmed) return
         await storageService.deleteTemplateSlot(slot.id)
         setSlots((prev) => prev.filter((s) => s.id !== slot.id))
     }
@@ -140,7 +147,12 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
     }
 
     const handleDeleteHour = async (hour) => {
-        if (!window.confirm(`Supprimer cette plage horaire ?`)) return
+        const confirmed = await confirm({
+            title: 'Supprimer',
+            message: 'Supprimer cette plage horaire ?',
+            confirmLabel: 'Supprimer',
+        })
+        if (!confirmed) return
         await storageService.deleteTemplateHour(hour.id)
         setHours((prev) => prev.filter((h) => h.id !== hour.id))
     }

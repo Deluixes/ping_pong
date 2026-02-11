@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { startOfWeek, addDays } from 'date-fns'
 import { useAuth } from '../contexts/AuthContext'
+import { CalendarProvider } from '../contexts/CalendarContext'
 import { useCalendarData } from '../hooks/useCalendarData'
 import { useSlotHelpers } from '../hooks/useSlotHelpers'
 import { useRegistrationModal } from '../hooks/useRegistrationModal'
@@ -71,6 +72,31 @@ export default function Calendar() {
     const modal = useRegistrationModal({ user, selectedDate, slotHelpers, calendarData })
 
     const isAdmin = user?.isAdmin
+
+    const calendarCtx = useMemo(
+        () => ({
+            viewMode,
+            userId: user.id,
+            isAdmin,
+            maxPersons: calendarData.maxPersons,
+            canReserveOnWeek: slotHelpers.canReserveOnWeek(),
+            getBlockedSlotInfo: slotHelpers.getBlockedSlotInfo,
+            isSlotInOpeningHours: slotHelpers.isSlotInOpeningHours,
+            isSlotAvailable: slotHelpers.isSlotAvailable,
+            canUserRegister: slotHelpers.canUserRegister,
+            isUserParticipating: slotHelpers.isUserParticipating,
+            getParticipants: slotHelpers.getParticipants,
+            getAcceptedParticipantCount: slotHelpers.getAcceptedParticipantCount,
+            getParticipantColor: slotHelpers.getParticipantColor,
+            getOpenedSlotInfo: slotHelpers.getOpenedSlotInfo,
+            onSlotClick: modal.handleSlotClick,
+            onUnregister: modal.handleUnregister,
+            onAdminDelete: modal.handleAdminDelete,
+            onCloseSlot: modal.handleCloseSlot,
+            onDeleteWeekSlot: modal.handleDeleteWeekSlot,
+        }),
+        [viewMode, user.id, isAdmin, calendarData.maxPersons, slotHelpers, modal]
+    )
 
     // ==================== RENDER ====================
 
@@ -184,27 +210,9 @@ export default function Calendar() {
                     }}
                 />
             ) : (
-                <DayViewSlots
-                    viewMode={viewMode}
-                    userId={user.id}
-                    isAdmin={isAdmin}
-                    maxPersons={calendarData.maxPersons}
-                    canReserveOnWeek={slotHelpers.canReserveOnWeek()}
-                    getBlockedSlotInfo={slotHelpers.getBlockedSlotInfo}
-                    isSlotInOpeningHours={slotHelpers.isSlotInOpeningHours}
-                    isSlotAvailable={slotHelpers.isSlotAvailable}
-                    canUserRegister={slotHelpers.canUserRegister}
-                    isUserParticipating={slotHelpers.isUserParticipating}
-                    getParticipants={slotHelpers.getParticipants}
-                    getAcceptedParticipantCount={slotHelpers.getAcceptedParticipantCount}
-                    getParticipantColor={slotHelpers.getParticipantColor}
-                    getOpenedSlotInfo={slotHelpers.getOpenedSlotInfo}
-                    onSlotClick={modal.handleSlotClick}
-                    onUnregister={modal.handleUnregister}
-                    onAdminDelete={modal.handleAdminDelete}
-                    onCloseSlot={modal.handleCloseSlot}
-                    onDeleteWeekSlot={modal.handleDeleteWeekSlot}
-                />
+                <CalendarProvider value={calendarCtx}>
+                    <DayViewSlots />
+                </CalendarProvider>
             )}
         </div>
     )

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { storageService } from '../services/storage'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -11,6 +12,7 @@ import styles from './MyInvitations.module.css'
 export default function MyInvitations({ onNotificationChange }) {
     const navigate = useNavigate()
     const { user } = useAuth()
+    const confirm = useConfirm()
     const [invitations, setInvitations] = useState([])
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
@@ -39,7 +41,12 @@ export default function MyInvitations({ onNotificationChange }) {
     }
 
     const handleDecline = async (inv) => {
-        if (window.confirm('Refuser cette invitation ?')) {
+        const confirmed = await confirm({
+            title: 'Refuser',
+            message: 'Refuser cette invitation ?',
+            confirmLabel: 'Refuser',
+        })
+        if (confirmed) {
             await storageService.declineInvitation(inv.slotId, inv.date, user.id)
             await loadInvitations()
             onNotificationChange?.()

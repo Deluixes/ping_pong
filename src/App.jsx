@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ToastProvider } from './contexts/ToastContext'
+import { ConfirmProvider } from './contexts/ConfirmContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import Login from './components/Login'
 import Calendar from './components/Calendar'
@@ -172,7 +174,11 @@ function App() {
         <ErrorBoundary>
             <Router>
                 <AuthProvider>
-                    <AppContent />
+                    <ToastProvider>
+                        <ConfirmProvider>
+                            <AppContent />
+                        </ConfirmProvider>
+                    </ToastProvider>
                 </AuthProvider>
             </Router>
         </ErrorBoundary>

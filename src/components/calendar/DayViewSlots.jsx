@@ -1,29 +1,23 @@
 import clsx from 'clsx'
 import { Users, X, Lock, Unlock, Trash2 } from 'lucide-react'
 import { TIME_SLOTS } from './calendarUtils'
+import { useCalendar } from '../../contexts/CalendarContext'
 import styles from './DayViewSlots.module.css'
 
-export default function DayViewSlots({
-    viewMode,
-    userId,
-    isAdmin,
-    maxPersons,
-    canReserveOnWeek,
-    getBlockedSlotInfo,
-    isSlotInOpeningHours,
-    isSlotAvailable,
-    canUserRegister,
-    isUserParticipating,
-    getParticipants,
-    getAcceptedParticipantCount,
-    getParticipantColor,
-    getOpenedSlotInfo,
-    onSlotClick,
-    onUnregister,
-    onAdminDelete,
-    onCloseSlot,
-    onDeleteWeekSlot,
-}) {
+export default function DayViewSlots() {
+    const {
+        viewMode,
+        maxPersons,
+        getBlockedSlotInfo,
+        isSlotInOpeningHours,
+        isSlotAvailable,
+        canUserRegister,
+        isUserParticipating,
+        getParticipants,
+        getAcceptedParticipantCount,
+        getOpenedSlotInfo,
+    } = useCalendar()
+
     return (
         <div className={styles.slotList}>
             {TIME_SLOTS.filter((slot) => {
@@ -42,14 +36,13 @@ export default function DayViewSlots({
             }).map((slot) => {
                 const blockedInfo = getBlockedSlotInfo(slot.id)
                 const availability = isSlotAvailable(slot.id)
-                const userCanRegister = canUserRegister(slot.id)
+                const userCanReg = canUserRegister(slot.id)
                 const isParticipating = isUserParticipating(slot.id)
                 const participants = getParticipants(slot.id)
                 const count = participants.length
                 const acceptedCount = getAcceptedParticipantCount(slot.id)
                 const isOverbooked = acceptedCount > maxPersons
 
-                // Si le créneau est un entraînement (bloquant) ou un cours (indicatif)
                 if (blockedInfo) {
                     return (
                         <BlockedSlotRow
@@ -59,40 +52,21 @@ export default function DayViewSlots({
                             isParticipating={isParticipating}
                             participants={participants}
                             count={count}
-                            viewMode={viewMode}
-                            isAdmin={isAdmin}
-                            userId={userId}
-                            canReserveOnWeek={canReserveOnWeek}
-                            onSlotClick={onSlotClick}
-                            onUnregister={onUnregister}
-                            onAdminDelete={onAdminDelete}
-                            onDeleteWeekSlot={onDeleteWeekSlot}
                         />
                     )
                 }
 
-                // Créneau normal (non entraînement, non cours)
                 return (
                     <NormalSlotRow
                         key={slot.id}
                         slot={slot}
                         availability={availability}
-                        userCanRegister={userCanRegister}
+                        userCanRegister={userCanReg}
                         isParticipating={isParticipating}
                         participants={participants}
                         count={count}
                         acceptedCount={acceptedCount}
                         isOverbooked={isOverbooked}
-                        maxPersons={maxPersons}
-                        viewMode={viewMode}
-                        isAdmin={isAdmin}
-                        userId={userId}
-                        canReserveOnWeek={canReserveOnWeek}
-                        getParticipantColor={getParticipantColor}
-                        onSlotClick={onSlotClick}
-                        onUnregister={onUnregister}
-                        onAdminDelete={onAdminDelete}
-                        onCloseSlot={onCloseSlot}
                     />
                 )
             })}
@@ -100,21 +74,18 @@ export default function DayViewSlots({
     )
 }
 
-function BlockedSlotRow({
-    slot,
-    blockedInfo,
-    isParticipating,
-    participants,
-    count,
-    viewMode,
-    isAdmin,
-    userId,
-    canReserveOnWeek,
-    onSlotClick,
-    onUnregister,
-    onAdminDelete,
-    onDeleteWeekSlot,
-}) {
+function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, count }) {
+    const {
+        viewMode,
+        isAdmin,
+        userId,
+        canReserveOnWeek,
+        onSlotClick,
+        onUnregister,
+        onAdminDelete,
+        onDeleteWeekSlot,
+    } = useCalendar()
+
     const isCourse = blockedInfo.isBlocking === false
     const isTraining = blockedInfo.isBlocking !== false
 
@@ -242,17 +213,20 @@ function NormalSlotRow({
     count,
     acceptedCount,
     isOverbooked,
-    maxPersons,
-    viewMode,
-    isAdmin,
-    userId,
-    canReserveOnWeek,
-    getParticipantColor,
-    onSlotClick,
-    onUnregister,
-    onAdminDelete,
-    onCloseSlot,
 }) {
+    const {
+        viewMode,
+        isAdmin,
+        userId,
+        maxPersons,
+        canReserveOnWeek,
+        getParticipantColor,
+        onSlotClick,
+        onUnregister,
+        onAdminDelete,
+        onCloseSlot,
+    } = useCalendar()
+
     const isClosed = !availability.available
     const isOpened = availability.type === 'opened'
 

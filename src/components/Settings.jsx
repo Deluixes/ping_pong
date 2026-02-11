@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { storageService } from '../services/storage'
 import { notificationService } from '../services/notifications'
 import {
@@ -18,11 +20,14 @@ import {
 } from 'lucide-react'
 import { MAX_PHOTO_SIZE } from '../constants'
 import ChangePassword from './ChangePassword'
+import LicenseTypeSelector from './LicenseTypeSelector'
 import clsx from 'clsx'
 import styles from './Settings.module.css'
 
 export default function Settings() {
     const { user, updateName, logout } = useAuth()
+    const { addToast } = useToast()
+    const confirm = useConfirm()
     const navigate = useNavigate()
     const [name, setName] = useState(user?.name || '')
     const [licenseType, setLicenseType] = useState(null)
@@ -92,7 +97,7 @@ export default function Settings() {
                 setNotifEnabled(true)
                 setNotifPermission('granted')
             } else {
-                alert(result.error || "Impossible d'activer les notifications")
+                addToast(result.error || "Impossible d'activer les notifications", 'error')
                 setNotifPermission(notificationService.getPermissionStatus())
             }
         }
@@ -116,13 +121,13 @@ export default function Settings() {
 
         // Vérifier le type de fichier
         if (!file.type.startsWith('image/')) {
-            alert('Veuillez sélectionner une image')
+            addToast('Veuillez sélectionner une image', 'warning')
             return
         }
 
         // Vérifier la taille (max 5MB)
         if (file.size > MAX_PHOTO_SIZE) {
-            alert("L'image ne doit pas dépasser 5 Mo")
+            addToast("L'image ne doit pas dépasser 5 Mo", 'warning')
             return
         }
 
@@ -133,7 +138,7 @@ export default function Settings() {
         if (result.success) {
             setProfilePhotoUrl(result.url)
         } else {
-            alert(result.error || "Erreur lors de l'upload de la photo")
+            addToast(result.error || "Erreur lors de l'upload de la photo", 'error')
         }
 
         // Reset input
@@ -141,7 +146,12 @@ export default function Settings() {
     }
 
     const handleDeletePhoto = async () => {
-        if (!window.confirm('Supprimer votre photo de profil ?')) return
+        const confirmed = await confirm({
+            title: 'Supprimer',
+            message: 'Supprimer votre photo de profil ?',
+            confirmLabel: 'Supprimer',
+        })
+        if (!confirmed) return
 
         setPhotoUploading(true)
         const result = await storageService.deleteProfilePhoto(user.id)
@@ -150,7 +160,7 @@ export default function Settings() {
         if (result.success) {
             setProfilePhotoUrl(null)
         } else {
-            alert(result.error || 'Erreur lors de la suppression')
+            addToast(result.error || 'Erreur lors de la suppression', 'error')
         }
     }
 
@@ -266,28 +276,7 @@ export default function Settings() {
                             <Award size={14} className="label-icon" />
                             Type de licence
                         </label>
-                        <div className={styles.licenseRow}>
-                            <button
-                                type="button"
-                                onClick={() => setLicenseType('L')}
-                                className={clsx(
-                                    styles.licenseBtn,
-                                    licenseType === 'L' && styles.licenseBtnActive
-                                )}
-                            >
-                                Loisir (L)
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setLicenseType('C')}
-                                className={clsx(
-                                    styles.licenseBtn,
-                                    licenseType === 'C' && styles.licenseBtnActive
-                                )}
-                            >
-                                Compétition (C)
-                            </button>
-                        </div>
+                        <LicenseTypeSelector value={licenseType} onChange={setLicenseType} />
                     </div>
 
                     <button

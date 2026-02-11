@@ -11,6 +11,7 @@ import {
 } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { storageService } from '../services/storage'
+import { useToast } from '../contexts/ToastContext'
 import {
     ChevronLeft,
     ChevronRight,
@@ -29,6 +30,7 @@ import { DAYS_FR } from '../constants'
 import styles from './WeekSelector.module.css'
 
 export default function WeekSelector({ templates, onClose }) {
+    const { addToast } = useToast()
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [selectedWeeks, setSelectedWeeks] = useState([])
     // Multi-template selection: array of template IDs in priority order (first = highest priority)
@@ -221,12 +223,12 @@ export default function WeekSelector({ templates, onClose }) {
             if (result.skippedSlots > 0) {
                 message += `\n${result.skippedSlots} créneau(x) ignoré(s) (chevauchement entre templates)`
             }
-            alert(message)
+            addToast(message, 'success')
             await loadConfiguredWeeks()
             setSelectedWeeks([])
             setSelectedTemplates([])
         } else {
-            alert("Erreur lors de l'application des templates")
+            addToast("Erreur lors de l'application des templates", 'error')
         }
 
         setApplying(false)

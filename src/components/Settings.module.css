@@ -126,31 +126,6 @@
     color: var(--color-text-muted);
 }
 
-/* ===== License Toggle Buttons ===== */
-
-.licenseRow {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.licenseBtn {
-    flex: 1;
-    padding: 0.75rem;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    color: var(--color-text);
-    font-weight: 400;
-    background: white;
-    border: 2px solid #ddd;
-}
-
-.licenseBtnActive {
-    border-color: var(--color-primary);
-    background: #eff6ff;
-    font-weight: 600;
-    color: var(--color-primary);
-}
-
 /* ===== Save Button ===== */
 
 .saveBtn {
