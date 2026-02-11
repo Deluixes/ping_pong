@@ -10,7 +10,7 @@ export const invitationService = {
 
         if (error) return []
         return data.map((inv) => ({
-            odId: inv.user_id,
+            userId: inv.user_id,
             name: inv.user_name,
             status: inv.status,
             invitedBy: inv.invited_by,
@@ -23,7 +23,7 @@ export const invitationService = {
         if (error) return []
         return data.map((inv) => ({
             slotId: inv.slot_id,
-            odId: inv.user_id,
+            userId: inv.user_id,
             name: inv.user_name,
             status: inv.status,
             invitedBy: inv.invited_by,

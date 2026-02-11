@@ -190,11 +190,11 @@ export default function RegistrationModal({
                         {approvedMembers.length > 0 ? (
                             <>
                                 {/* Info sur les invitations */}
-                                {guests.filter((g) => g.odId).length > 0 && (
+                                {guests.filter((g) => g.userId).length > 0 && (
                                     <div className={clsx('alert--info', styles.infoBox)}>
                                         <strong>Info :</strong>{' '}
-                                        {guests.filter((g) => g.odId).length} personne(s) invitée(s)
-                                        devront accepter l'invitation.
+                                        {guests.filter((g) => g.userId).length} personne(s)
+                                        invitée(s) devront accepter l'invitation.
                                     </div>
                                 )}
 
@@ -202,7 +202,7 @@ export default function RegistrationModal({
                                     {guests.map((guest, idx) => (
                                         <div key={idx} className={styles.guestRow}>
                                             <select
-                                                value={guest.odId}
+                                                value={guest.userId}
                                                 onChange={(e) => onUpdateGuest(idx, e.target.value)}
                                                 className={clsx('form-input', styles.guestSelect)}
                                             >
@@ -211,9 +211,9 @@ export default function RegistrationModal({
                                                     .filter((m) => {
                                                         if (
                                                             guests.some(
-                                                                (g) => g.odId === m.userId
+                                                                (g) => g.userId === m.userId
                                                             ) &&
-                                                            m.userId !== guest.odId
+                                                            m.userId !== guest.userId
                                                         ) {
                                                             return false
                                                         }
@@ -251,7 +251,7 @@ export default function RegistrationModal({
                                     const availableMembers = approvedMembers.filter(
                                         (m) =>
                                             !slotParticipants.some((p) => p.id === m.userId) &&
-                                            !guests.some((g) => g.odId === m.userId)
+                                            !guests.some((g) => g.userId === m.userId)
                                     )
                                     return guests.length < 3 && availableMembers.length > 0
                                 })() && (

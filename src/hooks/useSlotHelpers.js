@@ -89,7 +89,7 @@ export function useSlotHelpers({
             if (invSlotIndex === -1) continue
             const invDuration = inv.duration || 1
             const participant = {
-                id: inv.odId,
+                id: inv.userId,
                 name: inv.name,
                 isGuest: true,
                 status: inv.status,

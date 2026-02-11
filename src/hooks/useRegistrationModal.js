@@ -35,7 +35,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const [modalStep, setModalStep] = useState(null)
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
-    const [guests, setGuests] = useState([{ odId: '', name: '' }])
+    const [guests, setGuests] = useState([{ userId: '', name: '' }])
     const [inviteOnlyMode, setInviteOnlyMode] = useState(false)
 
     // Valeurs derivees
@@ -52,7 +52,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         calendarData,
         onStartRegistration: ({ inviteOnly }) => {
             setInviteOnlyMode(inviteOnly)
-            setGuests([{ odId: '', name: '' }])
+            setGuests([{ userId: '', name: '' }])
             if (inviteOnly) {
                 setModalStep('guests')
             } else {
@@ -78,7 +78,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                 return
             }
             setInviteOnlyMode(true)
-            setGuests([{ odId: '', name: '' }])
+            setGuests([{ userId: '', name: '' }])
             setModalStep('guests')
             return
         }
@@ -133,7 +133,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
-        setGuests([{ odId: '', name: '' }])
+        setGuests([{ userId: '', name: '' }])
         if (isUserParticipating(selectedSlotId)) {
             setModalStep('guests')
         } else {
@@ -148,26 +148,26 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
     const addGuestField = () => {
         if (guests.length < MAX_GUESTS) {
-            setGuests([...guests, { odId: '', name: '' }])
+            setGuests([...guests, { userId: '', name: '' }])
         }
     }
 
-    const updateGuest = (index, odId) => {
-        const member = calendarData.approvedMembers.find((m) => m.userId === odId)
+    const updateGuest = (index, userId) => {
+        const member = calendarData.approvedMembers.find((m) => m.userId === userId)
         const newGuests = [...guests]
-        newGuests[index] = { odId, name: member?.name || '' }
+        newGuests[index] = { userId, name: member?.name || '' }
         setGuests(newGuests)
     }
 
     const removeGuest = (index) => {
         const newGuests = guests.filter((_, i) => i !== index)
-        setGuests(newGuests.length > 0 ? newGuests : [{ odId: '', name: '' }])
+        setGuests(newGuests.length > 0 ? newGuests : [{ userId: '', name: '' }])
     }
 
     const handleRegister = async () => {
         if (!selectedSlotId || !selectedDuration) return
 
-        const validGuests = guests.filter((g) => g.odId)
+        const validGuests = guests.filter((g) => g.userId)
         if (inviteOnlyMode && validGuests.length === 0) {
             addToast('Veuillez sélectionner au moins une personne à inviter.', 'warning')
             return
@@ -220,7 +220,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                     storageService.inviteToSlot(
                         firstSlot.id,
                         dateStr,
-                        guest.odId,
+                        guest.userId,
                         guest.name,
                         user.id,
                         selectedDuration.slots
@@ -281,7 +281,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         setModalStep(null)
         setSelectedSlotId(null)
         setSelectedDuration(null)
-        setGuests([{ odId: '', name: '' }])
+        setGuests([{ userId: '', name: '' }])
         setInviteOnlyMode(false)
     }
 

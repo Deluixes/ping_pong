@@ -63,7 +63,7 @@ function applyReservationPayload(payload, setEvents, weekRange) {
 function mapInvitationRow(r) {
     return {
         slotId: r.slot_id,
-        odId: r.user_id,
+        userId: r.user_id,
         name: r.user_name,
         status: r.status,
         invitedBy: r.invited_by,
@@ -82,14 +82,14 @@ function applyInvitationPayload(payload, setInvitations, dateStr) {
     }
     if (eventType === 'DELETE' && oldRow) {
         setInvitations((prev) =>
-            prev.filter((i) => !(i.slotId === oldRow.slot_id && i.odId === oldRow.user_id))
+            prev.filter((i) => !(i.slotId === oldRow.slot_id && i.userId === oldRow.user_id))
         )
         return true
     }
     if (eventType === 'UPDATE' && newRow && oldRow) {
         setInvitations((prev) =>
             prev.map((i) =>
-                i.slotId === oldRow.slot_id && i.odId === oldRow.user_id
+                i.slotId === oldRow.slot_id && i.userId === oldRow.user_id
                     ? mapInvitationRow(newRow)
                     : i
             )
