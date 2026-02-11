@@ -54,6 +54,7 @@ vi.mock('../../lib/supabase', () => ({
 
 import { storageService } from '../storage'
 import { GROUP_NAME } from '../../constants'
+import { timeToMinutes, slotsOverlap } from '../../utils/time'
 
 // ==================== SETUP ====================
 
@@ -70,82 +71,78 @@ describe('GROUP_NAME', () => {
     })
 })
 
-// ==================== FONCTIONS PURES ====================
+// ==================== FONCTIONS PURES (utils/time.js) ====================
 
-describe('_timeToMinutes', () => {
+describe('timeToMinutes', () => {
     it('convertit 00:00 en 0', () => {
-        expect(storageService._timeToMinutes('00:00')).toBe(0)
+        expect(timeToMinutes('00:00')).toBe(0)
     })
 
     it('convertit 01:30 en 90', () => {
-        expect(storageService._timeToMinutes('01:30')).toBe(90)
+        expect(timeToMinutes('01:30')).toBe(90)
     })
 
     it('convertit 23:59 en 1439', () => {
-        expect(storageService._timeToMinutes('23:59')).toBe(1439)
+        expect(timeToMinutes('23:59')).toBe(1439)
     })
 
     it('gère le format HH:MM:SS en ignorant les secondes', () => {
-        expect(storageService._timeToMinutes('14:30:00')).toBe(870)
+        expect(timeToMinutes('14:30:00')).toBe(870)
     })
 
     it('gère les heures à un chiffre', () => {
-        expect(storageService._timeToMinutes('9:00')).toBe(540)
+        expect(timeToMinutes('9:00')).toBe(540)
     })
-})
 
-describe('_slotIdToMinutes', () => {
     it('convertit 10:00 en 600', () => {
-        expect(storageService._slotIdToMinutes('10:00')).toBe(600)
+        expect(timeToMinutes('10:00')).toBe(600)
     })
 
-    it('donne le même résultat que _timeToMinutes pour le même input', () => {
-        expect(storageService._slotIdToMinutes('14:30')).toBe(
-            storageService._timeToMinutes('14:30')
-        )
+    it('donne le même résultat pour un slotId et un time identiques', () => {
+        expect(timeToMinutes('14:30')).toBe(timeToMinutes('14:30'))
     })
 })
 
-describe('_slotsOverlap', () => {
+describe('slotsOverlap', () => {
     it('détecte le chevauchement sur le même jour (camelCase)', () => {
         const slot1 = { dayOfWeek: 1, startTime: '09:00', endTime: '11:00' }
         const slot2 = { dayOfWeek: 1, startTime: '10:00', endTime: '12:00' }
-        expect(storageService._slotsOverlap(slot1, slot2)).toBe(true)
+        expect(slotsOverlap(slot1, slot2)).toBe(true)
     })
 
     it('retourne false pour des créneaux adjacents (end1 === start2)', () => {
         const slot1 = { dayOfWeek: 1, startTime: '09:00', endTime: '10:00' }
         const slot2 = { dayOfWeek: 1, startTime: '10:00', endTime: '11:00' }
-        expect(storageService._slotsOverlap(slot1, slot2)).toBe(false)
+        expect(slotsOverlap(slot1, slot2)).toBe(false)
     })
 
     it('retourne false pour des jours différents', () => {
         const slot1 = { dayOfWeek: 1, startTime: '09:00', endTime: '11:00' }
         const slot2 = { dayOfWeek: 2, startTime: '09:00', endTime: '11:00' }
-        expect(storageService._slotsOverlap(slot1, slot2)).toBe(false)
+        expect(slotsOverlap(slot1, slot2)).toBe(false)
     })
 
     it('fonctionne avec les propriétés snake_case', () => {
         const slot1 = { date: '2025-01-06', start_time: '09:00', end_time: '11:00' }
         const slot2 = { date: '2025-01-06', start_time: '10:00', end_time: '12:00' }
-        expect(storageService._slotsOverlap(slot1, slot2)).toBe(true)
+        expect(slotsOverlap(slot1, slot2)).toBe(true)
     })
 
     it('utilise la propriété date quand dayOfWeek est absent', () => {
         const slot1 = { date: '2025-01-06', startTime: '09:00', endTime: '11:00' }
         const slot2 = { date: '2025-01-07', startTime: '09:00', endTime: '11:00' }
-        expect(storageService._slotsOverlap(slot1, slot2)).toBe(false)
+        expect(slotsOverlap(slot1, slot2)).toBe(false)
     })
 
     it("détecte l'inclusion totale (slot2 dans slot1)", () => {
         const slot1 = { dayOfWeek: 3, startTime: '08:00', endTime: '17:00' }
         const slot2 = { dayOfWeek: 3, startTime: '10:00', endTime: '12:00' }
-        expect(storageService._slotsOverlap(slot1, slot2)).toBe(true)
+        expect(slotsOverlap(slot1, slot2)).toBe(true)
     })
 
     it('détecte le même créneau exact comme chevauchement', () => {
         const slot = { dayOfWeek: 5, startTime: '14:00', endTime: '16:00' }
-        expect(storageService._slotsOverlap(slot, slot)).toBe(true)
+        expect(slotsOverlap(slot, slot)).toBe(true)
     })
 })
 

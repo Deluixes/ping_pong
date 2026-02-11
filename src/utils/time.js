@@ -41,3 +41,20 @@ export function getEndTime(startTime, durationSlots) {
 export function formatTime(time) {
     return time?.slice(0, 5) || ''
 }
+
+/**
+ * Verifie si deux creneaux se chevauchent (meme jour + heures qui se superposent)
+ * Accepte les proprietes camelCase ou snake_case pour les heures et les jours
+ */
+export function slotsOverlap(slot1, slot2) {
+    const day1 = slot1.date || slot1.dayOfWeek
+    const day2 = slot2.date || slot2.dayOfWeek
+    if (day1 !== day2) return false
+
+    const start1 = timeToMinutes(slot1.startTime || slot1.start_time)
+    const end1 = timeToMinutes(slot1.endTime || slot1.end_time)
+    const start2 = timeToMinutes(slot2.startTime || slot2.start_time)
+    const end2 = timeToMinutes(slot2.endTime || slot2.end_time)
+
+    return start1 < end2 && start2 < end1
+}
