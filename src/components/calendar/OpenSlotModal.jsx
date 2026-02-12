@@ -2,26 +2,32 @@ import { Clock, X, Unlock } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
+import { useRegistration } from '../../contexts/RegistrationContext'
 import styles from './OpenSlotModal.module.css'
 
-export default function OpenSlotModal({
-    slotToOpen,
-    selectedDate,
-    selectedTarget,
-    selectedOpenDuration,
-    availableOpenDurations,
-    getEndTime,
-    onSetSelectedTarget,
-    onSetSelectedOpenDuration,
-    onOpenSlot,
-    onClose,
-}) {
-    if (!slotToOpen) return null
+export default function OpenSlotModal() {
+    const {
+        showOpenSlotModal,
+        slotToOpen,
+        selectedDate,
+        selectedTarget,
+        selectedOpenDuration,
+        getEndTime,
+        getAvailableOpenDurations,
+        setSelectedTarget,
+        setSelectedOpenDuration,
+        handleOpenSlot,
+        closeOpenSlotModal,
+    } = useRegistration()
+
+    if (!showOpenSlotModal || !slotToOpen) return null
+
+    const availableOpenDurations = getAvailableOpenDurations(slotToOpen)
 
     return (
         <div
             className="modal-overlay modal-overlay--bottom"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+            onClick={(e) => e.target === e.currentTarget && closeOpenSlotModal()}
         >
             <div className="modal-dialog modal-dialog--bottom-sheet">
                 <div className="modal-header">
@@ -29,7 +35,7 @@ export default function OpenSlotModal({
                         <Unlock size={20} />
                         Ouvrir des créneaux
                     </h3>
-                    <button onClick={onClose} className="icon-btn">
+                    <button onClick={closeOpenSlotModal} className="icon-btn">
                         <X size={24} />
                     </button>
                 </div>
@@ -51,7 +57,7 @@ export default function OpenSlotModal({
                         {availableOpenDurations.map((duration) => (
                             <button
                                 key={duration.value}
-                                onClick={() => onSetSelectedOpenDuration(duration.slots)}
+                                onClick={() => setSelectedOpenDuration(duration.slots)}
                                 className={clsx(
                                     styles.durationChip,
                                     selectedOpenDuration === duration.slots &&
@@ -78,7 +84,7 @@ export default function OpenSlotModal({
                                 name="target"
                                 value="all"
                                 checked={selectedTarget === 'all'}
-                                onChange={(e) => onSetSelectedTarget(e.target.value)}
+                                onChange={(e) => setSelectedTarget(e.target.value)}
                             />
                             <div>
                                 <div className={styles.radioTitle}>Tous les membres</div>
@@ -97,7 +103,7 @@ export default function OpenSlotModal({
                                 name="target"
                                 value="loisir"
                                 checked={selectedTarget === 'loisir'}
-                                onChange={(e) => onSetSelectedTarget(e.target.value)}
+                                onChange={(e) => setSelectedTarget(e.target.value)}
                             />
                             <div>
                                 <div className={clsx(styles.radioTitle, styles.radioTitleLoisir)}>
@@ -118,7 +124,7 @@ export default function OpenSlotModal({
                                 name="target"
                                 value="competition"
                                 checked={selectedTarget === 'competition'}
-                                onChange={(e) => onSetSelectedTarget(e.target.value)}
+                                onChange={(e) => setSelectedTarget(e.target.value)}
                             />
                             <div>
                                 <div
@@ -136,11 +142,11 @@ export default function OpenSlotModal({
                 </div>
 
                 <div className={styles.footerButtons}>
-                    <button onClick={onClose} className={clsx('btn', styles.cancelBtn)}>
+                    <button onClick={closeOpenSlotModal} className={clsx('btn', styles.cancelBtn)}>
                         Annuler
                     </button>
                     <button
-                        onClick={onOpenSlot}
+                        onClick={handleOpenSlot}
                         className={clsx('btn', 'btn-primary', styles.confirmBtn)}
                     >
                         <Unlock size={16} />

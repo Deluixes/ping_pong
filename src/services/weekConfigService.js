@@ -58,39 +58,53 @@ function filterByMode(dbRows, mode, existingItems) {
 }
 
 async function deleteByIds(table, items) {
-    for (const item of items) {
-        await supabase.from(table).delete().eq('id', item.id)
-    }
+    if (items.length === 0) return
+    await supabase
+        .from(table)
+        .delete()
+        .in(
+            'id',
+            items.map((item) => item.id)
+        )
 }
 
 async function cleanupBlockedReservations(blockingSlots) {
+    if (blockingSlots.length === 0) return 0
+
+    // Grouper par date pour faire un seul SELECT/DELETE par date
+    const byDate = {}
+    for (const slot of blockingSlots) {
+        if (!byDate[slot.date]) byDate[slot.date] = []
+        byDate[slot.date].push(slot)
+    }
+
     let totalDeleted = 0
 
-    for (const slot of blockingSlots) {
+    for (const [date, slots] of Object.entries(byDate)) {
         const { data: dayReservations } = await supabase
             .from('reservations')
             .select('id, slot_id')
-            .eq('date', slot.date)
+            .eq('date', date)
 
         if (!dayReservations || dayReservations.length === 0) continue
 
-        const slotStartMinutes = timeToMinutes(slot.start_time)
-        const slotEndMinutes = timeToMinutes(slot.end_time)
-
-        const conflicting = dayReservations.filter((r) => {
+        const conflictingIds = []
+        for (const r of dayReservations) {
             const resMinutes = timeToMinutes(r.slot_id)
-            return resMinutes >= slotStartMinutes && resMinutes < slotEndMinutes
-        })
+            for (const slot of slots) {
+                if (
+                    resMinutes >= timeToMinutes(slot.start_time) &&
+                    resMinutes < timeToMinutes(slot.end_time)
+                ) {
+                    conflictingIds.push(r.id)
+                    break
+                }
+            }
+        }
 
-        if (conflicting.length > 0) {
-            await supabase
-                .from('reservations')
-                .delete()
-                .in(
-                    'id',
-                    conflicting.map((r) => r.id)
-                )
-            totalDeleted += conflicting.length
+        if (conflictingIds.length > 0) {
+            await supabase.from('reservations').delete().in('id', conflictingIds)
+            totalDeleted += conflictingIds.length
         }
     }
 

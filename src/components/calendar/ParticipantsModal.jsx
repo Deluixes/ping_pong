@@ -2,20 +2,29 @@ import { Users, X, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
+import { useRegistration } from '../../contexts/RegistrationContext'
 import styles from './ParticipantsModal.module.css'
 
-export default function ParticipantsModal({
-    selectedSlotId,
-    selectedDate,
-    participantsToShow,
-    isUserRegistered,
-    isUserOnSlot,
-    onRegister,
-    onInviteOnly,
-    onClose,
-}) {
+export default function ParticipantsModal() {
+    const {
+        showParticipantsList,
+        selectedSlotId,
+        selectedDate,
+        participantsToShow,
+        getUserRegistration,
+        isUserOnSlot,
+        openRegistrationFromParticipants,
+        openInviteOnlyFromParticipants,
+        closeParticipantsModal,
+    } = useRegistration()
+
+    if (!showParticipantsList) return null
+
+    const isUserRegistered = !!getUserRegistration(selectedSlotId)
+    const isOnSlot = isUserOnSlot(selectedSlotId)
+
     return (
-        <div className="modal-overlay modal-overlay--dark" onClick={onClose}>
+        <div className="modal-overlay modal-overlay--dark" onClick={closeParticipantsModal}>
             <div
                 className={clsx('modal-dialog', styles.dialog)}
                 onClick={(e) => e.stopPropagation()}
@@ -25,7 +34,7 @@ export default function ParticipantsModal({
                         <Users size={20} />
                         Joueurs sur ce créneau
                     </h3>
-                    <button onClick={onClose} className="icon-btn">
+                    <button onClick={closeParticipantsModal} className="icon-btn">
                         <X size={24} />
                     </button>
                 </div>
@@ -82,10 +91,10 @@ export default function ParticipantsModal({
 
                 <div className={styles.actions}>
                     {/* Boutons S'inscrire / Inviter seulement si pas inscrit */}
-                    {!isUserRegistered && !isUserOnSlot && (
+                    {!isUserRegistered && !isOnSlot && (
                         <>
                             <button
-                                onClick={onRegister}
+                                onClick={openRegistrationFromParticipants}
                                 className={clsx(
                                     'btn',
                                     'btn-primary',
@@ -97,7 +106,7 @@ export default function ParticipantsModal({
                                 S'inscrire
                             </button>
                             <button
-                                onClick={onInviteOnly}
+                                onClick={openInviteOnlyFromParticipants}
                                 className={clsx('btn', 'btn-full', styles.inviteBtn)}
                             >
                                 <Users size={18} />
@@ -106,11 +115,11 @@ export default function ParticipantsModal({
                         </>
                     )}
                     <button
-                        onClick={onClose}
+                        onClick={closeParticipantsModal}
                         className={clsx(
                             'btn',
                             'btn-full',
-                            isUserRegistered || isUserOnSlot
+                            isUserRegistered || isOnSlot
                                 ? styles.closeBtnActive
                                 : styles.closeBtnInactive
                         )}

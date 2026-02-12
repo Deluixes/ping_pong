@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { storageService } from '../services/storage'
 import { format } from 'date-fns'
@@ -12,6 +13,7 @@ import styles from './MyInvitations.module.css'
 export default function MyInvitations({ onNotificationChange }) {
     const navigate = useNavigate()
     const { user } = useAuth()
+    const { addToast } = useToast()
     const confirm = useConfirm()
     const [invitations, setInvitations] = useState([])
     const [loading, setLoading] = useState(true)
@@ -35,9 +37,13 @@ export default function MyInvitations({ onNotificationChange }) {
     }
 
     const handleAccept = async (inv) => {
-        await storageService.acceptInvitation(inv.slotId, inv.date, user.id)
-        await loadInvitations()
-        onNotificationChange?.()
+        try {
+            await storageService.acceptInvitation(inv.slotId, inv.date, user.id)
+            await loadInvitations()
+            onNotificationChange?.()
+        } catch {
+            addToast("Erreur lors de l'acceptation de l'invitation.", 'error')
+        }
     }
 
     const handleDecline = async (inv) => {
@@ -46,10 +52,13 @@ export default function MyInvitations({ onNotificationChange }) {
             message: 'Refuser cette invitation ?',
             confirmLabel: 'Refuser',
         })
-        if (confirmed) {
+        if (!confirmed) return
+        try {
             await storageService.declineInvitation(inv.slotId, inv.date, user.id)
             await loadInvitations()
             onNotificationChange?.()
+        } catch {
+            addToast("Erreur lors du refus de l'invitation.", 'error')
         }
     }
 

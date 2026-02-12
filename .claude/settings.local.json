@@ -29,7 +29,9 @@
       "Bash(npx vitest run:*)",
       "Bash(npm ls jsdom)",
       "Bash(xargs:*)",
-      "Read(//c/Users/J.Daulion/Documents/Claude Code/ping_pong/**)"
+      "Read(//c/Users/J.Daulion/Documents/Claude Code/ping_pong/**)",
+      "Bash(findstr:*)",
+      "Bash(ls:*)"
     ]
   }
 }

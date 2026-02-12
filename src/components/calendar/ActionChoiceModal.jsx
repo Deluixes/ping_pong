@@ -2,17 +2,23 @@ import { Users, Edit3 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
+import { useRegistration } from '../../contexts/RegistrationContext'
 import styles from './ActionChoiceModal.module.css'
 
-export default function ActionChoiceModal({
-    selectedSlotId,
-    selectedDate,
-    onShowParticipants,
-    onOpenInviteModal,
-    onClose,
-}) {
+export default function ActionChoiceModal() {
+    const {
+        showActionChoice,
+        selectedSlotId,
+        selectedDate,
+        handleShowParticipants,
+        handleOpenInviteModal,
+        closeActionChoiceModal,
+    } = useRegistration()
+
+    if (!showActionChoice) return null
+
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" onClick={closeActionChoiceModal}>
             <div
                 className={clsx('modal-dialog', styles.dialog)}
                 onClick={(e) => e.stopPropagation()}
@@ -23,7 +29,7 @@ export default function ActionChoiceModal({
                 </p>
 
                 <button
-                    onClick={() => onShowParticipants(selectedSlotId)}
+                    onClick={() => handleShowParticipants(selectedSlotId)}
                     className={clsx('btn', 'btn-full', styles.actionBtn)}
                 >
                     <Users size={18} />
@@ -31,14 +37,17 @@ export default function ActionChoiceModal({
                 </button>
 
                 <button
-                    onClick={onOpenInviteModal}
+                    onClick={handleOpenInviteModal}
                     className={clsx('btn', 'btn-full', styles.actionBtn)}
                 >
                     <Edit3 size={18} />
                     Modifier l'inscription
                 </button>
 
-                <button onClick={onClose} className={clsx('btn', 'btn-full', styles.cancelBtn)}>
+                <button
+                    onClick={closeActionChoiceModal}
+                    className={clsx('btn', 'btn-full', styles.cancelBtn)}
+                >
                     Annuler
                 </button>
             </div>

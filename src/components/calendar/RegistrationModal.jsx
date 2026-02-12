@@ -2,38 +2,41 @@ import { Clock, X, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
+import { useRegistration } from '../../contexts/RegistrationContext'
 import styles from './RegistrationModal.module.css'
 
-export default function RegistrationModal({
-    modalStep,
-    selectedSlotId,
-    selectedDate,
-    selectedDuration,
-    guests,
-    approvedMembers,
-    inviteOnlyMode,
-    availableDurations,
-    currentSlotAccepted,
-    isCurrentSlotOverbooked,
-    totalTables,
-    isUserParticipating,
-    getParticipants,
-    getEndTime,
-    onDurationSelect,
-    onModeChoice,
-    onSetModalStep,
-    onUpdateGuest,
-    onRemoveGuest,
-    onAddGuestField,
-    onRegister,
-    onClose,
-}) {
+export default function RegistrationModal() {
+    const {
+        modalStep,
+        selectedSlotId,
+        selectedDate,
+        selectedDuration,
+        guests,
+        approvedMembers,
+        inviteOnlyMode,
+        availableDurations,
+        currentSlotAccepted,
+        isCurrentSlotOverbooked,
+        totalTables,
+        isUserParticipating,
+        getParticipants,
+        getEndTime,
+        handleDurationSelect,
+        handleModeChoice,
+        setModalStep,
+        updateGuest,
+        removeGuest,
+        addGuestField,
+        handleRegister,
+        closeModal,
+    } = useRegistration()
+
     if (!modalStep) return null
 
     return (
         <div
             className="modal-overlay modal-overlay--bottom"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+            onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
             <div className={clsx('modal-dialog', 'modal-dialog--bottom-sheet', styles.maxHeight70)}>
                 <div className="modal-header">
@@ -47,7 +50,7 @@ export default function RegistrationModal({
                                 ? 'Inviter des personnes'
                                 : 'Confirmer la réservation'}
                     </h3>
-                    <button onClick={onClose} className="icon-btn">
+                    <button onClick={closeModal} className="icon-btn">
                         <X size={24} />
                     </button>
                 </div>
@@ -71,7 +74,7 @@ export default function RegistrationModal({
                                 {availableDurations.map((duration) => (
                                     <button
                                         key={duration.value}
-                                        onClick={() => onDurationSelect(duration)}
+                                        onClick={() => handleDurationSelect(duration)}
                                         className={styles.durationBtn}
                                     >
                                         <span className={styles.durationEmoji}>⏱️</span>
@@ -95,14 +98,14 @@ export default function RegistrationModal({
                 {modalStep === 'choice' && (
                     <div className={styles.choiceList}>
                         <button
-                            onClick={() => onSetModalStep('duration')}
+                            onClick={() => setModalStep('duration')}
                             className={styles.backLinkChoice}
                         >
                             ← Changer la durée
                         </button>
 
                         <button
-                            onClick={() => onModeChoice('register')}
+                            onClick={() => handleModeChoice('register')}
                             className={clsx('btn', styles.registerBtn)}
                         >
                             <div className={styles.choiceIconWrap}>
@@ -117,7 +120,7 @@ export default function RegistrationModal({
                         </button>
 
                         <button
-                            onClick={() => onModeChoice('invite_only')}
+                            onClick={() => handleModeChoice('invite_only')}
                             className={clsx('btn', styles.inviteOnlyBtn)}
                         >
                             <div className={styles.choiceIconWrap}>
@@ -140,8 +143,8 @@ export default function RegistrationModal({
                         <button
                             onClick={() =>
                                 inviteOnlyMode && isUserParticipating(selectedSlotId)
-                                    ? onClose()
-                                    : onSetModalStep('choice')
+                                    ? closeModal()
+                                    : setModalStep('choice')
                             }
                             className={styles.backLinkGuests}
                         >
@@ -161,7 +164,7 @@ export default function RegistrationModal({
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => onSetModalStep('duration')}
+                                    onClick={() => setModalStep('duration')}
                                     className={styles.changeDurationBtn}
                                 >
                                     Modifier
@@ -203,7 +206,7 @@ export default function RegistrationModal({
                                         <div key={idx} className={styles.guestRow}>
                                             <select
                                                 value={guest.userId}
-                                                onChange={(e) => onUpdateGuest(idx, e.target.value)}
+                                                onChange={(e) => updateGuest(idx, e.target.value)}
                                                 className={clsx('form-input', styles.guestSelect)}
                                             >
                                                 <option value="">-- Choisir un membre --</option>
@@ -236,7 +239,7 @@ export default function RegistrationModal({
                                             </select>
                                             {guests.length > 1 && (
                                                 <button
-                                                    onClick={() => onRemoveGuest(idx)}
+                                                    onClick={() => removeGuest(idx)}
                                                     className={styles.removeBtn}
                                                 >
                                                     <X size={16} />
@@ -256,7 +259,7 @@ export default function RegistrationModal({
                                     return guests.length < 3 && availableMembers.length > 0
                                 })() && (
                                     <button
-                                        onClick={onAddGuestField}
+                                        onClick={addGuestField}
                                         className={clsx('btn', styles.addPlayerBtn)}
                                     >
                                         <UserPlus size={16} />
@@ -270,7 +273,7 @@ export default function RegistrationModal({
                             </div>
                         )}
 
-                        <button onClick={onRegister} className="btn btn-primary btn-full">
+                        <button onClick={handleRegister} className="btn btn-primary btn-full">
                             {inviteOnlyMode
                                 ? '✓ Envoyer les invitations'
                                 : '✓ Confirmer la réservation'}

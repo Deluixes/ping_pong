@@ -126,9 +126,13 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     }
 
     const handleGuestUnregister = async (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
-        await loadInvitations()
+        try {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
+            await loadInvitations()
+        } catch {
+            addToast('Erreur lors de la désinscription.', 'error')
+        }
     }
 
     const handleDurationSelect = (duration) => {
@@ -238,25 +242,29 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     }
 
     const handleUnregister = async (slotId) => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const registration = getUserRegistration(slotId)
+        try {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            const registration = getUserRegistration(slotId)
 
-        if (registration) {
-            const startIndex = getSlotIndex(slotId)
-            const duration = registration.duration || 1
-            const unregisterPromises = []
-            for (let i = 0; i < duration; i++) {
-                const slot = TIME_SLOTS[startIndex + i]
-                if (slot) {
-                    unregisterPromises.push(
-                        storageService.unregisterFromSlot(slot.id, dateStr, user.id)
-                    )
+            if (registration) {
+                const startIndex = getSlotIndex(slotId)
+                const duration = registration.duration || 1
+                const unregisterPromises = []
+                for (let i = 0; i < duration; i++) {
+                    const slot = TIME_SLOTS[startIndex + i]
+                    if (slot) {
+                        unregisterPromises.push(
+                            storageService.unregisterFromSlot(slot.id, dateStr, user.id)
+                        )
+                    }
                 }
+                await Promise.all(unregisterPromises)
             }
-            await Promise.all(unregisterPromises)
-        }
 
-        await loadData()
+            await loadData()
+        } catch {
+            addToast('Erreur lors de la désinscription.', 'error')
+        }
     }
 
     const handleAdminDelete = async (slotId, participantId, participantName, isGuest) => {
@@ -268,13 +276,17 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         })
         if (!confirmed) return
 
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        if (isGuest) {
-            await storageService.adminDeleteInvitation(slotId, dateStr, participantId)
-            await loadInvitations()
-        } else {
-            await storageService.unregisterFromSlot(slotId, dateStr, participantId)
-            await loadData()
+        try {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            if (isGuest) {
+                await storageService.adminDeleteInvitation(slotId, dateStr, participantId)
+                await loadInvitations()
+            } else {
+                await storageService.unregisterFromSlot(slotId, dateStr, participantId)
+                await loadData()
+            }
+        } catch {
+            addToast('Erreur lors de la suppression.', 'error')
         }
     }
 

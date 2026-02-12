@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { storageService } from '../services/storage'
+import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { TIME_SLOTS } from '../components/calendar/calendarUtils'
 
 export function useSlotManagement({ user, selectedDate, slotHelpers, calendarData }) {
+    const { addToast } = useToast()
     const confirm = useConfirm()
     const { getSlotIndex, getParticipants } = slotHelpers
     const { loadData, loadOpenedSlots, loadWeekConfig } = calendarData
@@ -37,12 +39,16 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
                 )
             }
         }
-        await Promise.all(openPromises)
-        setShowOpenSlotModal(false)
-        setSlotToOpen(null)
-        setSelectedTarget('all')
-        setSelectedOpenDuration(1)
-        await loadOpenedSlots()
+        try {
+            await Promise.all(openPromises)
+            setShowOpenSlotModal(false)
+            setSlotToOpen(null)
+            setSelectedTarget('all')
+            setSelectedOpenDuration(1)
+            await loadOpenedSlots()
+        } catch {
+            addToast("Erreur lors de l'ouverture du créneau.", 'error')
+        }
     }
 
     const handleCloseSlot = async (slotId) => {
@@ -59,11 +65,17 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
                 confirmLabel: 'Fermer',
             })
             if (!confirmed) return
-            await storageService.deleteReservationsForSlot(dateStr, slotId)
-            await loadData()
         }
-        await storageService.closeSlot(dateStr, slotId)
-        await loadOpenedSlots()
+        try {
+            if (participants.length > 0) {
+                await storageService.deleteReservationsForSlot(dateStr, slotId)
+                await loadData()
+            }
+            await storageService.closeSlot(dateStr, slotId)
+            await loadOpenedSlots()
+        } catch {
+            addToast('Erreur lors de la fermeture du créneau.', 'error')
+        }
     }
 
     const handleDeleteWeekSlot = async (slotId) => {
@@ -74,8 +86,12 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
             confirmLabel: 'Supprimer',
         })
         if (!confirmed) return
-        await storageService.deleteWeekSlot(slotId)
-        await loadWeekConfig()
+        try {
+            await storageService.deleteWeekSlot(slotId)
+            await loadWeekConfig()
+        } catch {
+            addToast('Erreur lors de la suppression du créneau.', 'error')
+        }
     }
 
     const closeOpenSlotModal = () => setShowOpenSlotModal(false)

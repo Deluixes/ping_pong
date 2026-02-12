@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
+import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { ArrowLeft, Plus, Edit2, Trash2, X, RefreshCw, Clock, Calendar } from 'lucide-react'
 import { DAYS_FR, DEFAULT_OPENING_TIME, DEFAULT_CLOSING_TIME } from '../constants'
@@ -8,6 +9,7 @@ import { formatTime } from '../utils/time'
 import styles from './TemplateEditor.module.css'
 
 export default function TemplateEditor({ template, onBack, onUpdate }) {
+    const { addToast } = useToast()
     const confirm = useConfirm()
     const [loading, setLoading] = useState(true)
     const [slots, setSlots] = useState([])
@@ -88,15 +90,18 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
         if (!slotFormData.name || !slotFormData.startTime || !slotFormData.endTime) return
         setSavingSlot(true)
 
-        if (editingSlot) {
-            await storageService.updateTemplateSlot(editingSlot.id, slotFormData)
-        } else {
-            await storageService.createTemplateSlot(template.id, slotFormData)
+        try {
+            if (editingSlot) {
+                await storageService.updateTemplateSlot(editingSlot.id, slotFormData)
+            } else {
+                await storageService.createTemplateSlot(template.id, slotFormData)
+            }
+            await loadData()
+            setShowSlotModal(false)
+        } catch {
+            addToast('Erreur lors de la sauvegarde du créneau.', 'error')
         }
-
-        await loadData()
         setSavingSlot(false)
-        setShowSlotModal(false)
     }
 
     const handleDeleteSlot = async (slot) => {
@@ -106,8 +111,12 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
             confirmLabel: 'Supprimer',
         })
         if (!confirmed) return
-        await storageService.deleteTemplateSlot(slot.id)
-        setSlots((prev) => prev.filter((s) => s.id !== slot.id))
+        try {
+            await storageService.deleteTemplateSlot(slot.id)
+            setSlots((prev) => prev.filter((s) => s.id !== slot.id))
+        } catch {
+            addToast('Erreur lors de la suppression du créneau.', 'error')
+        }
     }
 
     // Hours handlers
@@ -135,15 +144,18 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
         if (!hourFormData.startTime || !hourFormData.endTime) return
         setSavingHour(true)
 
-        if (editingHour) {
-            await storageService.updateTemplateHour(editingHour.id, hourFormData)
-        } else {
-            await storageService.createTemplateHour(template.id, hourFormData)
+        try {
+            if (editingHour) {
+                await storageService.updateTemplateHour(editingHour.id, hourFormData)
+            } else {
+                await storageService.createTemplateHour(template.id, hourFormData)
+            }
+            await loadData()
+            setShowHourModal(false)
+        } catch {
+            addToast('Erreur lors de la sauvegarde de la plage horaire.', 'error')
         }
-
-        await loadData()
         setSavingHour(false)
-        setShowHourModal(false)
     }
 
     const handleDeleteHour = async (hour) => {
@@ -153,8 +165,12 @@ export default function TemplateEditor({ template, onBack, onUpdate }) {
             confirmLabel: 'Supprimer',
         })
         if (!confirmed) return
-        await storageService.deleteTemplateHour(hour.id)
-        setHours((prev) => prev.filter((h) => h.id !== hour.id))
+        try {
+            await storageService.deleteTemplateHour(hour.id)
+            setHours((prev) => prev.filter((h) => h.id !== hour.id))
+        } catch {
+            addToast('Erreur lors de la suppression de la plage horaire.', 'error')
+        }
     }
 
     // Grouper par jour

@@ -8,6 +8,7 @@ import {
     canEditMemberRole as canEditMemberRoleUtil,
 } from '../utils/permissions'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import {
     ArrowLeft,
@@ -28,6 +29,7 @@ import styles from './AdminPanel.module.css'
 export default function AdminPanel() {
     const navigate = useNavigate()
     const { user: currentUser } = useAuth()
+    const { addToast } = useToast()
     const confirm = useConfirm()
     const [members, setMembers] = useState({ pending: [], approved: [] })
     const [loading, setLoading] = useState(true)
@@ -70,8 +72,16 @@ export default function AdminPanel() {
     }
 
     const handleApprove = async (userId) => {
-        await storageService.approveMember(userId)
-        await loadData()
+        try {
+            const result = await storageService.approveMember(userId)
+            if (!result.success) {
+                addToast("Erreur lors de l'approbation du membre.", 'error')
+                return
+            }
+            await loadData()
+        } catch {
+            addToast("Erreur lors de l'approbation du membre.", 'error')
+        }
     }
 
     const handleReject = async (userId) => {
@@ -80,9 +90,16 @@ export default function AdminPanel() {
             message: 'Refuser cette demande ?',
             confirmLabel: 'Refuser',
         })
-        if (confirmed) {
-            await storageService.rejectMember(userId)
+        if (!confirmed) return
+        try {
+            const result = await storageService.rejectMember(userId)
+            if (!result.success) {
+                addToast('Erreur lors du refus.', 'error')
+                return
+            }
             await loadData()
+        } catch {
+            addToast('Erreur lors du refus.', 'error')
         }
     }
 
@@ -92,10 +109,17 @@ export default function AdminPanel() {
             message: `Retirer ${name} du groupe ?`,
             confirmLabel: 'Retirer',
         })
-        if (confirmed) {
-            await storageService.removeMember(userId)
+        if (!confirmed) return
+        try {
+            const result = await storageService.removeMember(userId)
+            if (!result.success) {
+                addToast('Erreur lors de la suppression du membre.', 'error')
+                return
+            }
             await loadData()
             closeEditModal()
+        } catch {
+            addToast('Erreur lors de la suppression du membre.', 'error')
         }
     }
 
@@ -117,22 +141,31 @@ export default function AdminPanel() {
         if (!editForm.name.trim()) return
         setSavingEdit(true)
 
-        const updates = [
-            storageService.updateMemberLicense(editingMember.userId, editForm.licenseType),
-        ]
+        try {
+            const updates = [
+                storageService.updateMemberLicense(editingMember.userId, editForm.licenseType),
+            ]
 
-        if (editForm.name !== editingMember.name) {
-            updates.push(storageService.renameUser(editingMember.userId, editForm.name.trim()))
+            if (editForm.name !== editingMember.name) {
+                updates.push(storageService.renameUser(editingMember.userId, editForm.name.trim()))
+            }
+
+            if (editForm.role !== editingMember.role && canEditMemberRole(editingMember)) {
+                updates.push(storageService.updateMemberRole(editingMember.userId, editForm.role))
+            }
+
+            const results = await Promise.all(updates)
+            if (results.some((r) => r && !r.success)) {
+                addToast('Erreur lors de la sauvegarde.', 'error')
+                setSavingEdit(false)
+                return
+            }
+            await loadData()
+            closeEditModal()
+        } catch {
+            addToast('Erreur lors de la sauvegarde.', 'error')
         }
-
-        if (editForm.role !== editingMember.role && canEditMemberRole(editingMember)) {
-            updates.push(storageService.updateMemberRole(editingMember.userId, editForm.role))
-        }
-
-        await Promise.all(updates)
-        await loadData()
         setSavingEdit(false)
-        closeEditModal()
     }
 
     // Filtre et regroupe les membres par catégorie

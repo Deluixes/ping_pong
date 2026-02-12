@@ -88,18 +88,22 @@ export default function Settings() {
     // Handlers pour les notifications
     const handleToggleNotifications = async () => {
         setNotifLoading(true)
-        if (notifEnabled) {
-            await notificationService.disableNotifications(user.id)
-            setNotifEnabled(false)
-        } else {
-            const result = await notificationService.enableNotifications(user.id)
-            if (result.success) {
-                setNotifEnabled(true)
-                setNotifPermission('granted')
+        try {
+            if (notifEnabled) {
+                await notificationService.disableNotifications(user.id)
+                setNotifEnabled(false)
             } else {
-                addToast(result.error || "Impossible d'activer les notifications", 'error')
-                setNotifPermission(notificationService.getPermissionStatus())
+                const result = await notificationService.enableNotifications(user.id)
+                if (result.success) {
+                    setNotifEnabled(true)
+                    setNotifPermission('granted')
+                } else {
+                    addToast(result.error || "Impossible d'activer les notifications", 'error')
+                    setNotifPermission(notificationService.getPermissionStatus())
+                }
             }
+        } catch {
+            addToast('Erreur lors de la mise à jour des notifications.', 'error')
         }
         setNotifLoading(false)
     }
@@ -107,11 +111,19 @@ export default function Settings() {
     const handleUpdateNotifPref = async (key, value) => {
         const newPrefs = { ...notifPrefs, [key]: value }
         setNotifPrefs(newPrefs)
-        await notificationService.updatePreferences(user.id, newPrefs)
+        try {
+            await notificationService.updatePreferences(user.id, newPrefs)
+        } catch {
+            addToast('Erreur lors de la mise à jour des préférences.', 'error')
+        }
     }
 
     const handleTestNotification = async () => {
-        await notificationService.sendTestNotification()
+        try {
+            await notificationService.sendTestNotification()
+        } catch {
+            addToast("Erreur lors de l'envoi de la notification test.", 'error')
+        }
     }
 
     // Handlers pour la photo de profil

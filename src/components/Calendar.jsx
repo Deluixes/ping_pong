@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { startOfWeek, addDays } from 'date-fns'
 import { useAuth } from '../contexts/AuthContext'
 import { CalendarProvider } from '../contexts/CalendarContext'
+import { RegistrationProvider } from '../contexts/RegistrationContext'
 import { useCalendarData } from '../hooks/useCalendarData'
 import { useSlotHelpers } from '../hooks/useSlotHelpers'
 import { useRegistrationModal } from '../hooks/useRegistrationModal'
@@ -116,72 +117,17 @@ export default function Calendar() {
 
     return (
         <div className={styles.wrapper}>
-            <RegistrationModal
-                modalStep={modal.modalStep}
-                selectedSlotId={modal.selectedSlotId}
+            <RegistrationProvider
+                modal={modal}
                 selectedDate={selectedDate}
-                selectedDuration={modal.selectedDuration}
-                guests={modal.guests}
-                approvedMembers={calendarData.approvedMembers}
-                inviteOnlyMode={modal.inviteOnlyMode}
-                availableDurations={modal.availableDurations}
-                currentSlotAccepted={modal.currentSlotAccepted}
-                isCurrentSlotOverbooked={modal.isCurrentSlotOverbooked}
-                totalTables={calendarData.totalTables}
-                isUserParticipating={slotHelpers.isUserParticipating}
-                getParticipants={slotHelpers.getParticipants}
-                getEndTime={slotHelpers.getEndTime}
-                onDurationSelect={modal.handleDurationSelect}
-                onModeChoice={modal.handleModeChoice}
-                onSetModalStep={modal.setModalStep}
-                onUpdateGuest={modal.updateGuest}
-                onRemoveGuest={modal.removeGuest}
-                onAddGuestField={modal.addGuestField}
-                onRegister={modal.handleRegister}
-                onClose={modal.closeModal}
-            />
-
-            {modal.showOpenSlotModal && (
-                <OpenSlotModal
-                    slotToOpen={modal.slotToOpen}
-                    selectedDate={selectedDate}
-                    selectedTarget={modal.selectedTarget}
-                    selectedOpenDuration={modal.selectedOpenDuration}
-                    availableOpenDurations={
-                        modal.slotToOpen
-                            ? slotHelpers.getAvailableOpenDurations(modal.slotToOpen)
-                            : []
-                    }
-                    getEndTime={slotHelpers.getEndTime}
-                    onSetSelectedTarget={modal.setSelectedTarget}
-                    onSetSelectedOpenDuration={modal.setSelectedOpenDuration}
-                    onOpenSlot={modal.handleOpenSlot}
-                    onClose={modal.closeOpenSlotModal}
-                />
-            )}
-
-            {modal.showActionChoice && (
-                <ActionChoiceModal
-                    selectedSlotId={modal.selectedSlotId}
-                    selectedDate={selectedDate}
-                    onShowParticipants={modal.handleShowParticipants}
-                    onOpenInviteModal={modal.handleOpenInviteModal}
-                    onClose={modal.closeActionChoiceModal}
-                />
-            )}
-
-            {modal.showParticipantsList && (
-                <ParticipantsModal
-                    selectedSlotId={modal.selectedSlotId}
-                    selectedDate={selectedDate}
-                    participantsToShow={modal.participantsToShow}
-                    isUserRegistered={!!slotHelpers.getUserRegistration(modal.selectedSlotId)}
-                    isUserOnSlot={slotHelpers.isUserOnSlot(modal.selectedSlotId)}
-                    onRegister={modal.openRegistrationFromParticipants}
-                    onInviteOnly={modal.openInviteOnlyFromParticipants}
-                    onClose={modal.closeParticipantsModal}
-                />
-            )}
+                slotHelpers={slotHelpers}
+                calendarData={calendarData}
+            >
+                <RegistrationModal />
+                <OpenSlotModal />
+                <ActionChoiceModal />
+                <ParticipantsModal />
+            </RegistrationProvider>
 
             <CalendarNavigation
                 weekStart={weekStart}

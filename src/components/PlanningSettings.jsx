@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
+import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { DEFAULT_TOTAL_TABLES } from '../constants'
 import {
@@ -22,6 +23,7 @@ import styles from './PlanningSettings.module.css'
 
 export default function PlanningSettings() {
     const navigate = useNavigate()
+    const { addToast } = useToast()
     const confirm = useConfirm()
     const [activeTab, setActiveTab] = useState('tables') // 'tables' | 'templates' | 'weeks'
     const [loading, setLoading] = useState(true)
@@ -63,10 +65,14 @@ export default function PlanningSettings() {
     const handleSaveSettings = async () => {
         setSavingSettings(true)
         setSettingsSaved(false)
-        await storageService.updateSetting('total_tables', totalTables.toString())
+        try {
+            await storageService.updateSetting('total_tables', totalTables.toString())
+            setSettingsSaved(true)
+            setTimeout(() => setSettingsSaved(false), 2000)
+        } catch {
+            addToast('Erreur lors de la sauvegarde des paramètres.', 'error')
+        }
         setSavingSettings(false)
-        setSettingsSaved(true)
-        setTimeout(() => setSettingsSaved(false), 2000)
     }
 
     // Template handlers
@@ -74,11 +80,17 @@ export default function PlanningSettings() {
         if (!newTemplateName.trim()) return
         setSavingTemplate(true)
 
-        const result = await storageService.createTemplate(newTemplateName.trim())
-        if (result.success) {
-            await loadData()
-            setNewTemplateName('')
-            setShowNewTemplateModal(false)
+        try {
+            const result = await storageService.createTemplate(newTemplateName.trim())
+            if (result.success) {
+                await loadData()
+                setNewTemplateName('')
+                setShowNewTemplateModal(false)
+            } else {
+                addToast('Erreur lors de la création du template.', 'error')
+            }
+        } catch {
+            addToast('Erreur lors de la création du template.', 'error')
         }
 
         setSavingTemplate(false)
@@ -91,8 +103,12 @@ export default function PlanningSettings() {
             confirmLabel: 'Supprimer',
         })
         if (!confirmed) return
-        await storageService.deleteTemplate(template.id)
-        setTemplates((prev) => prev.filter((t) => t.id !== template.id))
+        try {
+            await storageService.deleteTemplate(template.id)
+            setTemplates((prev) => prev.filter((t) => t.id !== template.id))
+        } catch {
+            addToast('Erreur lors de la suppression du template.', 'error')
+        }
     }
 
     const handleOpenRenameModal = (template) => {
@@ -105,15 +121,21 @@ export default function PlanningSettings() {
         if (!editedTemplateName.trim() || !templateToRename) return
         setSavingTemplate(true)
 
-        const result = await storageService.updateTemplate(
-            templateToRename.id,
-            editedTemplateName.trim()
-        )
-        if (result.success) {
-            await loadData()
-            setShowEditNameModal(false)
-            setTemplateToRename(null)
-            setEditedTemplateName('')
+        try {
+            const result = await storageService.updateTemplate(
+                templateToRename.id,
+                editedTemplateName.trim()
+            )
+            if (result.success) {
+                await loadData()
+                setShowEditNameModal(false)
+                setTemplateToRename(null)
+                setEditedTemplateName('')
+            } else {
+                addToast('Erreur lors du renommage du template.', 'error')
+            }
+        } catch {
+            addToast('Erreur lors du renommage du template.', 'error')
         }
 
         setSavingTemplate(false)
