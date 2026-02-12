@@ -76,14 +76,6 @@
     font-weight: bold;
 }
 
-.todayDot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    margin-top: 2px;
-}
-
 /* Warning Banner */
 .warningContent {
     border-radius: var(--radius-md);

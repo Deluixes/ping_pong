@@ -74,6 +74,15 @@ export default function Calendar() {
 
     const isAdmin = user?.isAdmin
 
+    // Combine opened slots + week slots (entraînements) pour colorer les jours
+    const daysWithSlots = useMemo(() => {
+        const dates = new Set(calendarData.daysWithOpenedSlots)
+        for (const ws of calendarData.weekSlots) {
+            if (ws.date) dates.add(ws.date)
+        }
+        return [...dates]
+    }, [calendarData.daysWithOpenedSlots, calendarData.weekSlots])
+
     const calendarCtx = useMemo(
         () => ({
             viewMode,
@@ -137,7 +146,7 @@ export default function Calendar() {
                 isWeekConfigured={calendarData.isWeekConfigured}
                 isCurrentWeek={slotHelpers.isCurrentWeek()}
                 viewOptions={modal.getViewOptions()}
-                daysWithOpenedSlots={calendarData.daysWithOpenedSlots}
+                daysWithSlots={daysWithSlots}
                 onPrevWeek={prevWeek}
                 onNextWeek={nextWeek}
                 onSelectDate={setSelectedDate}

@@ -12,7 +12,7 @@ export default function CalendarNavigation({
     isWeekConfigured,
     isCurrentWeek,
     viewOptions,
-    daysWithOpenedSlots,
+    daysWithSlots,
     onPrevWeek,
     onNextWeek,
     onSelectDate,
@@ -37,9 +37,8 @@ export default function CalendarNavigation({
             <div className={styles.daySelector}>
                 {weekDays.map((day) => {
                     const isSelected = isSameDay(day, selectedDate)
-                    const isToday = isSameDay(day, new Date())
                     const dayStr = format(day, 'yyyy-MM-dd')
-                    const hasOpenedSlots = daysWithOpenedSlots.includes(dayStr)
+                    const hasSlots = daysWithSlots.includes(dayStr)
 
                     return (
                         <button
@@ -47,16 +46,15 @@ export default function CalendarNavigation({
                             onClick={() => onSelectDate(day)}
                             className={clsx(
                                 styles.dayBtn,
-                                !isSelected && hasOpenedSlots && styles.dayBtnHasSlots,
-                                isSelected && !hasOpenedSlots && styles.dayBtnSelected,
-                                isSelected && hasOpenedSlots && styles.dayBtnSelectedHasSlots
+                                !isSelected && hasSlots && styles.dayBtnHasSlots,
+                                isSelected && !hasSlots && styles.dayBtnSelected,
+                                isSelected && hasSlots && styles.dayBtnSelectedHasSlots
                             )}
                         >
                             <span className={styles.dayLabel}>
                                 {format(day, 'EEE', { locale: fr })}
                             </span>
                             <span className={styles.dayNumber}>{format(day, 'd')}</span>
-                            {isToday && !isSelected && <div className={styles.todayDot} />}
                         </button>
                     )
                 })}

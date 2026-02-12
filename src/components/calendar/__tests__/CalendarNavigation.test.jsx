@@ -20,7 +20,7 @@ const defaultProps = {
         { value: 'normal', label: 'Normal' },
         { value: 'edit', label: 'Modifier' },
     ],
-    daysWithOpenedSlots: [],
+    daysWithSlots: [],
     onPrevWeek: vi.fn(),
     onNextWeek: vi.fn(),
     onSelectDate: vi.fn(),
@@ -75,7 +75,7 @@ describe('CalendarNavigation', () => {
             <CalendarNavigation
                 {...defaultProps}
                 selectedDate={weekDays[0]}
-                daysWithOpenedSlots={[dayStr]}
+                daysWithSlots={[dayStr]}
             />
         )
         const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
@@ -88,7 +88,7 @@ describe('CalendarNavigation', () => {
             <CalendarNavigation
                 {...defaultProps}
                 selectedDate={weekDays[0]}
-                daysWithOpenedSlots={[dayStr]}
+                daysWithSlots={[dayStr]}
             />
         )
         const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
@@ -97,11 +97,7 @@ describe('CalendarNavigation', () => {
 
     it('applique dayBtnSelected (gris) sur le jour sélectionné sans créneau ouvert', () => {
         const { container } = render(
-            <CalendarNavigation
-                {...defaultProps}
-                selectedDate={weekDays[0]}
-                daysWithOpenedSlots={[]}
-            />
+            <CalendarNavigation {...defaultProps} selectedDate={weekDays[0]} daysWithSlots={[]} />
         )
         const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
         expect(dayBtns[0].className).toContain('dayBtnSelected')
