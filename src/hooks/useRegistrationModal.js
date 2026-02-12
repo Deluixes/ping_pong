@@ -129,6 +129,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         try {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
+            addToast('Désinscription confirmée.', 'success')
             await loadInvitations()
         } catch {
             addToast('Erreur lors de la désinscription.', 'error')
@@ -234,10 +235,14 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
             await Promise.all(promises)
             closeModal()
+            addToast(
+                inviteOnlyMode ? 'Invitation(s) envoyée(s).' : 'Inscription confirmée.',
+                'success'
+            )
             await Promise.all([loadData(), loadInvitations()])
         } catch (error) {
             console.error('Registration error:', error)
-            addToast("Erreur lors de l'inscription. Veuillez réessayer.", 'error')
+            addToast("Erreur lors de l'inscription.", 'error')
         }
     }
 
@@ -261,6 +266,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                 await Promise.all(unregisterPromises)
             }
 
+            addToast('Désinscription confirmée.', 'success')
             await loadData()
         } catch {
             addToast('Erreur lors de la désinscription.', 'error')
@@ -285,6 +291,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                 await storageService.unregisterFromSlot(slotId, dateStr, participantId)
                 await loadData()
             }
+            addToast(`${participantName} a été retiré du créneau.`, 'success')
         } catch {
             addToast('Erreur lors de la suppression.', 'error')
         }

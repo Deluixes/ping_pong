@@ -45,6 +45,7 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
             setSlotToOpen(null)
             setSelectedTarget('all')
             setSelectedOpenDuration(1)
+            addToast('Créneau ouvert.', 'success')
             await loadOpenedSlots()
         } catch {
             addToast("Erreur lors de l'ouverture du créneau.", 'error')
@@ -72,6 +73,7 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
                 await loadData()
             }
             await storageService.closeSlot(dateStr, slotId)
+            addToast('Créneau fermé.', 'success')
             await loadOpenedSlots()
         } catch {
             addToast('Erreur lors de la fermeture du créneau.', 'error')
@@ -88,6 +90,7 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
         if (!confirmed) return
         try {
             await storageService.deleteWeekSlot(slotId)
+            addToast('Créneau supprimé.', 'success')
             await loadWeekConfig()
         } catch {
             addToast('Erreur lors de la suppression du créneau.', 'error')

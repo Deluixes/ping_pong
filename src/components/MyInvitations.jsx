@@ -39,6 +39,7 @@ export default function MyInvitations({ onNotificationChange }) {
     const handleAccept = async (inv) => {
         try {
             await storageService.acceptInvitation(inv.slotId, inv.date, user.id)
+            addToast('Invitation acceptée.', 'success')
             await loadInvitations()
             onNotificationChange?.()
         } catch {
@@ -55,6 +56,7 @@ export default function MyInvitations({ onNotificationChange }) {
         if (!confirmed) return
         try {
             await storageService.declineInvitation(inv.slotId, inv.date, user.id)
+            addToast('Invitation refusée.', 'success')
             await loadInvitations()
             onNotificationChange?.()
         } catch {
