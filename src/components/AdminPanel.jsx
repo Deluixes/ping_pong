@@ -26,6 +26,52 @@ import {
 import LicenseTypeSelector from './LicenseTypeSelector'
 import styles from './AdminPanel.module.css'
 
+function MemberRow({ member, onEdit }) {
+    return (
+        <div className={styles.memberRow}>
+            <div className={styles.memberInfo}>
+                <div className={styles.memberName}>
+                    {member.name}
+                    {member.licenseType && (
+                        <span
+                            className={clsx(
+                                styles.licenseBadge,
+                                member.licenseType === 'C'
+                                    ? styles.licenseBadgeC
+                                    : styles.licenseBadgeL
+                            )}
+                        >
+                            {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
+                        </span>
+                    )}
+                </div>
+                <div className={styles.memberEmail}>{member.email}</div>
+            </div>
+
+            <button onClick={() => onEdit(member)} className={styles.editBtn} title="Modifier">
+                <Edit2 size={18} />
+            </button>
+        </div>
+    )
+}
+
+function GroupSection({ title, members, titleClass, icon, onEdit }) {
+    if (members.length === 0) return null
+    return (
+        <div className={styles.groupSection}>
+            <h3 className={clsx(styles.groupSectionTitle, titleClass)}>
+                {icon}
+                {title} ({members.length})
+            </h3>
+            <div className={styles.memberList}>
+                {members.map((member) => (
+                    <MemberRow key={member.userId} member={member} onEdit={onEdit} />
+                ))}
+            </div>
+        </div>
+    )
+}
+
 export default function AdminPanel() {
     const navigate = useNavigate()
     const { user: currentUser } = useAuth()
@@ -187,56 +233,6 @@ export default function AdminPanel() {
         return <div className={styles.loading}>Chargement...</div>
     }
 
-    // Composant pour afficher un membre dans la liste
-    const MemberRow = ({ member }) => (
-        <div className={styles.memberRow}>
-            <div className={styles.memberInfo}>
-                <div className={styles.memberName}>
-                    {member.name}
-                    {member.licenseType && (
-                        <span
-                            className={clsx(
-                                styles.licenseBadge,
-                                member.licenseType === 'C'
-                                    ? styles.licenseBadgeC
-                                    : styles.licenseBadgeL
-                            )}
-                        >
-                            {member.licenseType === 'C' ? 'Compétition' : 'Loisir'}
-                        </span>
-                    )}
-                </div>
-                <div className={styles.memberEmail}>{member.email}</div>
-            </div>
-
-            <button
-                onClick={() => openEditModal(member)}
-                className={styles.editBtn}
-                title="Modifier"
-            >
-                <Edit2 size={18} />
-            </button>
-        </div>
-    )
-
-    // Composant pour afficher une section de groupe
-    const GroupSection = ({ title, members, titleClass, icon }) => {
-        if (members.length === 0) return null
-        return (
-            <div className={styles.groupSection}>
-                <h3 className={clsx(styles.groupSectionTitle, titleClass)}>
-                    {icon}
-                    {title} ({members.length})
-                </h3>
-                <div className={styles.memberList}>
-                    {members.map((member) => (
-                        <MemberRow key={member.userId} member={member} />
-                    ))}
-                </div>
-            </div>
-        )
-    }
-
     return (
         <div className={styles.wrapper}>
             {/* Header */}
@@ -324,18 +320,21 @@ export default function AdminPanel() {
                             members={groupedMembers.admins}
                             titleClass={styles.groupSectionTitleAdmin}
                             icon={<Shield size={16} />}
+                            onEdit={openEditModal}
                         />
                         <GroupSection
                             title="Gestionnaires salle"
                             members={groupedMembers.gestionnaires}
                             titleClass={styles.groupSectionTitleManager}
                             icon={<Users size={16} />}
+                            onEdit={openEditModal}
                         />
                         <GroupSection
                             title="Membres"
                             members={groupedMembers.membres}
                             titleClass={styles.groupSectionTitleMember}
                             icon={<Users size={16} />}
+                            onEdit={openEditModal}
                         />
                         {searchTerm &&
                             groupedMembers.admins.length === 0 &&

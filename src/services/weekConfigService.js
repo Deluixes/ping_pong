@@ -78,37 +78,38 @@ async function cleanupBlockedReservations(blockingSlots) {
         byDate[slot.date].push(slot)
     }
 
-    let totalDeleted = 0
+    const results = await Promise.all(
+        Object.entries(byDate).map(async ([date, slots]) => {
+            const { data: dayReservations } = await supabase
+                .from('reservations')
+                .select('id, slot_id')
+                .eq('date', date)
 
-    for (const [date, slots] of Object.entries(byDate)) {
-        const { data: dayReservations } = await supabase
-            .from('reservations')
-            .select('id, slot_id')
-            .eq('date', date)
+            if (!dayReservations || dayReservations.length === 0) return 0
 
-        if (!dayReservations || dayReservations.length === 0) continue
-
-        const conflictingIds = []
-        for (const r of dayReservations) {
-            const resMinutes = timeToMinutes(r.slot_id)
-            for (const slot of slots) {
-                if (
-                    resMinutes >= timeToMinutes(slot.start_time) &&
-                    resMinutes < timeToMinutes(slot.end_time)
-                ) {
-                    conflictingIds.push(r.id)
-                    break
+            const conflictingIds = []
+            for (const r of dayReservations) {
+                const resMinutes = timeToMinutes(r.slot_id)
+                for (const slot of slots) {
+                    if (
+                        resMinutes >= timeToMinutes(slot.start_time) &&
+                        resMinutes < timeToMinutes(slot.end_time)
+                    ) {
+                        conflictingIds.push(r.id)
+                        break
+                    }
                 }
             }
-        }
 
-        if (conflictingIds.length > 0) {
-            await supabase.from('reservations').delete().in('id', conflictingIds)
-            totalDeleted += conflictingIds.length
-        }
-    }
+            if (conflictingIds.length > 0) {
+                await supabase.from('reservations').delete().in('id', conflictingIds)
+                return conflictingIds.length
+            }
+            return 0
+        })
+    )
 
-    return totalDeleted
+    return results.reduce((sum, n) => sum + n, 0)
 }
 
 async function getOrCreateWeekConfig(weekStart, templateName, mode) {
@@ -329,26 +330,28 @@ export const weekConfigService = {
             const { configId, existingSlots, existingHours } = weekConfig
             const dates = buildWeekDates(weekStart)
 
-            // Slots
+            // Slots & Hours (parallel - tables indépendantes)
             const slotRows = templateSlots.map((s) => templateItemToDbRow(s, configId, dates, true))
             const slotsResult = filterByMode(slotRows, mode, existingSlots)
-            await deleteByIds('week_slots', slotsResult.toDelete)
             skippedSlots += slotsResult.skipped
 
-            if (slotsResult.kept.length > 0) {
-                await supabase.from('week_slots').insert(slotsResult.kept)
-            }
-
-            // Hours
             const hourRows = templateHours.map((h) =>
                 templateItemToDbRow(h, configId, dates, false)
             )
             const hoursResult = filterByMode(hourRows, mode, existingHours)
-            await deleteByIds('week_hours', hoursResult.toDelete)
 
-            if (hoursResult.kept.length > 0) {
-                await supabase.from('week_hours').insert(hoursResult.kept)
-            }
+            await Promise.all([
+                deleteByIds('week_slots', slotsResult.toDelete),
+                deleteByIds('week_hours', hoursResult.toDelete),
+            ])
+            await Promise.all([
+                slotsResult.kept.length > 0
+                    ? supabase.from('week_slots').insert(slotsResult.kept)
+                    : Promise.resolve(),
+                hoursResult.kept.length > 0
+                    ? supabase.from('week_hours').insert(hoursResult.kept)
+                    : Promise.resolve(),
+            ])
 
             // Cleanup reservations conflicting with blocking slots
             const blockingSlots = slotsResult.kept.filter((s) => s.is_blocking)
