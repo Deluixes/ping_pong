@@ -74,11 +74,11 @@ export default function Calendar() {
 
     const isAdmin = user?.isAdmin
 
-    // Combine opened slots + week slots (entraînements) pour colorer les jours
+    // Combine opened slots + week slots non-bloquants pour colorer les jours
     const daysWithSlots = useMemo(() => {
         const dates = new Set(calendarData.daysWithOpenedSlots)
         for (const ws of calendarData.weekSlots) {
-            if (ws.date) dates.add(ws.date)
+            if (ws.date && !ws.isBlocking) dates.add(ws.date)
         }
         return [...dates]
     }, [calendarData.daysWithOpenedSlots, calendarData.weekSlots])
