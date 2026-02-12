@@ -159,6 +159,7 @@ export default function Calendar() {
                     selectedDate={selectedDate}
                     weekSlots={calendarData.weekSlots}
                     openedSlots={calendarData.openedSlots}
+                    daysWithSlots={daysWithSlots}
                     onSelectDay={(day) => {
                         setSelectedDate(day)
                         setViewMode('occupied')

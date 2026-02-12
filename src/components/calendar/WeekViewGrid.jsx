@@ -9,6 +9,7 @@ export default function WeekViewGrid({
     selectedDate,
     weekSlots,
     openedSlots,
+    daysWithSlots,
     onSelectDay,
 }) {
     return (
@@ -18,16 +19,18 @@ export default function WeekViewGrid({
                 <div className={styles.cornerCell}></div>
                 {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
                     const day = addDays(weekStart, dayOffset)
-                    const isToday = isSameDay(day, new Date())
                     const isSelected = isSameDay(day, selectedDate)
+                    const dayStr = format(day, 'yyyy-MM-dd')
+                    const hasSlots = daysWithSlots.includes(dayStr)
                     return (
                         <div
                             key={dayOffset}
                             className={clsx(
                                 styles.dayHeader,
-                                isSelected && styles.dayHeaderSelected,
-                                isToday && !isSelected && styles.dayHeaderToday,
-                                !isSelected && !isToday && styles.dayHeaderDefault
+                                !isSelected && hasSlots && styles.dayHeaderHasSlots,
+                                isSelected && !hasSlots && styles.dayHeaderSelected,
+                                isSelected && hasSlots && styles.dayHeaderSelectedHasSlots,
+                                !isSelected && !hasSlots && styles.dayHeaderDefault
                             )}
                         >
                             <div>{format(day, 'EEE', { locale: fr })}</div>

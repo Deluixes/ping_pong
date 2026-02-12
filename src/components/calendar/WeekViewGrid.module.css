@@ -36,14 +36,19 @@
     color: white;
 }
 
+.dayHeaderHasSlots {
+    background: #f0fdf4;
+    color: #166534;
+}
+
 .dayHeaderSelected {
-    background: var(--color-primary);
+    background: #9ca3af;
     color: white;
 }
 
-.dayHeaderToday {
-    background: #f0fdf4;
-    color: #166534;
+.dayHeaderSelectedHasSlots {
+    background: #22c55e;
+    color: white;
 }
 
 /* Day number inside header */
