@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { vi, describe, it, expect, afterEach } from 'vitest'
 import { render, fireEvent, cleanup } from '@testing-library/react'
-import { addDays, startOfWeek } from 'date-fns'
+import { addDays, startOfWeek, format } from 'date-fns'
 import CalendarNavigation from '../CalendarNavigation'
 
 afterEach(() => cleanup())
@@ -20,7 +20,7 @@ const defaultProps = {
         { value: 'normal', label: 'Normal' },
         { value: 'edit', label: 'Modifier' },
     ],
-    getDayParticipantCount: () => 0,
+    daysWithOpenedSlots: [],
     onPrevWeek: vi.fn(),
     onNextWeek: vi.fn(),
     onSelectDate: vi.fn(),
@@ -69,14 +69,43 @@ describe('CalendarNavigation', () => {
         expect(onSelectDate).toHaveBeenCalledWith(weekDays[2])
     })
 
-    it('affiche le badge participant si count > 0', () => {
-        const getDayParticipantCount = (day) => (day === weekDays[0] ? 5 : 0)
+    it('applique dayBtnHasSlots sur un jour avec créneaux ouverts', () => {
+        const dayStr = format(weekDays[1], 'yyyy-MM-dd') // mardi
         const { container } = render(
-            <CalendarNavigation {...defaultProps} getDayParticipantCount={getDayParticipantCount} />
+            <CalendarNavigation
+                {...defaultProps}
+                selectedDate={weekDays[0]}
+                daysWithOpenedSlots={[dayStr]}
+            />
         )
-        const badges = container.querySelectorAll('[class*="participantBadge"]')
-        expect(badges.length).toBe(1)
-        expect(badges[0].textContent).toBe('5')
+        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
+        expect(dayBtns[1].className).toContain('dayBtnHasSlots')
+    })
+
+    it('applique dayBtnSelectedHasSlots sur le jour sélectionné avec créneaux ouverts', () => {
+        const dayStr = format(weekDays[0], 'yyyy-MM-dd') // lundi sélectionné
+        const { container } = render(
+            <CalendarNavigation
+                {...defaultProps}
+                selectedDate={weekDays[0]}
+                daysWithOpenedSlots={[dayStr]}
+            />
+        )
+        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
+        expect(dayBtns[0].className).toContain('dayBtnSelectedHasSlots')
+    })
+
+    it('applique dayBtnSelected (gris) sur le jour sélectionné sans créneau ouvert', () => {
+        const { container } = render(
+            <CalendarNavigation
+                {...defaultProps}
+                selectedDate={weekDays[0]}
+                daysWithOpenedSlots={[]}
+            />
+        )
+        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
+        expect(dayBtns[0].className).toContain('dayBtnSelected')
+        expect(dayBtns[0].className).not.toContain('dayBtnSelectedHasSlots')
     })
 
     it('affiche le warning si semaine non configurée et pas courante', () => {

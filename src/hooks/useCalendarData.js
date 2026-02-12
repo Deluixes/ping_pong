@@ -149,6 +149,7 @@ export function useCalendarData(user, selectedDate, weekStart) {
     const [weekHours, setWeekHours] = useState([])
     const [isWeekConfigured, setIsWeekConfigured] = useState(false)
     const [openedSlots, setOpenedSlots] = useState([])
+    const [daysWithOpenedSlots, setDaysWithOpenedSlots] = useState([])
 
     const maxPersons = totalTables * 2
 
@@ -235,6 +236,18 @@ export function useCalendarData(user, selectedDate, weekStart) {
         [selectedDate]
     )
 
+    const loadDaysWithOpenedSlots = useCallback(
+        async (signal) => {
+            const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+            const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
+            const days = await storageService.getOpenedSlotsForWeek(weekStartStr, weekEndStr)
+            if (!signal?.aborted) {
+                setDaysWithOpenedSlots(days)
+            }
+        },
+        [weekStart]
+    )
+
     // ==================== EFFECTS ====================
 
     // Effect 1: user data + week config
@@ -243,8 +256,9 @@ export function useCalendarData(user, selectedDate, weekStart) {
         userIdRef.current = user?.id
         if (user?.id) loadData(controller.signal)
         loadWeekConfig(controller.signal)
+        loadDaysWithOpenedSlots(controller.signal)
         return () => controller.abort()
-    }, [user?.id, loadData, loadWeekConfig])
+    }, [user?.id, loadData, loadWeekConfig, loadDaysWithOpenedSlots])
 
     // Effect 2: date-dependent data
     useEffect(() => {
@@ -277,10 +291,18 @@ export function useCalendarData(user, selectedDate, weekStart) {
                 if (!applyOpenedSlotPayload(payload, setOpenedSlots, dateStr)) {
                     loadOpenedSlots()
                 }
+                loadDaysWithOpenedSlots()
             }),
         ]
         return () => subs.forEach((sub) => storageService.unsubscribe(sub))
-    }, [loadData, loadInvitations, loadOpenedSlots, weekStart, selectedDate])
+    }, [
+        loadData,
+        loadInvitations,
+        loadOpenedSlots,
+        loadDaysWithOpenedSlots,
+        weekStart,
+        selectedDate,
+    ])
 
     return {
         events,
@@ -290,6 +312,7 @@ export function useCalendarData(user, selectedDate, weekStart) {
         weekHours,
         isWeekConfigured,
         openedSlots,
+        daysWithOpenedSlots,
         invitations,
         approvedMembers,
         totalTables,

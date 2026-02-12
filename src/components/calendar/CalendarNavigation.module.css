@@ -47,9 +47,21 @@
     position: relative;
 }
 
+.dayBtnHasSlots {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
+}
+
 .dayBtnSelected {
-    border: 2px solid var(--color-primary);
-    background: var(--color-primary);
+    border: 2px solid #9ca3af;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.dayBtnSelectedHasSlots {
+    border: 2px solid #22c55e;
+    background: #22c55e;
     color: white;
 }
 
@@ -70,25 +82,6 @@
     border-radius: 50%;
     background: var(--color-primary);
     margin-top: 2px;
-}
-
-.participantBadge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: var(--color-primary);
-    color: white;
-    font-size: 0.65rem;
-    font-weight: bold;
-    padding: 2px 5px;
-    border-radius: 10px;
-    min-width: 18px;
-    text-align: center;
-}
-
-.participantBadgeSelected {
-    background: white;
-    color: var(--color-primary);
 }
 
 /* Warning Banner */

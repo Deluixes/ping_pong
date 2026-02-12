@@ -137,7 +137,7 @@ export default function Calendar() {
                 isWeekConfigured={calendarData.isWeekConfigured}
                 isCurrentWeek={slotHelpers.isCurrentWeek()}
                 viewOptions={modal.getViewOptions()}
-                getDayParticipantCount={slotHelpers.getDayParticipantCount}
+                daysWithOpenedSlots={calendarData.daysWithOpenedSlots}
                 onPrevWeek={prevWeek}
                 onNextWeek={nextWeek}
                 onSelectDate={setSelectedDate}

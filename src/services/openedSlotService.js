@@ -1,6 +1,21 @@
 import { supabase } from '../lib/supabase'
 
 export const openedSlotService = {
+    async getOpenedSlotsForWeek(startDate, endDate) {
+        const { data, error } = await supabase
+            .from('opened_slots')
+            .select('date')
+            .gte('date', startDate)
+            .lte('date', endDate)
+
+        if (error) {
+            console.error('Error fetching opened slots for week:', error)
+            return []
+        }
+
+        return [...new Set(data.map((s) => s.date))]
+    },
+
     async getOpenedSlotsForDate(date) {
         const { data, error } = await supabase.from('opened_slots').select('*').eq('date', date)
 
