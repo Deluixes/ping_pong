@@ -265,13 +265,14 @@ export function useSlotHelpers({
                         isValidDuration = false
                         break
                     }
-                    if (startAvailability.type === 'opened' && i > 0) {
+                    if (i > 0) {
                         const slotAvailability = isSlotAvailable(slot.id)
                         if (!slotAvailability.available) {
                             isValidDuration = false
                             break
                         }
                         if (
+                            startAvailability.type === 'opened' &&
                             slotAvailability.type === 'opened' &&
                             slotAvailability.target !== 'all' &&
                             slotAvailability.target !== startAvailability.target
