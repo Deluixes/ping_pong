@@ -12,6 +12,9 @@ const generateTimeSlots = () => {
 
 export const TIME_SLOTS = generateTimeSlots()
 
+// Pre-compute slot index lookup (O(1) instead of O(n) findIndex)
+export const SLOT_INDEX_MAP = new Map(TIME_SLOTS.map((s, i) => [s.id, i]))
+
 export const DURATION_OPTIONS = [
     { slots: 1, label: '30 min', value: 1 },
     { slots: 2, label: '1 h', value: 2 },

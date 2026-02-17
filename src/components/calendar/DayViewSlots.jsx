@@ -1,6 +1,7 @@
+import { Fragment } from 'react'
 import clsx from 'clsx'
 import { Users, X, Lock, Unlock, Trash2 } from 'lucide-react'
-import { TIME_SLOTS } from './calendarUtils'
+import { TIME_SLOTS, SLOT_INDEX_MAP } from './calendarUtils'
 import { useCalendar } from '../../contexts/CalendarContext'
 import styles from './DayViewSlots.module.css'
 
@@ -33,7 +34,11 @@ export default function DayViewSlots() {
                     return hasParticipants || isBlocked || isOpenedSlot
                 }
                 return true
-            }).map((slot) => {
+            }).map((slot, idx, filteredSlots) => {
+                const showGap =
+                    idx > 0 &&
+                    SLOT_INDEX_MAP.get(slot.id) - SLOT_INDEX_MAP.get(filteredSlots[idx - 1].id) > 1
+
                 const blockedInfo = getBlockedSlotInfo(slot.id)
                 const availability = isSlotAvailable(slot.id)
                 const userCanReg = canUserRegister(slot.id)
@@ -43,22 +48,16 @@ export default function DayViewSlots() {
                 const acceptedCount = getAcceptedParticipantCount(slot.id)
                 const isOverbooked = acceptedCount > maxPersons
 
-                if (blockedInfo) {
-                    return (
-                        <BlockedSlotRow
-                            key={slot.id}
-                            slot={slot}
-                            blockedInfo={blockedInfo}
-                            isParticipating={isParticipating}
-                            participants={participants}
-                            count={count}
-                        />
-                    )
-                }
-
-                return (
+                const row = blockedInfo ? (
+                    <BlockedSlotRow
+                        slot={slot}
+                        blockedInfo={blockedInfo}
+                        isParticipating={isParticipating}
+                        participants={participants}
+                        count={count}
+                    />
+                ) : (
                     <NormalSlotRow
-                        key={slot.id}
                         slot={slot}
                         availability={availability}
                         userCanRegister={userCanReg}
@@ -68,6 +67,13 @@ export default function DayViewSlots() {
                         acceptedCount={acceptedCount}
                         isOverbooked={isOverbooked}
                     />
+                )
+
+                return (
+                    <Fragment key={slot.id}>
+                        {showGap && <div className={styles.slotGap} />}
+                        {row}
+                    </Fragment>
                 )
             })}
         </div>

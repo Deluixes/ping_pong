@@ -1,10 +1,7 @@
 import { useMemo, useCallback } from 'react'
 import { format, isSameWeek, startOfDay } from 'date-fns'
 import { DEFAULT_OPENING_TIME, DEFAULT_CLOSING_TIME } from '../constants'
-import { TIME_SLOTS, DURATION_OPTIONS } from '../components/calendar/calendarUtils'
-
-// Pre-compute slot index lookup (O(1) instead of O(n) findIndex)
-const SLOT_INDEX_MAP = new Map(TIME_SLOTS.map((s, i) => [s.id, i]))
+import { TIME_SLOTS, SLOT_INDEX_MAP, DURATION_OPTIONS } from '../components/calendar/calendarUtils'
 
 export function useSlotHelpers({
     events,
