@@ -264,10 +264,11 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                     }
                 }
                 await Promise.all(unregisterPromises)
+                addToast('Désinscription confirmée.', 'success')
+                await loadData()
+            } else if (isUserOnSlot(slotId)) {
+                await handleGuestUnregister(slotId)
             }
-
-            addToast('Désinscription confirmée.', 'success')
-            await loadData()
         } catch {
             addToast('Erreur lors de la désinscription.', 'error')
         }
