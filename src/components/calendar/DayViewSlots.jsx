@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import clsx from 'clsx'
-import { Users, X, Lock, Unlock, Trash2 } from 'lucide-react'
+import { Users, X, Check, Lock, Unlock, Trash2 } from 'lucide-react'
 import { TIME_SLOTS, SLOT_INDEX_MAP } from './calendarUtils'
 import { useCalendar } from '../../contexts/CalendarContext'
 import styles from './DayViewSlots.module.css'
@@ -86,14 +86,18 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
         isAdmin,
         userId,
         canReserveOnWeek,
+        isUserOnSlot,
         onSlotClick,
         onUnregister,
         onAdminDelete,
         onDeleteWeekSlot,
+        onAcceptInvitation,
+        onDeclineInvitation,
     } = useCalendar()
 
     const isCourse = blockedInfo.isBlocking === false
     const isTraining = blockedInfo.isBlocking !== false
+    const hasPendingInvitation = isUserOnSlot(slot.id) && !isParticipating
 
     return (
         <div
@@ -182,6 +186,23 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
                 >
                     <Lock size={18} />
                 </div>
+            ) : hasPendingInvitation ? (
+                <div className={clsx(styles.actionBtn, styles.actionBtnInvitation)}>
+                    <button
+                        onClick={() => onAcceptInvitation(slot.id)}
+                        className={styles.invitationAccept}
+                        title="Accepter l'invitation"
+                    >
+                        <Check size={16} />
+                    </button>
+                    <button
+                        onClick={() => onDeclineInvitation(slot.id)}
+                        className={styles.invitationDecline}
+                        title="Refuser l'invitation"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
             ) : isParticipating ? (
                 <button
                     onClick={() => onUnregister(slot.id)}
@@ -227,14 +248,18 @@ function NormalSlotRow({
         maxPersons,
         canReserveOnWeek,
         getParticipantColor,
+        isUserOnSlot,
         onSlotClick,
         onUnregister,
         onAdminDelete,
         onCloseSlot,
+        onAcceptInvitation,
+        onDeclineInvitation,
     } = useCalendar()
 
     const isClosed = !availability.available
     const isOpened = availability.type === 'opened'
+    const hasPendingInvitation = isUserOnSlot(slot.id) && !isParticipating
 
     // Badge de restriction si ouvert avec target spécifique
     const targetBadge =
@@ -383,7 +408,24 @@ function NormalSlotRow({
                     </div>
                 )
             ) : // Vues normales : inscription/désinscription
-            isParticipating ? (
+            hasPendingInvitation ? (
+                <div className={clsx(styles.actionBtn, styles.actionBtnInvitation)}>
+                    <button
+                        onClick={() => onAcceptInvitation(slot.id)}
+                        className={styles.invitationAccept}
+                        title="Accepter l'invitation"
+                    >
+                        <Check size={16} />
+                    </button>
+                    <button
+                        onClick={() => onDeclineInvitation(slot.id)}
+                        className={styles.invitationDecline}
+                        title="Refuser l'invitation"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+            ) : isParticipating ? (
                 <button
                     onClick={() => onUnregister(slot.id)}
                     className={clsx(styles.actionBtn, styles.actionBtnUnregister)}

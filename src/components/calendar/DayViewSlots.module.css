@@ -325,3 +325,29 @@
     background: #dcfce7;
     color: #22c55e;
 }
+
+.actionBtnInvitation {
+    display: flex;
+    flex-direction: column;
+    cursor: default;
+}
+
+.invitationAccept,
+.invitationDecline {
+    flex: 1;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.invitationAccept {
+    background: #dcfce7;
+    color: #22c55e;
+}
+
+.invitationDecline {
+    background: #fee2e2;
+    color: #dc2626;
+}

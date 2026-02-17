@@ -298,6 +298,28 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         }
     }
 
+    const handleAcceptInvitation = async (slotId) => {
+        try {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            await storageService.acceptInvitation(slotId, dateStr, user.id)
+            addToast('Invitation acceptée.', 'success')
+            await loadInvitations()
+        } catch {
+            addToast("Erreur lors de l'acceptation.", 'error')
+        }
+    }
+
+    const handleDeclineInvitation = async (slotId) => {
+        try {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            await storageService.declineInvitation(slotId, dateStr, user.id)
+            addToast('Invitation refusée.', 'success')
+            await loadInvitations()
+        } catch {
+            addToast('Erreur lors du refus.', 'error')
+        }
+    }
+
     const closeModal = () => {
         setModalStep(null)
         setSelectedSlotId(null)
@@ -347,6 +369,8 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         handleOpenSlot: slotMgmt.handleOpenSlot,
         handleCloseSlot: slotMgmt.handleCloseSlot,
         handleDeleteWeekSlot: slotMgmt.handleDeleteWeekSlot,
+        handleAcceptInvitation,
+        handleDeclineInvitation,
         closeModal,
         getViewOptions: () => getViewOptions({ canManageSlots, isAdmin, isWeekConfigured }),
 

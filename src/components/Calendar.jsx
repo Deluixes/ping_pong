@@ -99,11 +99,14 @@ export default function Calendar() {
             getAcceptedParticipantCount: slotHelpers.getAcceptedParticipantCount,
             getParticipantColor: slotHelpers.getParticipantColor,
             getOpenedSlotInfo: slotHelpers.getOpenedSlotInfo,
+            isUserOnSlot: slotHelpers.isUserOnSlot,
             onSlotClick: modal.handleSlotClick,
             onUnregister: modal.handleUnregister,
             onAdminDelete: modal.handleAdminDelete,
             onCloseSlot: modal.handleCloseSlot,
             onDeleteWeekSlot: modal.handleDeleteWeekSlot,
+            onAcceptInvitation: modal.handleAcceptInvitation,
+            onDeclineInvitation: modal.handleDeclineInvitation,
         }),
         [viewMode, user.id, isAdmin, calendarData.maxPersons, slotHelpers, modal]
     )
