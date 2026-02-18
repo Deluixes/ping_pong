@@ -104,3 +104,80 @@
     gap: 0.5rem;
     font-weight: 500;
 }
+
+.editBtn {
+    background: var(--color-surface, #f3f4f6);
+    color: var(--color-text, #374151);
+    border: 1px solid var(--color-border, #d1d5db);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.editBtnActive {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.editSection {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border, #e5e7eb);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.editLoading {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
+}
+
+.editRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.editRow label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    min-width: 3.5rem;
+}
+
+.editSelect {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border, #d1d5db);
+    border-radius: var(--radius-md);
+    background: var(--color-surface, white);
+    color: var(--color-text);
+    font-size: 0.9rem;
+}
+
+.editSummary {
+    font-size: 0.85rem;
+    color: var(--color-primary);
+    font-weight: 500;
+    padding: 0.25rem 0;
+}
+
+.acceptModifiedBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    width: 100%;
+}

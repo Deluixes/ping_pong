@@ -32,6 +32,10 @@ vi.mock('../../services/storage', () => ({
         getPendingInvitations: (...args) => mockGetPendingInvitations(...args),
         acceptInvitation: vi.fn().mockResolvedValue({ success: true }),
         declineInvitation: vi.fn().mockResolvedValue({ success: true }),
+        subscribeToInvitations: vi.fn().mockReturnValue({}),
+        unsubscribe: vi.fn(),
+        getOpenedSlotsForDate: vi.fn().mockResolvedValue([]),
+        getWeekConfig: vi.fn().mockResolvedValue(null),
     },
 }))
 

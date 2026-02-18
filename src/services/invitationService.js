@@ -108,10 +108,14 @@ export const invitationService = {
         return { success: !error || error.code === '23505' }
     },
 
-    async acceptInvitation(slotId, date, userId) {
+    async acceptInvitation(slotId, date, userId, newSlotId, newDuration) {
+        const updateData = { status: 'accepted' }
+        if (newSlotId) updateData.slot_id = newSlotId
+        if (newDuration) updateData.duration = newDuration
+
         const { error } = await supabase
             .from('slot_invitations')
-            .update({ status: 'accepted' })
+            .update(updateData)
             .eq('slot_id', slotId)
             .eq('date', date)
             .eq('user_id', userId)
