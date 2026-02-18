@@ -2,50 +2,20 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { storageService } from '../services/storage'
-import { useToast } from '../contexts/ToastContext'
-import { useConfirm } from '../contexts/ConfirmContext'
-import { DEFAULT_TOTAL_TABLES } from '../constants'
-import {
-    ArrowLeft,
-    Check,
-    RefreshCw,
-    Settings,
-    Calendar,
-    Layers,
-    Plus,
-    Edit2,
-    Trash2,
-    X,
-} from 'lucide-react'
+import { ArrowLeft, Settings, Layers, Calendar } from 'lucide-react'
 import TemplateEditor from './TemplateEditor'
 import WeekSelector from './WeekSelector'
+import TablesTab from './TablesTab'
+import TemplatesTab from './TemplatesTab'
 import styles from './PlanningSettings.module.css'
 
 export default function PlanningSettings() {
     const navigate = useNavigate()
-    const { addToast } = useToast()
-    const confirm = useConfirm()
-    const [activeTab, setActiveTab] = useState('tables') // 'tables' | 'templates' | 'weeks'
+    const [activeTab, setActiveTab] = useState('tables')
     const [loading, setLoading] = useState(true)
 
-    // Settings state
-    const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
-    const [savingSettings, setSavingSettings] = useState(false)
-    const [settingsSaved, setSettingsSaved] = useState(false)
-
-    // Templates state
     const [templates, setTemplates] = useState([])
     const [editingTemplate, setEditingTemplate] = useState(null)
-    const [showNewTemplateModal, setShowNewTemplateModal] = useState(false)
-    const [newTemplateName, setNewTemplateName] = useState('')
-    const [savingTemplate, setSavingTemplate] = useState(false)
-
-    // Edit template name state
-    const [showEditNameModal, setShowEditNameModal] = useState(false)
-    const [templateToRename, setTemplateToRename] = useState(null)
-    const [editedTemplateName, setEditedTemplateName] = useState('')
-
-    // Week selector state
     const [showWeekSelector, setShowWeekSelector] = useState(false)
 
     useEffect(() => {
@@ -53,106 +23,21 @@ export default function PlanningSettings() {
     }, [])
 
     const loadData = async () => {
-        const [tables, loadedTemplates] = await Promise.all([
-            storageService.getSetting('total_tables'),
-            storageService.getTemplates(),
-        ])
-        if (tables) setTotalTables(parseInt(tables))
+        const loadedTemplates = await storageService.getTemplates()
         setTemplates(loadedTemplates)
         setLoading(false)
-    }
-
-    const handleSaveSettings = async () => {
-        setSavingSettings(true)
-        setSettingsSaved(false)
-        try {
-            await storageService.updateSetting('total_tables', totalTables.toString())
-            setSettingsSaved(true)
-            setTimeout(() => setSettingsSaved(false), 2000)
-        } catch {
-            addToast('Erreur lors de la sauvegarde des paramètres.', 'error')
-        }
-        setSavingSettings(false)
-    }
-
-    // Template handlers
-    const handleCreateTemplate = async () => {
-        if (!newTemplateName.trim()) return
-        setSavingTemplate(true)
-
-        try {
-            const result = await storageService.createTemplate(newTemplateName.trim())
-            if (result.success) {
-                await loadData()
-                setNewTemplateName('')
-                setShowNewTemplateModal(false)
-            } else {
-                addToast('Erreur lors de la création du template.', 'error')
-            }
-        } catch {
-            addToast('Erreur lors de la création du template.', 'error')
-        }
-
-        setSavingTemplate(false)
-    }
-
-    const handleDeleteTemplate = async (template) => {
-        const confirmed = await confirm({
-            title: 'Supprimer',
-            message: `Supprimer le template "${template.name}" ?`,
-            confirmLabel: 'Supprimer',
-        })
-        if (!confirmed) return
-        try {
-            await storageService.deleteTemplate(template.id)
-            setTemplates((prev) => prev.filter((t) => t.id !== template.id))
-        } catch {
-            addToast('Erreur lors de la suppression du template.', 'error')
-        }
-    }
-
-    const handleOpenRenameModal = (template) => {
-        setTemplateToRename(template)
-        setEditedTemplateName(template.name)
-        setShowEditNameModal(true)
-    }
-
-    const handleSaveTemplateName = async () => {
-        if (!editedTemplateName.trim() || !templateToRename) return
-        setSavingTemplate(true)
-
-        try {
-            const result = await storageService.updateTemplate(
-                templateToRename.id,
-                editedTemplateName.trim()
-            )
-            if (result.success) {
-                await loadData()
-                setShowEditNameModal(false)
-                setTemplateToRename(null)
-                setEditedTemplateName('')
-            } else {
-                addToast('Erreur lors du renommage du template.', 'error')
-            }
-        } catch {
-            addToast('Erreur lors du renommage du template.', 'error')
-        }
-
-        setSavingTemplate(false)
     }
 
     if (loading) {
         return <div className={styles.loading}>Chargement...</div>
     }
 
-    // Si on édite un template, afficher l'éditeur
     if (editingTemplate) {
         return (
             <div className={styles.wrapper}>
                 <TemplateEditor
                     template={editingTemplate}
                     onBack={() => setEditingTemplate(null)}
-                    onUpdate={loadData}
                 />
             </div>
         )
@@ -193,131 +78,16 @@ export default function PlanningSettings() {
                 </button>
             </div>
 
-            {/* Onglet Tables */}
-            {activeTab === 'tables' && (
-                <div className="card">
-                    <h2 className={styles.sectionTitle}>
-                        <Settings size={18} />
-                        Configuration des tables
-                    </h2>
+            {activeTab === 'tables' && <TablesTab />}
 
-                    <div className={styles.formGroup}>
-                        <label className="form-label">Nombre de tables</label>
-                        <input
-                            type="number"
-                            min="1"
-                            max="50"
-                            value={totalTables}
-                            onChange={(e) =>
-                                setTotalTables(Math.max(1, parseInt(e.target.value) || 1))
-                            }
-                            className="form-input"
-                        />
-                        <p className={styles.helpText}>
-                            Capacité max par créneau : <strong>{totalTables * 2} personnes</strong>
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={handleSaveSettings}
-                        className="btn btn-primary btn-full"
-                        disabled={savingSettings}
-                    >
-                        {savingSettings ? (
-                            <>
-                                <RefreshCw size={18} className="spin" />
-                                Enregistrement...
-                            </>
-                        ) : settingsSaved ? (
-                            <>
-                                <Check size={18} />
-                                Enregistré !
-                            </>
-                        ) : (
-                            <>
-                                <Check size={18} />
-                                Enregistrer
-                            </>
-                        )}
-                    </button>
-                </div>
-            )}
-
-            {/* Onglet Templates */}
             {activeTab === 'templates' && (
-                <div>
-                    <div className={styles.sectionHeader}>
-                        <h2 className={clsx(styles.sectionTitle, styles.sectionTitleNoMargin)}>
-                            <Layers size={18} />
-                            Templates de semaine
-                        </h2>
-                        <button
-                            onClick={() => setShowNewTemplateModal(true)}
-                            className={clsx('btn', 'btn-primary', styles.addBtn)}
-                        >
-                            <Plus size={18} />
-                            Nouveau
-                        </button>
-                    </div>
-
-                    <p className={styles.descText}>
-                        Les templates sont des modèles de semaine réutilisables. Créez un template
-                        puis appliquez-le aux semaines de votre choix.
-                    </p>
-
-                    {templates.length === 0 ? (
-                        <div className={clsx('card', styles.emptyCard)}>
-                            <p className={styles.emptyText}>
-                                Aucun template créé.
-                                <br />
-                                <span className={styles.emptySubtext}>
-                                    Créez votre premier template pour commencer.
-                                </span>
-                            </p>
-                        </div>
-                    ) : (
-                        <div className={styles.templateList}>
-                            {templates.map((template) => (
-                                <div
-                                    key={template.id}
-                                    className={clsx('card', styles.templateCard)}
-                                    onClick={() => setEditingTemplate(template)}
-                                >
-                                    <Layers size={24} className={styles.templateIcon} />
-                                    <div className={styles.templateInfo}>
-                                        <div className={styles.templateName}>{template.name}</div>
-                                        <div className={styles.templateHint}>
-                                            Cliquez pour éditer les créneaux
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleOpenRenameModal(template)
-                                        }}
-                                        className={clsx('icon-btn', styles.renameBtn)}
-                                        title="Renommer"
-                                    >
-                                        <Edit2 size={18} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDeleteTemplate(template)
-                                        }}
-                                        className={clsx('icon-btn', styles.deleteBtn)}
-                                        title="Supprimer"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <TemplatesTab
+                    templates={templates}
+                    onRefresh={loadData}
+                    onEditTemplate={setEditingTemplate}
+                />
             )}
 
-            {/* Onglet Semaines */}
             {activeTab === 'weeks' && (
                 <div>
                     <div className={styles.sectionHeader}>
@@ -349,111 +119,6 @@ export default function PlanningSettings() {
                 </div>
             )}
 
-            {/* Modal nouveau template */}
-            {showNewTemplateModal && (
-                <div className="modal-overlay" onClick={() => setShowNewTemplateModal(false)}>
-                    <div
-                        className="modal-dialog modal-dialog--centered"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal-header">
-                            <h3 className={styles.modalTitle}>Nouveau template</h3>
-                            <button
-                                onClick={() => setShowNewTemplateModal(false)}
-                                className="icon-btn"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className={styles.formGroup}>
-                            <label className="form-label">Nom du template</label>
-                            <input
-                                type="text"
-                                value={newTemplateName}
-                                onChange={(e) => setNewTemplateName(e.target.value)}
-                                placeholder="Ex: Semaine normale, Vacances..."
-                                className="form-input"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className={styles.modalActions}>
-                            <button
-                                onClick={() => setShowNewTemplateModal(false)}
-                                className={clsx('btn', styles.cancelBtn)}
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                onClick={handleCreateTemplate}
-                                className={clsx('btn', 'btn-primary', styles.submitBtn)}
-                                disabled={savingTemplate || !newTemplateName.trim()}
-                            >
-                                {savingTemplate ? (
-                                    <RefreshCw size={18} className="spin" />
-                                ) : (
-                                    'Créer'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal édition nom template */}
-            {showEditNameModal && (
-                <div className="modal-overlay" onClick={() => setShowEditNameModal(false)}>
-                    <div
-                        className="modal-dialog modal-dialog--centered"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal-header">
-                            <h3 className={styles.modalTitle}>Renommer le template</h3>
-                            <button
-                                onClick={() => setShowEditNameModal(false)}
-                                className="icon-btn"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className={styles.formGroup}>
-                            <label className="form-label">Nom du template</label>
-                            <input
-                                type="text"
-                                value={editedTemplateName}
-                                onChange={(e) => setEditedTemplateName(e.target.value)}
-                                placeholder="Ex: Semaine normale, Vacances..."
-                                className="form-input"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className={styles.modalActions}>
-                            <button
-                                onClick={() => setShowEditNameModal(false)}
-                                className={clsx('btn', styles.cancelBtn)}
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                onClick={handleSaveTemplateName}
-                                className={clsx('btn', 'btn-primary', styles.submitBtn)}
-                                disabled={savingTemplate || !editedTemplateName.trim()}
-                            >
-                                {savingTemplate ? (
-                                    <RefreshCw size={18} className="spin" />
-                                ) : (
-                                    'Enregistrer'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Week Selector Modal */}
             {showWeekSelector && (
                 <WeekSelector templates={templates} onClose={() => setShowWeekSelector(false)} />
             )}

@@ -34,81 +34,6 @@
     font-size: 1.4rem;
 }
 
-/* ===== Form Fields ===== */
-
-.formGroup {
-    margin-bottom: 1rem;
-    text-align: left;
-}
-
-.formGroupLg {
-    margin-bottom: 1.5rem;
-    text-align: left;
-}
-
-.passwordWrapper {
-    position: relative;
-}
-
-.passwordInput {
-    padding-right: 2.5rem;
-}
-
-.eyeToggle {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--color-text-muted);
-}
-
-/* ===== Forgot Password ===== */
-
-.forgotPasswordRow {
-    text-align: right;
-    margin-bottom: 1rem;
-}
-
-.forgotPasswordLink {
-    background: none;
-    border: none;
-    color: var(--color-primary);
-    cursor: pointer;
-    font-size: 0.85rem;
-    text-decoration: underline;
-}
-
-/* ===== Alerts ===== */
-
-.alertBox {
-    border: 1px solid #ef4444;
-    margin-bottom: 1rem;
-}
-
-.alertBoxSuccess {
-    border: 1px solid #059669;
-    margin-bottom: 1rem;
-}
-
-/* ===== Submit Button ===== */
-
-.submitBtn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-/* ===== Signup Hint ===== */
-
-.signupHint {
-    margin-top: 1rem;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    text-align: center;
-}
-
 /* ===== Sent Step ===== */
 
 .sentWrapper {
@@ -155,23 +80,4 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-}
-
-/* ===== Forgot Step ===== */
-
-.forgotTitle {
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.forgotText {
-    color: var(--color-text-muted);
-    margin-bottom: 1.5rem;
-    text-align: center;
-    font-size: 0.9rem;
-}
-
-.forgotSubmitBtn {
-    width: 100%;
-    margin-bottom: 1rem;
 }

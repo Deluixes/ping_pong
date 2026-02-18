@@ -1,6 +1,6 @@
 :root {
-    --color-primary: #dc2626; /* Red */
-    --color-primary-light: #ef4444;
+    --color-primary: #e53935; /* Red - slightly lighter */
+    --color-primary-light: #ef5350;
     --color-secondary: #003366; /* Deep Club Blue */
     --color-secondary-light: #004c99;
 
