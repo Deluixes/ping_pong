@@ -12,6 +12,7 @@ import AdminPanel from './components/AdminPanel'
 import PlanningSettings from './components/PlanningSettings'
 import MyInvitations from './components/MyInvitations'
 import MyClub from './components/MyClub'
+import Changelog from './components/Changelog'
 import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
@@ -134,6 +135,14 @@ function AppContent() {
                         element={
                             <PrivateRoute>
                                 <MyClub />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/changelog"
+                        element={
+                            <PrivateRoute>
+                                <Changelog />
                             </PrivateRoute>
                         }
                     />

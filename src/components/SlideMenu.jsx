@@ -14,6 +14,7 @@ import {
     Shield,
     Home,
     ExternalLink,
+    Sparkles,
 } from 'lucide-react'
 import clsx from 'clsx'
 import styles from './SlideMenu.module.css'
@@ -141,6 +142,18 @@ export default function SlideMenu({ isOpen, onClose }) {
                     >
                         <Home size={20} />
                         Mon club
+                    </Link>
+
+                    <Link
+                        to="/changelog"
+                        onClick={onClose}
+                        className={clsx(
+                            styles.navLink,
+                            isActive('/changelog') && styles.navLinkActive
+                        )}
+                    >
+                        <Sparkles size={20} />
+                        Nouveautes
                     </Link>
 
                     {user?.isAdmin && (
