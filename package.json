@@ -50,7 +50,6 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "vite": "^5.1.6",
-    "vite-plugin-pwa": "^0.19.2",
     "vitest": "^4.0.18"
   }
 }

@@ -6,5 +6,10 @@ import './index.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <App />
-    </React.StrictMode>,
+    </React.StrictMode>
 )
+
+// Register service worker for push notifications only (no asset caching)
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw-custom.js')
+}

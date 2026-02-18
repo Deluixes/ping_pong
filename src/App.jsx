@@ -15,7 +15,6 @@ import MyClub from './components/MyClub'
 import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
-import UpdateBanner from './components/UpdateBanner'
 import { GROUP_NAME } from './constants'
 import { storageService } from './services/storage'
 import { Menu, Bell } from 'lucide-react'
@@ -77,7 +76,6 @@ function AppContent() {
 
     return (
         <div className="app-container">
-            <UpdateBanner />
             {showMainUI && (
                 <>
                     <SlideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
