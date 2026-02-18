@@ -140,7 +140,7 @@ export function applyOpenedSlotPayload(payload, setOpenedSlots, dateStr) {
 
 export function useCalendarData(user, selectedDate, weekStart) {
     const [events, setEvents] = useState(getCachedEvents)
-    const [loading, setLoading] = useState(() => getCachedEvents().length === 0)
+    const [loading, setLoading] = useState(true)
     const [totalTables, setTotalTables] = useState(DEFAULT_TOTAL_TABLES)
     const [approvedMembers, setApprovedMembers] = useState([])
     const [invitations, setInvitations] = useState([])

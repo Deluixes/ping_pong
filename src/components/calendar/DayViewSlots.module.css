@@ -1,3 +1,11 @@
+/* ===== Loading ===== */
+.loadingText {
+    text-align: center;
+    color: #9ca3af;
+    padding: 2rem 0;
+    font-size: 0.9rem;
+}
+
 /* ===== Main Container ===== */
 .slotList {
     display: flex;

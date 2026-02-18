@@ -5,7 +5,7 @@ import { TIME_SLOTS, SLOT_INDEX_MAP } from './calendarUtils'
 import { useCalendar } from '../../contexts/CalendarContext'
 import styles from './DayViewSlots.module.css'
 
-export default function DayViewSlots() {
+export default function DayViewSlots({ loading }) {
     const {
         viewMode,
         maxPersons,
@@ -18,6 +18,10 @@ export default function DayViewSlots() {
         getAcceptedParticipantCount,
         getOpenedSlotInfo,
     } = useCalendar()
+
+    if (loading) {
+        return <div className={styles.loadingText}>Chargement des créneaux...</div>
+    }
 
     return (
         <div className={styles.slotList}>

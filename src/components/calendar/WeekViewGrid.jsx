@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { addDays, format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
@@ -12,6 +12,24 @@ export default function WeekViewGrid({
     daysWithSlots,
     onSelectDay,
 }) {
+    const weekSlotsByDate = useMemo(() => {
+        const map = new Map()
+        for (const ws of weekSlots) {
+            if (!map.has(ws.date)) map.set(ws.date, [])
+            map.get(ws.date).push(ws)
+        }
+        return map
+    }, [weekSlots])
+
+    const openedSlotsByDate = useMemo(() => {
+        const map = new Map()
+        for (const os of openedSlots) {
+            if (!map.has(os.date)) map.set(os.date, [])
+            map.get(os.date).push(os)
+        }
+        return map
+    }, [openedSlots])
+
     return (
         <div className={styles.container}>
             <div className={styles.grid}>
@@ -51,8 +69,8 @@ export default function WeekViewGrid({
                             const slotId = `${hour}:00`
 
                             // Trouver les créneaux pour cette heure et ce jour
-                            const dayWeekSlots = weekSlots.filter((ws) => ws.date === dateStr)
-                            const dayOpenedSlots = openedSlots.filter((os) => os.date === dateStr)
+                            const dayWeekSlots = weekSlotsByDate.get(dateStr) || []
+                            const dayOpenedSlots = openedSlotsByDate.get(dateStr) || []
 
                             // Vérifier si un créneau bloquant ou indicatif existe à cette heure
                             const matchingWeekSlot = dayWeekSlots.find((ws) => {

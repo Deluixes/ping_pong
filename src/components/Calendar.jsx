@@ -113,20 +113,6 @@ export default function Calendar() {
 
     // ==================== RENDER ====================
 
-    if (calendarData.loading) {
-        return (
-            <div className={styles.loading}>
-                <p>Chargement du planning...</p>
-                <button
-                    onClick={() => window.location.reload()}
-                    className={`btn ${styles.reloadBtn}`}
-                >
-                    Recharger la page
-                </button>
-            </div>
-        )
-    }
-
     return (
         <div className={styles.wrapper}>
             <RegistrationProvider
@@ -169,7 +155,7 @@ export default function Calendar() {
                 />
             ) : (
                 <CalendarProvider value={calendarCtx}>
-                    <DayViewSlots />
+                    <DayViewSlots loading={calendarData.loading} />
                 </CalendarProvider>
             )}
         </div>
