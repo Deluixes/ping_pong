@@ -10,7 +10,9 @@ const mockRegistration = {
     selectedDuration: null,
     guests: [{ userId: '' }],
     approvedMembers: [],
-    inviteOnlyMode: false,
+    selfRegister: true,
+    isModifying: false,
+    isInvited: false,
     availableDurations: [
         { value: '30min', label: '30 min', slots: 1 },
         { value: '1h', label: '1 heure', slots: 2 },
@@ -18,11 +20,12 @@ const mockRegistration = {
     currentSlotAccepted: 0,
     isCurrentSlotOverbooked: false,
     totalTables: 8,
-    isUserParticipating: vi.fn().mockReturnValue(false),
     getParticipants: vi.fn().mockReturnValue([]),
     getEndTime: vi.fn().mockReturnValue('19:00'),
     handleDurationSelect: vi.fn(),
-    handleModeChoice: vi.fn(),
+    handleShowParticipants: vi.fn(),
+    handleUnregister: vi.fn(),
+    setSelfRegister: vi.fn(),
     setModalStep: vi.fn(),
     updateGuest: vi.fn(),
     removeGuest: vi.fn(),
@@ -41,6 +44,10 @@ afterEach(() => {
     cleanup()
     vi.clearAllMocks()
     mockRegistration.modalStep = null
+    mockRegistration.selectedDuration = null
+    mockRegistration.selfRegister = true
+    mockRegistration.isModifying = false
+    mockRegistration.isInvited = false
 })
 
 describe('RegistrationModal', () => {
@@ -49,21 +56,21 @@ describe('RegistrationModal', () => {
         expect(container.innerHTML).toBe('')
     })
 
-    it("affiche l'étape durée", () => {
-        mockRegistration.modalStep = 'duration'
+    it('affiche le sous-modal de sélection de durée', () => {
+        mockRegistration.modalStep = 'duration-picker'
         const { getByText } = render(<RegistrationModal />)
-        expect(getByText('Durée de réservation')).toBeTruthy()
+        expect(getByText('Choisir la durée')).toBeTruthy()
     })
 
     it('affiche les boutons de durée disponibles', () => {
-        mockRegistration.modalStep = 'duration'
+        mockRegistration.modalStep = 'duration-picker'
         const { getByText } = render(<RegistrationModal />)
         expect(getByText('30 min')).toBeTruthy()
         expect(getByText('1 heure')).toBeTruthy()
     })
 
     it('appelle handleDurationSelect au clic sur une durée', () => {
-        mockRegistration.modalStep = 'duration'
+        mockRegistration.modalStep = 'duration-picker'
         const { getByText } = render(<RegistrationModal />)
         fireEvent.click(getByText('30 min'))
         expect(mockRegistration.handleDurationSelect).toHaveBeenCalledWith(
@@ -71,51 +78,55 @@ describe('RegistrationModal', () => {
         )
     })
 
-    it("affiche l'étape choix", () => {
-        mockRegistration.modalStep = 'choice'
+    it("affiche le modal d'inscription unifié", () => {
+        mockRegistration.modalStep = 'registration'
         const { getByText } = render(<RegistrationModal />)
-        expect(getByText('Type de réservation')).toBeTruthy()
-        expect(getByText("S'inscrire")).toBeTruthy()
-        expect(getByText('Inviter seulement')).toBeTruthy()
-    })
-
-    it('appelle handleModeChoice("register") au clic sur S\'inscrire', () => {
-        mockRegistration.modalStep = 'choice'
-        const { container } = render(<RegistrationModal />)
-        // Le bouton S'inscrire contient le texte dans un sous-élément
-        const registerBtn = container.querySelector('[class*="registerBtn"]')
-        fireEvent.click(registerBtn)
-        expect(mockRegistration.handleModeChoice).toHaveBeenCalledWith('register')
+        expect(getByText('Inscription')).toBeTruthy()
+        expect(getByText('Choisir la durée...')).toBeTruthy()
     })
 
     it('appelle closeModal au clic sur le bouton X', () => {
-        mockRegistration.modalStep = 'duration'
+        mockRegistration.modalStep = 'registration'
         const { container } = render(<RegistrationModal />)
         const closeBtn = container.querySelector('.icon-btn')
         fireEvent.click(closeBtn)
         expect(mockRegistration.closeModal).toHaveBeenCalledTimes(1)
     })
 
-    it("affiche l'étape invités avec le bouton de confirmation", () => {
-        mockRegistration.modalStep = 'guests'
+    it('affiche le bouton Confirmer quand durée et selfRegister sont remplis', () => {
+        mockRegistration.modalStep = 'registration'
         mockRegistration.selectedDuration = { value: '1h', label: '1 heure', slots: 2 }
         const { getByText } = render(<RegistrationModal />)
-        expect(getByText('Confirmer la réservation')).toBeTruthy()
-        expect(getByText('Inviter des membres (optionnel)')).toBeTruthy()
+        expect(getByText('Confirmer')).toBeTruthy()
     })
 
-    it("affiche le bouton Retour dans l'étape choix pour revenir à durée", () => {
-        mockRegistration.modalStep = 'choice'
-        const { getByText } = render(<RegistrationModal />)
-        fireEvent.click(getByText('← Changer la durée'))
-        expect(mockRegistration.setModalStep).toHaveBeenCalledWith('duration')
-    })
-
-    it('appelle handleRegister au clic sur Confirmer la réservation', () => {
-        mockRegistration.modalStep = 'guests'
+    it('appelle handleRegister au clic sur Confirmer', () => {
+        mockRegistration.modalStep = 'registration'
         mockRegistration.selectedDuration = { value: '1h', label: '1 heure', slots: 2 }
         const { getByText } = render(<RegistrationModal />)
-        fireEvent.click(getByText('✓ Confirmer la réservation'))
+        fireEvent.click(getByText('Confirmer'))
         expect(mockRegistration.handleRegister).toHaveBeenCalledTimes(1)
+    })
+
+    it("affiche 'Modifier l'inscription' en mode modification", () => {
+        mockRegistration.modalStep = 'registration'
+        mockRegistration.isModifying = true
+        const { getByText } = render(<RegistrationModal />)
+        expect(getByText("Modifier l'inscription")).toBeTruthy()
+        expect(getByText('Vous êtes inscrit(e)')).toBeTruthy()
+    })
+
+    it("affiche le message d'invitation en mode invité", () => {
+        mockRegistration.modalStep = 'registration'
+        mockRegistration.isInvited = true
+        const { getByText } = render(<RegistrationModal />)
+        expect(getByText('Vous êtes invité(e) sur ce créneau')).toBeTruthy()
+    })
+
+    it('ouvre le duration-picker au clic sur le sélecteur de durée', () => {
+        mockRegistration.modalStep = 'registration'
+        const { getByText } = render(<RegistrationModal />)
+        fireEvent.click(getByText('Choisir la durée...'))
+        expect(mockRegistration.setModalStep).toHaveBeenCalledWith('duration-picker')
     })
 })

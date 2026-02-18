@@ -10,7 +10,6 @@ import { useRegistrationModal } from '../hooks/useRegistrationModal'
 
 import RegistrationModal from './calendar/RegistrationModal'
 import OpenSlotModal from './calendar/OpenSlotModal'
-import ActionChoiceModal from './calendar/ActionChoiceModal'
 import ParticipantsModal from './calendar/ParticipantsModal'
 import CalendarNavigation from './calendar/CalendarNavigation'
 import WeekViewGrid from './calendar/WeekViewGrid'
@@ -138,7 +137,6 @@ export default function Calendar() {
             >
                 <RegistrationModal />
                 <OpenSlotModal />
-                <ActionChoiceModal />
                 <ParticipantsModal />
             </RegistrationProvider>
 

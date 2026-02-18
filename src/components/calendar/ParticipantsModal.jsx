@@ -1,4 +1,4 @@
-import { Users, X, UserPlus } from 'lucide-react'
+import { Users, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
@@ -11,17 +11,10 @@ export default function ParticipantsModal() {
         selectedSlotId,
         selectedDate,
         participantsToShow,
-        getUserRegistration,
-        isUserOnSlot,
-        openRegistrationFromParticipants,
-        openInviteOnlyFromParticipants,
         closeParticipantsModal,
     } = useRegistration()
 
     if (!showParticipantsList) return null
-
-    const isUserRegistered = !!getUserRegistration(selectedSlotId)
-    const isOnSlot = isUserOnSlot(selectedSlotId)
 
     return (
         <div className="modal-overlay modal-overlay--dark" onClick={closeParticipantsModal}>
@@ -90,39 +83,9 @@ export default function ParticipantsModal() {
                 )}
 
                 <div className={styles.actions}>
-                    {/* Boutons S'inscrire / Inviter seulement si pas inscrit */}
-                    {!isUserRegistered && !isOnSlot && (
-                        <>
-                            <button
-                                onClick={openRegistrationFromParticipants}
-                                className={clsx(
-                                    'btn',
-                                    'btn-primary',
-                                    'btn-full',
-                                    styles.registerBtn
-                                )}
-                            >
-                                <UserPlus size={18} />
-                                S'inscrire
-                            </button>
-                            <button
-                                onClick={openInviteOnlyFromParticipants}
-                                className={clsx('btn', 'btn-full', styles.inviteBtn)}
-                            >
-                                <Users size={18} />
-                                Inviter seulement
-                            </button>
-                        </>
-                    )}
                     <button
                         onClick={closeParticipantsModal}
-                        className={clsx(
-                            'btn',
-                            'btn-full',
-                            isUserRegistered || isOnSlot
-                                ? styles.closeBtnActive
-                                : styles.closeBtnInactive
-                        )}
+                        className={clsx('btn', 'btn-full', styles.closeBtnActive)}
                     >
                         Fermer
                     </button>

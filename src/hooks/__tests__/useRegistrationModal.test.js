@@ -2,7 +2,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { TIME_SLOTS, DURATION_OPTIONS } from '../../components/calendar/calendarUtils'
-import { MAX_GUESTS } from '../../constants'
 
 // ==================== MOCKS ====================
 
@@ -10,6 +9,7 @@ const mockStorageService = {
     registerForSlot: vi.fn().mockResolvedValue({ success: true }),
     inviteToSlot: vi.fn().mockResolvedValue({ success: true }),
     unregisterFromSlot: vi.fn().mockResolvedValue({ success: true }),
+    updateSlotDuration: vi.fn().mockResolvedValue({ success: true }),
     removeGuestFromSlot: vi.fn().mockResolvedValue({ success: true }),
     adminDeleteInvitation: vi.fn().mockResolvedValue({ success: true }),
 }
@@ -19,6 +19,7 @@ vi.mock('../../services/storage', () => ({
         registerForSlot: (...args) => mockStorageService.registerForSlot(...args),
         inviteToSlot: (...args) => mockStorageService.inviteToSlot(...args),
         unregisterFromSlot: (...args) => mockStorageService.unregisterFromSlot(...args),
+        updateSlotDuration: (...args) => mockStorageService.updateSlotDuration(...args),
         removeGuestFromSlot: (...args) => mockStorageService.removeGuestFromSlot(...args),
         adminDeleteInvitation: (...args) => mockStorageService.adminDeleteInvitation(...args),
     },
@@ -53,16 +54,10 @@ vi.mock('../useSlotManagement', () => ({
 }))
 
 const mockParticipantsModal = {
-    showActionChoice: false,
-    setShowActionChoice: vi.fn(),
     showParticipantsList: false,
     participantsToShow: [],
     handleShowParticipants: vi.fn(),
-    handleOpenInviteModal: vi.fn(),
-    openRegistrationFromParticipants: vi.fn(),
-    openInviteOnlyFromParticipants: vi.fn(),
     closeParticipantsModal: vi.fn(),
-    closeActionChoiceModal: vi.fn(),
 }
 vi.mock('../useParticipantsModal', () => ({
     useParticipantsModal: () => mockParticipantsModal,
@@ -124,7 +119,7 @@ beforeEach(() => {
 
 describe('handleSlotClick', () => {
     describe('utilisateur déjà inscrit', () => {
-        it("ouvre le choix d'action si des participants existent", () => {
+        it('ouvre le modal unifié en mode modification', () => {
             const { result } = renderModal({
                 slotHelpers: {
                     getUserRegistration: vi.fn(() => ({ duration: 2 })),
@@ -148,69 +143,9 @@ describe('handleSlotClick', () => {
                 result.current.handleSlotClick('10:00')
             })
 
-            expect(mockParticipantsModal.setShowActionChoice).toHaveBeenCalledWith(true)
-        })
-
-        it('ouvre le modal invités si inscrit mais seul', () => {
-            const { result } = renderModal({
-                slotHelpers: {
-                    getUserRegistration: vi.fn(() => ({ duration: 1 })),
-                    getParticipants: vi.fn(() => []),
-                    isUserOnSlot: vi.fn(() => true),
-                    isSlotAvailable: vi.fn(() => ({
-                        available: true,
-                        type: 'opened',
-                        target: 'all',
-                    })),
-                    canUserRegister: vi.fn(() => true),
-                    getSlotIndex: vi.fn((id) => TIME_SLOTS.findIndex((s) => s.id === id)),
-                    getAcceptedParticipantCount: vi.fn(() => 0),
-                    isUserParticipating: vi.fn(() => true),
-                    getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
-                    getBlockedSlotInfo: vi.fn(() => undefined),
-                },
-            })
-
-            act(() => {
-                result.current.handleSlotClick('10:00')
-            })
-
-            expect(result.current.modalStep).toBe('guests')
-            expect(result.current.inviteOnlyMode).toBe(true)
-        })
-    })
-
-    describe('utilisateur est un invité', () => {
-        it('appelle removeGuestFromSlot et loadInvitations', async () => {
-            const { result, props } = renderModal({
-                slotHelpers: {
-                    getUserRegistration: vi.fn(() => undefined),
-                    isUserOnSlot: vi.fn(() => true),
-                    getParticipants: vi.fn(() => []),
-                    isSlotAvailable: vi.fn(() => ({
-                        available: true,
-                        type: 'opened',
-                        target: 'all',
-                    })),
-                    canUserRegister: vi.fn(() => true),
-                    getSlotIndex: vi.fn((id) => TIME_SLOTS.findIndex((s) => s.id === id)),
-                    getAcceptedParticipantCount: vi.fn(() => 0),
-                    isUserParticipating: vi.fn(() => false),
-                    getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
-                    getBlockedSlotInfo: vi.fn(() => undefined),
-                },
-            })
-
-            await act(async () => {
-                result.current.handleSlotClick('10:00')
-            })
-
-            expect(mockStorageService.removeGuestFromSlot).toHaveBeenCalledWith(
-                '10:00',
-                '2025-01-06',
-                'u1'
-            )
-            expect(props.calendarData.loadInvitations).toHaveBeenCalled()
+            expect(result.current.modalStep).toBe('registration')
+            expect(result.current.isModifying).toBe(true)
+            expect(result.current.selectedDuration).toBeTruthy()
         })
     })
 
@@ -379,45 +314,17 @@ describe('handleSlotClick', () => {
         })
     })
 
-    describe('créneau avec participants', () => {
-        it('affiche la modal participants', () => {
-            const { result } = renderModal({
-                slotHelpers: {
-                    getUserRegistration: vi.fn(() => undefined),
-                    isUserOnSlot: vi.fn(() => false),
-                    getParticipants: vi.fn(() => [{ id: 'u2', name: 'Bob' }]),
-                    isSlotAvailable: vi.fn(() => ({
-                        available: true,
-                        type: 'opened',
-                        target: 'all',
-                    })),
-                    canUserRegister: vi.fn(() => true),
-                    getSlotIndex: vi.fn((id) => TIME_SLOTS.findIndex((s) => s.id === id)),
-                    getAcceptedParticipantCount: vi.fn(() => 1),
-                    isUserParticipating: vi.fn(() => false),
-                    getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
-                    getBlockedSlotInfo: vi.fn(() => undefined),
-                },
-            })
-
-            act(() => {
-                result.current.handleSlotClick('10:00')
-            })
-
-            expect(mockParticipantsModal.handleShowParticipants).toHaveBeenCalledWith('10:00')
-        })
-    })
-
-    describe('créneau disponible sans participants', () => {
-        it('ouvre le sélecteur de durée', () => {
+    describe('créneau disponible', () => {
+        it('ouvre le modal inscription', () => {
             const { result } = renderModal()
 
             act(() => {
                 result.current.handleSlotClick('10:00')
             })
 
-            expect(result.current.modalStep).toBe('duration')
+            expect(result.current.modalStep).toBe('registration')
             expect(result.current.selectedSlotId).toBe('10:00')
+            expect(result.current.selfRegister).toBe(true)
         })
     })
 })
@@ -425,7 +332,7 @@ describe('handleSlotClick', () => {
 // ==================== handleDurationSelect ====================
 
 describe('handleDurationSelect', () => {
-    it("passe au step choice si l'utilisateur n'est pas inscrit", () => {
+    it('sélectionne la durée et passe au step registration', () => {
         const { result } = renderModal()
 
         act(() => {
@@ -436,70 +343,8 @@ describe('handleDurationSelect', () => {
             result.current.handleDurationSelect(DURATION_1H)
         })
 
-        expect(result.current.modalStep).toBe('choice')
+        expect(result.current.modalStep).toBe('registration')
         expect(result.current.selectedDuration).toBe(DURATION_1H)
-    })
-
-    it("passe aux invités si l'utilisateur est déjà inscrit", () => {
-        const { result } = renderModal({
-            slotHelpers: {
-                getUserRegistration: vi.fn(() => undefined),
-                isUserOnSlot: vi.fn(() => false),
-                getParticipants: vi.fn(() => []),
-                isSlotAvailable: vi.fn(() => ({ available: true, type: 'opened', target: 'all' })),
-                canUserRegister: vi.fn(() => true),
-                getSlotIndex: vi.fn((id) => TIME_SLOTS.findIndex((s) => s.id === id)),
-                getAcceptedParticipantCount: vi.fn(() => 0),
-                isUserParticipating: vi.fn(() => true),
-                getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
-                getBlockedSlotInfo: vi.fn(() => undefined),
-            },
-        })
-
-        act(() => {
-            result.current.handleSlotClick('10:00')
-        })
-
-        act(() => {
-            result.current.handleDurationSelect(DURATION_1H)
-        })
-
-        expect(result.current.modalStep).toBe('guests')
-    })
-})
-
-// ==================== handleModeChoice ====================
-
-describe('handleModeChoice', () => {
-    it('active inviteOnlyMode pour invite_only', () => {
-        const { result } = renderModal()
-
-        act(() => {
-            result.current.handleSlotClick('10:00')
-            result.current.handleDurationSelect(DURATION_1H)
-        })
-
-        act(() => {
-            result.current.handleModeChoice('invite_only')
-        })
-
-        expect(result.current.inviteOnlyMode).toBe(true)
-        expect(result.current.modalStep).toBe('guests')
-    })
-
-    it('désactive inviteOnlyMode sinon', () => {
-        const { result } = renderModal()
-
-        act(() => {
-            result.current.handleSlotClick('10:00')
-            result.current.handleDurationSelect(DURATION_1H)
-        })
-
-        act(() => {
-            result.current.handleModeChoice('register')
-        })
-
-        expect(result.current.inviteOnlyMode).toBe(false)
     })
 })
 
@@ -516,23 +361,23 @@ describe('handleRegister', () => {
         expect(mockStorageService.registerForSlot).not.toHaveBeenCalled()
     })
 
-    it('affiche un toast si inviteOnly et aucun invité sélectionné', async () => {
+    it('affiche un toast si selfRegister=false et aucun invité sélectionné', async () => {
         const { result } = renderModal()
 
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_1H)
-            result.current.handleModeChoice('invite_only')
+        })
+
+        act(() => {
+            result.current.setSelfRegister(false)
         })
 
         await act(async () => {
             await result.current.handleRegister()
         })
 
-        expect(mockAddToast).toHaveBeenCalledWith(
-            expect.stringContaining('sélectionner'),
-            'warning'
-        )
+        expect(mockAddToast).toHaveBeenCalledWith(expect.stringContaining('inscrire'), 'warning')
     })
 
     it('bloque si un créneau dans la durée est bloqué', async () => {
@@ -548,7 +393,6 @@ describe('handleRegister', () => {
                 isUserParticipating: vi.fn(() => false),
                 getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
                 getBlockedSlotInfo: vi.fn((slotId) => {
-                    // Le deuxième slot est bloqué
                     if (slotId === '10:30') return { isBlocking: true, name: 'Entraînement' }
                     return undefined
                 }),
@@ -558,7 +402,6 @@ describe('handleRegister', () => {
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_1H)
-            result.current.handleModeChoice('register')
         })
 
         await act(async () => {
@@ -575,7 +418,6 @@ describe('handleRegister', () => {
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_1H)
-            result.current.handleModeChoice('register')
         })
 
         await act(async () => {
@@ -627,7 +469,6 @@ describe('handleRegister', () => {
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_OPTIONS[0]) // 30min = 1 slot
-            result.current.handleModeChoice('register')
         })
 
         await act(async () => {
@@ -651,7 +492,6 @@ describe('handleRegister', () => {
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_1H)
-            result.current.handleModeChoice('register')
         })
 
         // Ajouter des invités
@@ -674,16 +514,16 @@ describe('handleRegister', () => {
         )
     })
 
-    it("mode invite_only n'inscrit pas l'utilisateur", async () => {
+    it("mode selfRegister=false n'inscrit pas l'utilisateur", async () => {
         const { result } = renderModal()
 
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_1H)
-            result.current.handleModeChoice('invite_only')
         })
 
         act(() => {
+            result.current.setSelfRegister(false)
             result.current.updateGuest(0, 'u2')
         })
 
@@ -695,13 +535,50 @@ describe('handleRegister', () => {
         expect(mockStorageService.inviteToSlot).toHaveBeenCalledTimes(1)
     })
 
+    it('ne recrée pas les inscriptions en mode modification', async () => {
+        const { result } = renderModal({
+            slotHelpers: {
+                getUserRegistration: vi.fn(() => ({ duration: 2 })),
+                isUserOnSlot: vi.fn(() => true),
+                getParticipants: vi.fn(() => []),
+                isSlotAvailable: vi.fn(() => ({ available: true, type: 'opened', target: 'all' })),
+                canUserRegister: vi.fn(() => true),
+                getSlotIndex: vi.fn((id) => TIME_SLOTS.findIndex((s) => s.id === id)),
+                getAcceptedParticipantCount: vi.fn(() => 1),
+                isUserParticipating: vi.fn(() => true),
+                getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
+                getBlockedSlotInfo: vi.fn(() => undefined),
+            },
+        })
+
+        // Ouvrir en mode modification
+        act(() => {
+            result.current.handleSlotClick('10:00')
+        })
+
+        expect(result.current.isModifying).toBe(true)
+
+        // Ajouter un invité
+        act(() => {
+            result.current.updateGuest(0, 'u2')
+        })
+
+        await act(async () => {
+            await result.current.handleRegister()
+        })
+
+        // Ne doit PAS recréer les inscriptions
+        expect(mockStorageService.registerForSlot).not.toHaveBeenCalled()
+        // Mais doit envoyer les invitations
+        expect(mockStorageService.inviteToSlot).toHaveBeenCalledTimes(1)
+    })
+
     it('ferme le modal et recharge les données après succès', async () => {
         const { result, props } = renderModal()
 
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_OPTIONS[0])
-            result.current.handleModeChoice('register')
         })
 
         await act(async () => {
@@ -721,7 +598,6 @@ describe('handleRegister', () => {
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_OPTIONS[0])
-            result.current.handleModeChoice('register')
         })
 
         await act(async () => {
@@ -735,10 +611,13 @@ describe('handleRegister', () => {
 // ==================== handleUnregister ====================
 
 describe('handleUnregister', () => {
-    it('désinscrit sur tous les slots de la durée originale', async () => {
+    it('désinscrit le premier slot et met à jour la durée des restants', async () => {
+        const registeredSlots = new Set(['10:00', '10:30', '11:00'])
         const { result } = renderModal({
             slotHelpers: {
-                getUserRegistration: vi.fn(() => ({ duration: 3 })),
+                getUserRegistration: vi.fn((id) =>
+                    registeredSlots.has(id) ? { duration: 3 } : undefined
+                ),
                 isUserOnSlot: vi.fn(() => true),
                 getParticipants: vi.fn(() => []),
                 isSlotAvailable: vi.fn(() => ({ available: true, type: 'opened', target: 'all' })),
@@ -755,19 +634,50 @@ describe('handleUnregister', () => {
             await result.current.handleUnregister('10:00')
         })
 
-        expect(mockStorageService.unregisterFromSlot).toHaveBeenCalledTimes(3)
+        // First slot: unregister
         expect(mockStorageService.unregisterFromSlot).toHaveBeenCalledWith(
             '10:00',
             '2025-01-06',
             'u1'
         )
-        expect(mockStorageService.unregisterFromSlot).toHaveBeenCalledWith(
+        // Remaining slots: update duration
+        expect(mockStorageService.updateSlotDuration).toHaveBeenCalledWith(
             '10:30',
             '2025-01-06',
-            'u1'
+            'u1',
+            2
         )
-        expect(mockStorageService.unregisterFromSlot).toHaveBeenCalledWith(
+        expect(mockStorageService.updateSlotDuration).toHaveBeenCalledWith(
             '11:00',
+            '2025-01-06',
+            'u1',
+            2
+        )
+    })
+
+    it('désinscrit un seul créneau', async () => {
+        const { result } = renderModal({
+            slotHelpers: {
+                getUserRegistration: vi.fn(() => ({ duration: 1 })),
+                isUserOnSlot: vi.fn(() => true),
+                getParticipants: vi.fn(() => []),
+                isSlotAvailable: vi.fn(() => ({ available: true, type: 'opened', target: 'all' })),
+                canUserRegister: vi.fn(() => true),
+                getSlotIndex: vi.fn((id) => TIME_SLOTS.findIndex((s) => s.id === id)),
+                getAcceptedParticipantCount: vi.fn(() => 0),
+                isUserParticipating: vi.fn(() => true),
+                getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
+                getBlockedSlotInfo: vi.fn(() => undefined),
+            },
+        })
+
+        await act(async () => {
+            await result.current.handleUnregister('10:00')
+        })
+
+        expect(mockStorageService.unregisterFromSlot).toHaveBeenCalledTimes(1)
+        expect(mockStorageService.unregisterFromSlot).toHaveBeenCalledWith(
+            '10:00',
             '2025-01-06',
             'u1'
         )
@@ -920,10 +830,9 @@ describe('closeModal', () => {
         act(() => {
             result.current.handleSlotClick('10:00')
             result.current.handleDurationSelect(DURATION_1H)
-            result.current.handleModeChoice('invite_only')
         })
 
-        expect(result.current.modalStep).toBe('guests')
+        expect(result.current.modalStep).toBe('registration')
         expect(result.current.selectedSlotId).toBe('10:00')
 
         act(() => {
@@ -933,7 +842,7 @@ describe('closeModal', () => {
         expect(result.current.modalStep).toBe(null)
         expect(result.current.selectedSlotId).toBe(null)
         expect(result.current.selectedDuration).toBe(null)
-        expect(result.current.inviteOnlyMode).toBe(false)
+        expect(result.current.selfRegister).toBe(true)
         expect(result.current.guests).toEqual([{ userId: '', name: '' }])
     })
 })
@@ -955,22 +864,6 @@ describe('gestion des invités', () => {
         })
 
         expect(result.current.guests).toHaveLength(2)
-    })
-
-    it(`addGuestField ne dépasse pas MAX_GUESTS (${MAX_GUESTS})`, () => {
-        const { result } = renderModal()
-
-        act(() => {
-            result.current.handleSlotClick('10:00')
-        })
-
-        for (let i = 0; i < MAX_GUESTS + 2; i++) {
-            act(() => {
-                result.current.addGuestField()
-            })
-        }
-
-        expect(result.current.guests).toHaveLength(MAX_GUESTS)
     })
 
     it('updateGuest met à jour le nom depuis approvedMembers', () => {
@@ -995,7 +888,6 @@ describe('gestion des invités', () => {
             result.current.handleSlotClick('10:00')
         })
 
-        // Un seul guest, on le retire → doit rester un champ vide
         act(() => {
             result.current.removeGuest(0)
         })

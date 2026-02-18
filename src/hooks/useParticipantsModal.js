@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { storageService } from '../services/storage'
 
-export function useParticipantsModal({ slotHelpers, calendarData, onStartRegistration }) {
+export function useParticipantsModal({ slotHelpers, calendarData }) {
     const { getParticipants } = slotHelpers
     const { approvedMembers } = calendarData
 
-    const [showActionChoice, setShowActionChoice] = useState(false)
     const [showParticipantsList, setShowParticipantsList] = useState(false)
     const [participantsToShow, setParticipantsToShow] = useState([])
 
@@ -23,37 +22,14 @@ export function useParticipantsModal({ slotHelpers, calendarData, onStartRegistr
         )
         setParticipantsToShow(enrichedParticipants)
         setShowParticipantsList(true)
-        setShowActionChoice(false)
-    }
-
-    const handleOpenInviteModal = () => {
-        setShowActionChoice(false)
-        onStartRegistration({ inviteOnly: false })
-    }
-
-    const openRegistrationFromParticipants = () => {
-        setShowParticipantsList(false)
-        onStartRegistration({ inviteOnly: false })
-    }
-
-    const openInviteOnlyFromParticipants = () => {
-        setShowParticipantsList(false)
-        onStartRegistration({ inviteOnly: true })
     }
 
     const closeParticipantsModal = () => setShowParticipantsList(false)
-    const closeActionChoiceModal = () => setShowActionChoice(false)
 
     return {
-        showActionChoice,
-        setShowActionChoice,
         showParticipantsList,
         participantsToShow,
         handleShowParticipants,
-        handleOpenInviteModal,
-        openRegistrationFromParticipants,
-        openInviteOnlyFromParticipants,
         closeParticipantsModal,
-        closeActionChoiceModal,
     }
 }

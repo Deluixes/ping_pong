@@ -3,7 +3,6 @@ import { format } from 'date-fns'
 import { storageService } from '../services/storage'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
-import { MAX_GUESTS } from '../constants'
 import { TIME_SLOTS, DURATION_OPTIONS } from '../components/calendar/calendarUtils'
 import { useSlotManagement } from './useSlotManagement'
 import { useParticipantsModal } from './useParticipantsModal'
@@ -41,7 +40,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     // Valeurs derivees
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
     const currentSlotAccepted = selectedSlotId ? getAcceptedParticipantCount(selectedSlotId) : 0
-    const isCurrentSlotOverbooked = currentSlotAccepted >= maxPersons
+    const isCurrentSlotOverbooked = currentSlotAccepted > maxPersons
     const isModifying = selectedSlotId ? !!getUserRegistration(selectedSlotId) : false
     const isInvited = selectedSlotId ? isUserOnSlot(selectedSlotId) && !isModifying : false
 
@@ -52,11 +51,6 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const participantsModal = useParticipantsModal({
         slotHelpers,
         calendarData,
-        onStartRegistration: ({ inviteOnly }) => {
-            setSelfRegister(!inviteOnly)
-            setGuests([{ userId: '', name: '' }])
-            setModalStep('registration')
-        },
     })
 
     // ==================== HELPERS ====================
@@ -150,9 +144,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     }
 
     const addGuestField = () => {
-        if (guests.length < MAX_GUESTS) {
-            setGuests([...guests, { userId: '', name: '' }])
-        }
+        setGuests([...guests, { userId: '', name: '' }])
     }
 
     const updateGuest = (index, userId) => {
@@ -199,7 +191,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         try {
             const promises = []
 
-            if (selfRegister) {
+            if (selfRegister && !isModifying) {
                 for (let i = 0; i < selectedDuration.slots; i++) {
                     const slot = TIME_SLOTS[startIndex + i]
                     if (slot) {
@@ -234,7 +226,9 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             await Promise.all(promises)
             closeModal()
             addToast(
-                !selfRegister ? 'Invitation(s) envoyée(s).' : 'Inscription confirmée.',
+                !selfRegister || isModifying
+                    ? 'Invitation(s) envoyée(s).'
+                    : 'Inscription confirmée.',
                 'success'
             )
             await Promise.all([loadData(), loadInvitations()])
@@ -388,9 +382,6 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         showParticipantsList: participantsModal.showParticipantsList,
         participantsToShow: participantsModal.participantsToShow,
 
-        // Modal choix d'action (delegue)
-        showActionChoice: participantsModal.showActionChoice,
-
         // Modal ouverture creneau (delegue)
         showOpenSlotModal: slotMgmt.showOpenSlotModal,
         slotToOpen: slotMgmt.slotToOpen,
@@ -400,7 +391,6 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         // Handlers
         handleSlotClick,
         handleShowParticipants: participantsModal.handleShowParticipants,
-        handleOpenInviteModal: participantsModal.handleOpenInviteModal,
         handleDurationSelect,
         setSelfRegister,
         addGuestField,
@@ -418,10 +408,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         getViewOptions: () => getViewOptions({ canManageSlots, isAdmin, isWeekConfigured }),
 
         // Intent-based modal handlers (delegues)
-        openRegistrationFromParticipants: participantsModal.openRegistrationFromParticipants,
-        openInviteOnlyFromParticipants: participantsModal.openInviteOnlyFromParticipants,
         closeParticipantsModal: participantsModal.closeParticipantsModal,
-        closeActionChoiceModal: participantsModal.closeActionChoiceModal,
         closeOpenSlotModal: slotMgmt.closeOpenSlotModal,
 
         // Setters restants (necessaires pour OpenSlotModal)

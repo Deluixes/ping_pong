@@ -102,25 +102,8 @@
     margin-top: 1.5rem;
 }
 
-/* Register button override */
-.registerBtn {
-    padding: 1rem;
-}
-
-/* Invite-only button */
-.inviteBtn {
-    padding: 1rem;
-    background: var(--color-bg);
-}
-
-/* Close button - active state (user is registered) */
+/* Close button */
 .closeBtnActive {
     background: var(--color-primary);
     color: white;
-}
-
-/* Close button - inactive state */
-.closeBtnInactive {
-    background: transparent;
-    color: var(--color-text-muted);
 }

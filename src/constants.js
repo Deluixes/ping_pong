@@ -24,9 +24,6 @@ export const LICENSE_TYPES = {
     COMPETITION: 'C',
 }
 
-// Invitations
-export const MAX_GUESTS = 3
-
 // Photo de profil
 export const MAX_PHOTO_SIZE = 5 * 1024 * 1024 // 5 Mo
 

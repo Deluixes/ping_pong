@@ -242,7 +242,7 @@ export default function RegistrationModal() {
                                         !participants.some((p) => p.id === m.userId) &&
                                         !guests.some((g) => g.userId === m.userId)
                                 )
-                                return guests.length < 3 && availableMembers.length > 0
+                                return availableMembers.length > 0
                             })() && (
                                 <button
                                     onClick={addGuestField}

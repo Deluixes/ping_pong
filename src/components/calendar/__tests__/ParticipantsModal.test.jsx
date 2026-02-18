@@ -8,10 +8,6 @@ const mockRegistration = {
     selectedSlotId: '18:00',
     selectedDate: new Date(2025, 2, 10),
     participantsToShow: [],
-    getUserRegistration: vi.fn().mockReturnValue(null),
-    isUserOnSlot: vi.fn().mockReturnValue(false),
-    openRegistrationFromParticipants: vi.fn(),
-    openInviteOnlyFromParticipants: vi.fn(),
     closeParticipantsModal: vi.fn(),
 }
 
@@ -26,8 +22,6 @@ afterEach(() => {
     vi.clearAllMocks()
     mockRegistration.showParticipantsList = false
     mockRegistration.participantsToShow = []
-    mockRegistration.getUserRegistration.mockReturnValue(null)
-    mockRegistration.isUserOnSlot.mockReturnValue(false)
 })
 
 describe('ParticipantsModal', () => {
@@ -59,18 +53,11 @@ describe('ParticipantsModal', () => {
         expect(getByText('Aucun joueur sur ce créneau')).toBeTruthy()
     })
 
-    it("affiche S'inscrire et Inviter si l'utilisateur n'est pas inscrit", () => {
+    it("n'affiche pas de bouton S'inscrire", () => {
         mockRegistration.showParticipantsList = true
-        const { getByText } = render(<ParticipantsModal />)
-        expect(getByText("S'inscrire")).toBeTruthy()
-        expect(getByText('Inviter seulement')).toBeTruthy()
-    })
-
-    it("n'affiche pas S'inscrire si l'utilisateur est déjà inscrit", () => {
-        mockRegistration.showParticipantsList = true
-        mockRegistration.getUserRegistration.mockReturnValue({ id: '1' })
         const { queryByText } = render(<ParticipantsModal />)
         expect(queryByText("S'inscrire")).toBeNull()
+        expect(queryByText('Inviter seulement')).toBeNull()
     })
 
     it('appelle closeParticipantsModal au clic sur Fermer', () => {
@@ -78,13 +65,6 @@ describe('ParticipantsModal', () => {
         const { getByText } = render(<ParticipantsModal />)
         fireEvent.click(getByText('Fermer'))
         expect(mockRegistration.closeParticipantsModal).toHaveBeenCalledTimes(1)
-    })
-
-    it("appelle openRegistrationFromParticipants au clic sur S'inscrire", () => {
-        mockRegistration.showParticipantsList = true
-        const { getByText } = render(<ParticipantsModal />)
-        fireEvent.click(getByText("S'inscrire"))
-        expect(mockRegistration.openRegistrationFromParticipants).toHaveBeenCalledTimes(1)
     })
 
     it('affiche le statut (en attente) pour les invitations pending', () => {
