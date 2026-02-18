@@ -60,6 +60,13 @@ Dans le Dashboard Supabase : Database > Webhooks > Create webhook
 - Type: `Supabase Edge Function`
 - Edge Function: `on-slot-opened`
 
+**Webhook 3 : Réponse aux invitations (acceptation/refus)**
+- Name: `on-invitation-response`
+- Table: `slot_invitations`
+- Events: `UPDATE`, `DELETE`
+- Type: `Supabase Edge Function`
+- Edge Function: `on-invitation-response`
+
 ## 4. Tester
 
 1. Ouvrir l'application sur un appareil mobile
