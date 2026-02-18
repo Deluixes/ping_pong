@@ -120,9 +120,10 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         }
 
         // Cas normal → pop-up unifié
+        const userIsInvited = isUserOnSlot(slotId) && !getUserRegistration(slotId)
         setSelectedSlotId(slotId)
         setSelectedDuration(null)
-        setSelfRegister(true)
+        setSelfRegister(!userIsInvited)
         setGuests([{ userId: '', name: '' }])
         setModalStep('registration')
     }
@@ -191,7 +192,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         try {
             const promises = []
 
-            if (selfRegister && !isModifying) {
+            if (selfRegister && !isModifying && !isInvited) {
                 for (let i = 0; i < selectedDuration.slots; i++) {
                     const slot = TIME_SLOTS[startIndex + i]
                     if (slot) {
