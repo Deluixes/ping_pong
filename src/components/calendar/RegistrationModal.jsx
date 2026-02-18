@@ -1,4 +1,4 @@
-import { Clock, X, UserPlus, Users } from 'lucide-react'
+import { Clock, X, UserPlus, Users, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
@@ -14,6 +14,7 @@ export default function RegistrationModal() {
         guests,
         approvedMembers,
         selfRegister,
+        isModifying,
         availableDurations,
         currentSlotAccepted,
         isCurrentSlotOverbooked,
@@ -22,6 +23,7 @@ export default function RegistrationModal() {
         getEndTime,
         handleDurationSelect,
         handleShowParticipants,
+        handleUnregister,
         setSelfRegister,
         setModalStep,
         updateGuest,
@@ -97,7 +99,9 @@ export default function RegistrationModal() {
             <div className={clsx('modal-dialog', 'modal-dialog--bottom-sheet', styles.maxHeight70)}>
                 {/* Section 1 : Header */}
                 <div className="modal-header">
-                    <h3 className={styles.title}>Inscription</h3>
+                    <h3 className={styles.title}>
+                        {isModifying ? "Modifier l'inscription" : 'Inscription'}
+                    </h3>
                     <button onClick={closeModal} className="icon-btn">
                         <X size={24} />
                     </button>
@@ -140,16 +144,32 @@ export default function RegistrationModal() {
                     </div>
                 )}
 
-                {/* Section 3 : M'inscrire */}
+                {/* Section 3 : Inscription */}
                 <div className={styles.section}>
-                    <label className={styles.selfRegisterRow}>
-                        <input
-                            type="checkbox"
-                            checked={selfRegister}
-                            onChange={(e) => setSelfRegister(e.target.checked)}
-                        />
-                        <span>M'inscrire sur ce créneau</span>
-                    </label>
+                    {isModifying ? (
+                        <>
+                            <div className={styles.registeredRow}>
+                                <Check size={16} className={styles.registeredIcon} />
+                                <span>Vous êtes inscrit(e)</span>
+                            </div>
+                            <button
+                                onClick={() => handleUnregister(selectedSlotId)}
+                                className={styles.unregisterBtn}
+                            >
+                                <X size={14} />
+                                Se désinscrire
+                            </button>
+                        </>
+                    ) : (
+                        <label className={styles.selfRegisterRow}>
+                            <input
+                                type="checkbox"
+                                checked={selfRegister}
+                                onChange={(e) => setSelfRegister(e.target.checked)}
+                            />
+                            <span>M'inscrire sur ce créneau</span>
+                        </label>
+                    )}
                 </div>
 
                 {/* Section 4 : Inviter des membres */}
@@ -198,7 +218,7 @@ export default function RegistrationModal() {
                                                     </option>
                                                 ))}
                                         </select>
-                                        {guests.length > 1 && (
+                                        {(guest.userId || guests.length > 1) && (
                                             <button
                                                 onClick={() => removeGuest(idx)}
                                                 className={styles.removeBtn}
@@ -245,13 +265,25 @@ export default function RegistrationModal() {
                 )}
 
                 {/* Section 5 : Bouton validation */}
-                <button
-                    onClick={handleRegister}
-                    disabled={!canValidate}
-                    className="btn btn-primary btn-full"
-                >
-                    ✓ Confirmer
-                </button>
+                {isModifying ? (
+                    validGuests.length > 0 && (
+                        <button
+                            onClick={handleRegister}
+                            disabled={!selectedDuration}
+                            className="btn btn-primary btn-full"
+                        >
+                            Envoyer les invitations
+                        </button>
+                    )
+                ) : (
+                    <button
+                        onClick={handleRegister}
+                        disabled={!canValidate}
+                        className="btn btn-primary btn-full"
+                    >
+                        Confirmer
+                    </button>
+                )}
             </div>
         </div>
     )

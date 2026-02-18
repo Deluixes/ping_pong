@@ -28,7 +28,7 @@ export function useParticipantsModal({ slotHelpers, calendarData, onStartRegistr
 
     const handleOpenInviteModal = () => {
         setShowActionChoice(false)
-        onStartRegistration({ inviteOnly: true })
+        onStartRegistration({ inviteOnly: false })
     }
 
     const openRegistrationFromParticipants = () => {

@@ -126,6 +126,37 @@
     accent-color: var(--color-primary);
 }
 
+/* ===== Registered (modification mode) ===== */
+
+.registeredRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--color-success, #16a34a);
+    margin-bottom: 0.5rem;
+}
+
+.registeredIcon {
+    color: var(--color-success, #16a34a);
+}
+
+.unregisterBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    color: #dc2626;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+}
+
+.unregisterBtn:hover {
+    text-decoration: underline;
+}
+
 /* ===== Overbooking ===== */
 
 .overbookingWarning {

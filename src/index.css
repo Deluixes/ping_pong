@@ -90,6 +90,11 @@ button {
     padding: 0.5rem;
 }
 
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* ===== Card ===== */
 
 .card {

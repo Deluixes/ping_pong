@@ -42,6 +42,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
     const currentSlotAccepted = selectedSlotId ? getAcceptedParticipantCount(selectedSlotId) : 0
     const isCurrentSlotOverbooked = currentSlotAccepted >= maxPersons
+    const isModifying = selectedSlotId ? !!getUserRegistration(selectedSlotId) : false
 
     // ==================== SUB-HOOKS ====================
 
@@ -64,9 +65,20 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
         // Déjà inscrit → ActionChoiceModal
         if (userReg) {
-            setSelectedSlotId(slotId)
+            // Trouver le vrai slot de départ (si clic sur un créneau secondaire)
+            const clickedIndex = getSlotIndex(slotId)
+            let startSlotId = slotId
+            for (let i = 1; i < userReg.duration; i++) {
+                const prevSlot = TIME_SLOTS[clickedIndex - i]
+                if (prevSlot && getUserRegistration(prevSlot.id)) {
+                    startSlotId = prevSlot.id
+                } else {
+                    break
+                }
+            }
+            setSelectedSlotId(startSlotId)
             setSelectedDuration(
-                DURATION_OPTIONS.find((d) => d.slots === userReg?.duration) || DURATION_OPTIONS[0]
+                DURATION_OPTIONS.find((d) => d.slots === userReg.duration) || DURATION_OPTIONS[0]
             )
             participantsModal.setShowActionChoice(true)
             return
@@ -317,6 +329,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         selectedDuration,
         guests,
         selfRegister,
+        isModifying,
         availableDurations,
         currentSlotAccepted,
         isCurrentSlotOverbooked,
