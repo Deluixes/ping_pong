@@ -79,7 +79,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
     // ==================== HANDLERS ====================
 
-    const handleSlotClick = (slotId) => {
+    const handleSlotClick = (slotId, { fromInfo = false } = {}) => {
         const userReg = getUserRegistration(slotId)
 
         // Déjà inscrit → pop-up unifié en mode modification
@@ -95,15 +95,15 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             return
         }
 
-        // Invité → désinscription directe
-        if (isUserOnSlot(slotId)) {
+        // Invité → désinscription directe (sauf clic info → ouvrir le pop-up)
+        if (isUserOnSlot(slotId) && !fromInfo) {
             handleGuestUnregister(slotId)
             return
         }
 
         // Créneau non disponible
         const availability = isSlotAvailable(slotId)
-        if (!availability.available) {
+        if (!availability.available && !fromInfo) {
             if (canManageSlots) {
                 slotMgmt.openSlotModal(slotId)
             } else {
@@ -112,8 +112,8 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             return
         }
 
-        // Licence incompatible
-        if (!canUserRegister(slotId)) {
+        // Licence incompatible (ne bloque pas le clic info)
+        if (!canUserRegister(slotId) && !fromInfo) {
             const { target } = availability
             if (target === 'loisir') {
                 addToast('Ce créneau est réservé aux licences Loisir.', 'warning')
