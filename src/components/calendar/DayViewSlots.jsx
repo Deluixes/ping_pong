@@ -101,11 +101,7 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
     const hasPendingInvitation = isUserOnSlot(slot.id) && !isParticipating
 
     const handleInfoClick =
-        isParticipating && isCourse
-            ? () => onSlotClick(slot.id)
-            : isCourse && count > 0 && !isParticipating
-              ? () => onShowParticipants(slot.id)
-              : undefined
+        isCourse && (isParticipating || count > 0) ? () => onSlotClick(slot.id) : undefined
 
     return (
         <div
@@ -306,13 +302,7 @@ function NormalSlotRow({
 
             {/* Participants Info */}
             <div
-                onClick={
-                    isParticipating
-                        ? () => onSlotClick(slot.id)
-                        : count > 0
-                          ? () => onShowParticipants(slot.id)
-                          : undefined
-                }
+                onClick={isParticipating || count > 0 ? () => onSlotClick(slot.id) : undefined}
                 className={clsx(styles.slotInfo, {
                     [styles.slotInfoClickable]: isParticipating || count > 0,
                 })}
