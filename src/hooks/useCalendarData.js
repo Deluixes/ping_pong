@@ -260,9 +260,11 @@ export function useCalendarData(user, selectedDate, weekStart) {
         return () => controller.abort()
     }, [user?.id, loadData, loadWeekConfig, loadDaysWithOpenedSlots])
 
-    // Effect 2: date-dependent data
+    // Effect 2: date-dependent data (reset stale data immediately on date change)
     useEffect(() => {
         const controller = new AbortController()
+        setInvitations([])
+        setOpenedSlots([])
         loadInvitations(controller.signal)
         loadOpenedSlots(controller.signal)
         return () => controller.abort()
