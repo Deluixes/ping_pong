@@ -1,9 +1,14 @@
 import { supabase } from '../lib/supabase'
 
+let channelCounter = 0
+function uniqueChannel(base) {
+    return `${base}-${++channelCounter}`
+}
+
 export const realtimeService = {
     subscribeToReservations(callback) {
         return supabase
-            .channel('reservations-changes')
+            .channel(uniqueChannel('reservations-changes'))
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'reservations' },
@@ -14,7 +19,7 @@ export const realtimeService = {
 
     subscribeToMembers(callback) {
         return supabase
-            .channel('members-changes')
+            .channel(uniqueChannel('members-changes'))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () =>
                 callback()
             )
@@ -23,7 +28,7 @@ export const realtimeService = {
 
     subscribeToInvitations(callback) {
         return supabase
-            .channel('invitations-changes')
+            .channel(uniqueChannel('invitations-changes'))
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'slot_invitations' },
@@ -34,7 +39,7 @@ export const realtimeService = {
 
     subscribeToOpenedSlots(callback) {
         return supabase
-            .channel('opened-slots-changes')
+            .channel(uniqueChannel('opened-slots-changes'))
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'opened_slots' },

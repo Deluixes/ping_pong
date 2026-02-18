@@ -28,6 +28,12 @@ export default function MyInvitations({ onNotificationChange }) {
 
     useEffect(() => {
         loadInvitations()
+
+        const sub = storageService.subscribeToInvitations(() => {
+            loadInvitations()
+        })
+
+        return () => storageService.unsubscribe(sub)
     }, [user])
 
     const handleRefresh = async () => {
