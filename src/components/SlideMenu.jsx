@@ -153,7 +153,7 @@ export default function SlideMenu({ isOpen, onClose }) {
                         )}
                     >
                         <Sparkles size={20} />
-                        Nouveautes
+                        Nouveautés
                     </Link>
 
                     {user?.isAdmin && (

@@ -13,7 +13,7 @@ export default function Changelog() {
                 <button onClick={() => navigate('/')} className="btn btn-back">
                     <ArrowLeft size={20} />
                 </button>
-                <h1 className="page-title">Nouveautes</h1>
+                <h1 className="page-title">Nouveautés</h1>
             </div>
 
             {changelog.map((release) => (
