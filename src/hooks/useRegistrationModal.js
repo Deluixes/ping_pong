@@ -58,6 +58,25 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         },
     })
 
+    // ==================== HELPERS ====================
+
+    const findStartSlot = (slotId) => {
+        const reg = getUserRegistration(slotId)
+        if (!reg) return { startIndex: getSlotIndex(slotId), duration: 1 }
+        const clickedIndex = getSlotIndex(slotId)
+        const duration = reg.duration || 1
+        let startIndex = clickedIndex
+        for (let i = 1; i < duration; i++) {
+            const prevSlot = TIME_SLOTS[clickedIndex - i]
+            if (prevSlot && getUserRegistration(prevSlot.id)) {
+                startIndex = clickedIndex - i
+            } else {
+                break
+            }
+        }
+        return { startIndex, duration }
+    }
+
     // ==================== HANDLERS ====================
 
     const handleSlotClick = (slotId) => {
@@ -65,20 +84,10 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
         // Déjà inscrit → ActionChoiceModal
         if (userReg) {
-            // Trouver le vrai slot de départ (si clic sur un créneau secondaire)
-            const clickedIndex = getSlotIndex(slotId)
-            let startSlotId = slotId
-            for (let i = 1; i < userReg.duration; i++) {
-                const prevSlot = TIME_SLOTS[clickedIndex - i]
-                if (prevSlot && getUserRegistration(prevSlot.id)) {
-                    startSlotId = prevSlot.id
-                } else {
-                    break
-                }
-            }
-            setSelectedSlotId(startSlotId)
+            const { startIndex, duration } = findStartSlot(slotId)
+            setSelectedSlotId(TIME_SLOTS[startIndex].id)
             setSelectedDuration(
-                DURATION_OPTIONS.find((d) => d.slots === userReg.duration) || DURATION_OPTIONS[0]
+                DURATION_OPTIONS.find((d) => d.slots === duration) || DURATION_OPTIONS[0]
             )
             participantsModal.setShowActionChoice(true)
             return
@@ -244,18 +253,61 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             const registration = getUserRegistration(slotId)
 
             if (registration) {
-                const startIndex = getSlotIndex(slotId)
-                const duration = registration.duration || 1
-                const unregisterPromises = []
-                for (let i = 0; i < duration; i++) {
-                    const slot = TIME_SLOTS[startIndex + i]
-                    if (slot) {
-                        unregisterPromises.push(
-                            storageService.unregisterFromSlot(slot.id, dateStr, user.id)
-                        )
+                const { startIndex, duration } = findStartSlot(slotId)
+                const clickedIndex = getSlotIndex(slotId)
+                const positionInSequence = clickedIndex - startIndex
+                const promises = []
+
+                if (positionInSequence === 0 && duration > 1) {
+                    // Premier slot d'une inscription multi-créneaux → supprimer uniquement celui-ci
+                    promises.push(storageService.unregisterFromSlot(slotId, dateStr, user.id))
+                    // Mettre à jour la durée des slots restants
+                    const newDuration = duration - 1
+                    for (let i = 1; i < duration; i++) {
+                        const slot = TIME_SLOTS[startIndex + i]
+                        if (slot) {
+                            promises.push(
+                                storageService.updateSlotDuration(
+                                    slot.id,
+                                    dateStr,
+                                    user.id,
+                                    newDuration
+                                )
+                            )
+                        }
                     }
+                } else if (positionInSequence > 0) {
+                    // Slot intermédiaire ou dernier → supprimer celui-ci et tous ceux après
+                    for (let i = positionInSequence; i < duration; i++) {
+                        const slot = TIME_SLOTS[startIndex + i]
+                        if (slot) {
+                            promises.push(
+                                storageService.unregisterFromSlot(slot.id, dateStr, user.id)
+                            )
+                        }
+                    }
+                    // Mettre à jour la durée des slots qui restent avant
+                    const newDuration = positionInSequence
+                    for (let i = 0; i < positionInSequence; i++) {
+                        const slot = TIME_SLOTS[startIndex + i]
+                        if (slot) {
+                            promises.push(
+                                storageService.updateSlotDuration(
+                                    slot.id,
+                                    dateStr,
+                                    user.id,
+                                    newDuration
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    // Inscription sur un seul créneau → supprimer tout
+                    promises.push(storageService.unregisterFromSlot(slotId, dateStr, user.id))
                 }
-                await Promise.all(unregisterPromises)
+
+                await Promise.all(promises)
+                closeModal()
                 addToast('Désinscription confirmée.', 'success')
                 await loadData()
             } else if (isUserOnSlot(slotId)) {

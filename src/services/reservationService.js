@@ -57,6 +57,22 @@ export const reservationService = {
         return { success: true }
     },
 
+    async updateSlotDuration(slotId, date, userId, newDuration) {
+        const { error } = await supabase
+            .from('reservations')
+            .update({ duration: newDuration })
+            .eq('slot_id', slotId)
+            .eq('date', date)
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error updating slot duration:', error)
+            return { success: false }
+        }
+
+        return { success: true }
+    },
+
     async deleteReservationsForSlot(date, slotId) {
         const { data, error } = await supabase
             .from('reservations')
