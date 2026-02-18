@@ -43,6 +43,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const currentSlotAccepted = selectedSlotId ? getAcceptedParticipantCount(selectedSlotId) : 0
     const isCurrentSlotOverbooked = currentSlotAccepted >= maxPersons
     const isModifying = selectedSlotId ? !!getUserRegistration(selectedSlotId) : false
+    const isInvited = selectedSlotId ? isUserOnSlot(selectedSlotId) && !isModifying : false
 
     // ==================== SUB-HOOKS ====================
 
@@ -378,6 +379,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         guests,
         selfRegister,
         isModifying,
+        isInvited,
         availableDurations,
         currentSlotAccepted,
         isCurrentSlotOverbooked,

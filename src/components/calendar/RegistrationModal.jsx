@@ -15,6 +15,7 @@ export default function RegistrationModal() {
         approvedMembers,
         selfRegister,
         isModifying,
+        isInvited,
         availableDurations,
         currentSlotAccepted,
         isCurrentSlotOverbooked,
@@ -160,6 +161,11 @@ export default function RegistrationModal() {
                                 Se désinscrire
                             </button>
                         </>
+                    ) : isInvited ? (
+                        <div className={styles.registeredRow}>
+                            <Clock size={16} className={styles.invitedIcon} />
+                            <span>Vous êtes invité(e) sur ce créneau</span>
+                        </div>
                     ) : (
                         <label className={styles.selfRegisterRow}>
                             <input
@@ -265,7 +271,7 @@ export default function RegistrationModal() {
                 )}
 
                 {/* Section 5 : Bouton validation */}
-                {isModifying ? (
+                {isModifying || isInvited ? (
                     validGuests.length > 0 && (
                         <button
                             onClick={handleRegister}
