@@ -36,7 +36,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const [selectedSlotId, setSelectedSlotId] = useState(null)
     const [selectedDuration, setSelectedDuration] = useState(null)
     const [guests, setGuests] = useState([{ userId: '', name: '' }])
-    const [inviteOnlyMode, setInviteOnlyMode] = useState(false)
+    const [selfRegister, setSelfRegister] = useState(true)
 
     // Valeurs derivees
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
@@ -51,14 +51,9 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         slotHelpers,
         calendarData,
         onStartRegistration: ({ inviteOnly }) => {
-            setInviteOnlyMode(inviteOnly)
+            setSelfRegister(!inviteOnly)
             setGuests([{ userId: '', name: '' }])
-            if (inviteOnly) {
-                setModalStep('guests')
-            } else {
-                setSelectedDuration(null)
-                setModalStep('duration')
-            }
+            setModalStep('registration')
         },
     })
 
@@ -66,27 +61,24 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
     const handleSlotClick = (slotId) => {
         const userReg = getUserRegistration(slotId)
-        const participants = getParticipants(slotId)
 
+        // Déjà inscrit → ActionChoiceModal
         if (userReg) {
             setSelectedSlotId(slotId)
             setSelectedDuration(
                 DURATION_OPTIONS.find((d) => d.slots === userReg?.duration) || DURATION_OPTIONS[0]
             )
-            if (participants.length > 0) {
-                participantsModal.setShowActionChoice(true)
-                return
-            }
-            setInviteOnlyMode(true)
-            setGuests([{ userId: '', name: '' }])
-            setModalStep('guests')
+            participantsModal.setShowActionChoice(true)
             return
         }
+
+        // Invité → désinscription directe
         if (isUserOnSlot(slotId)) {
             handleGuestUnregister(slotId)
             return
         }
 
+        // Créneau non disponible
         const availability = isSlotAvailable(slotId)
         if (!availability.available) {
             if (canManageSlots) {
@@ -97,6 +89,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             return
         }
 
+        // Licence incompatible
         if (!canUserRegister(slotId)) {
             const { target } = availability
             if (target === 'loisir') {
@@ -114,15 +107,12 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             return
         }
 
-        if (participants.length > 0) {
-            setSelectedSlotId(slotId)
-            participantsModal.handleShowParticipants(slotId)
-            return
-        }
-
+        // Cas normal → pop-up unifié
         setSelectedSlotId(slotId)
         setSelectedDuration(null)
-        setModalStep('duration')
+        setSelfRegister(true)
+        setGuests([{ userId: '', name: '' }])
+        setModalStep('registration')
     }
 
     const handleGuestUnregister = async (slotId) => {
@@ -138,17 +128,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
 
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
-        setGuests([{ userId: '', name: '' }])
-        if (isUserParticipating(selectedSlotId)) {
-            setModalStep('guests')
-        } else {
-            setModalStep('choice')
-        }
-    }
-
-    const handleModeChoice = (mode) => {
-        setInviteOnlyMode(mode === 'invite_only')
-        setModalStep('guests')
+        setModalStep('registration')
     }
 
     const addGuestField = () => {
@@ -173,8 +153,8 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         if (!selectedSlotId || !selectedDuration) return
 
         const validGuests = guests.filter((g) => g.userId)
-        if (inviteOnlyMode && validGuests.length === 0) {
-            addToast('Veuillez sélectionner au moins une personne à inviter.', 'warning')
+        if (!selfRegister && validGuests.length === 0) {
+            addToast('Cochez "M\'inscrire" ou invitez au moins une personne.', 'warning')
             return
         }
 
@@ -195,13 +175,13 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         }
 
         const currentAccepted = getAcceptedParticipantCount(selectedSlotId)
-        const totalAfter = currentAccepted + (inviteOnlyMode ? 0 : 1)
+        const totalAfter = currentAccepted + (selfRegister ? 1 : 0)
         const isOverbooked = totalAfter > maxPersons
 
         try {
             const promises = []
 
-            if (!inviteOnlyMode) {
+            if (selfRegister) {
                 for (let i = 0; i < selectedDuration.slots; i++) {
                     const slot = TIME_SLOTS[startIndex + i]
                     if (slot) {
@@ -236,7 +216,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             await Promise.all(promises)
             closeModal()
             addToast(
-                inviteOnlyMode ? 'Invitation(s) envoyée(s).' : 'Inscription confirmée.',
+                !selfRegister ? 'Invitation(s) envoyée(s).' : 'Inscription confirmée.',
                 'success'
             )
             await Promise.all([loadData(), loadInvitations()])
@@ -325,7 +305,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         setSelectedSlotId(null)
         setSelectedDuration(null)
         setGuests([{ userId: '', name: '' }])
-        setInviteOnlyMode(false)
+        setSelfRegister(true)
     }
 
     // ==================== PUBLIC API (identique a l'ancienne) ====================
@@ -336,7 +316,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         selectedSlotId,
         selectedDuration,
         guests,
-        inviteOnlyMode,
+        selfRegister,
         availableDurations,
         currentSlotAccepted,
         isCurrentSlotOverbooked,
@@ -359,7 +339,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         handleShowParticipants: participantsModal.handleShowParticipants,
         handleOpenInviteModal: participantsModal.handleOpenInviteModal,
         handleDurationSelect,
-        handleModeChoice,
+        setSelfRegister,
         addGuestField,
         updateGuest,
         removeGuest,

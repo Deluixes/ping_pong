@@ -107,6 +107,7 @@ export default function Calendar() {
             onDeleteWeekSlot: modal.handleDeleteWeekSlot,
             onAcceptInvitation: modal.handleAcceptInvitation,
             onDeclineInvitation: modal.handleDeclineInvitation,
+            onShowParticipants: modal.handleShowParticipants,
         }),
         [viewMode, user.id, isAdmin, calendarData.maxPersons, slotHelpers, modal]
     )

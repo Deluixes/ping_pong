@@ -93,11 +93,19 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
         onDeleteWeekSlot,
         onAcceptInvitation,
         onDeclineInvitation,
+        onShowParticipants,
     } = useCalendar()
 
     const isCourse = blockedInfo.isBlocking === false
     const isTraining = blockedInfo.isBlocking !== false
     const hasPendingInvitation = isUserOnSlot(slot.id) && !isParticipating
+
+    const handleInfoClick =
+        isParticipating && isCourse
+            ? () => onSlotClick(slot.id)
+            : isCourse && count > 0 && !isParticipating
+              ? () => onShowParticipants(slot.id)
+              : undefined
 
     return (
         <div
@@ -120,9 +128,9 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
 
             {/* Slot Info */}
             <div
-                onClick={isParticipating && isCourse ? () => onSlotClick(slot.id) : undefined}
+                onClick={handleInfoClick}
                 className={clsx(styles.slotInfo, {
-                    [styles.slotInfoClickable]: isParticipating && isCourse,
+                    [styles.slotInfoClickable]: !!handleInfoClick,
                 })}
             >
                 <div
@@ -255,6 +263,7 @@ function NormalSlotRow({
         onCloseSlot,
         onAcceptInvitation,
         onDeclineInvitation,
+        onShowParticipants,
     } = useCalendar()
 
     const isClosed = !availability.available
@@ -297,9 +306,15 @@ function NormalSlotRow({
 
             {/* Participants Info */}
             <div
-                onClick={isParticipating ? () => onSlotClick(slot.id) : undefined}
+                onClick={
+                    isParticipating
+                        ? () => onSlotClick(slot.id)
+                        : count > 0
+                          ? () => onShowParticipants(slot.id)
+                          : undefined
+                }
                 className={clsx(styles.slotInfo, {
-                    [styles.slotInfoClickable]: isParticipating,
+                    [styles.slotInfoClickable]: isParticipating || count > 0,
                 })}
             >
                 {count > 0 ? (
