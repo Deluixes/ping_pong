@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { format, addDays } from 'date-fns'
 import { storageService } from '../services/storage'
 import { DEFAULT_TOTAL_TABLES } from '../constants'
@@ -63,6 +63,7 @@ export function applyReservationPayload(payload, setEvents, weekRange) {
 export function mapInvitationRow(r) {
     return {
         slotId: r.slot_id,
+        date: r.date,
         userId: r.user_id,
         name: r.user_name,
         status: r.status,
@@ -71,10 +72,10 @@ export function mapInvitationRow(r) {
     }
 }
 
-export function applyInvitationPayload(payload, setInvitations, dateStr) {
+export function applyInvitationPayload(payload, setInvitations, weekRange) {
     const { eventType, new: newRow, old: oldRow } = payload
     const row = newRow || oldRow
-    if (!row?.date || row.date !== dateStr) return false
+    if (!row?.date || row.date < weekRange.start || row.date > weekRange.end) return false
 
     if (eventType === 'INSERT' && newRow) {
         setInvitations((prev) => [...prev, mapInvitationRow(newRow)])
@@ -82,14 +83,21 @@ export function applyInvitationPayload(payload, setInvitations, dateStr) {
     }
     if (eventType === 'DELETE' && oldRow) {
         setInvitations((prev) =>
-            prev.filter((i) => !(i.slotId === oldRow.slot_id && i.userId === oldRow.user_id))
+            prev.filter(
+                (i) =>
+                    !(
+                        i.slotId === oldRow.slot_id &&
+                        i.date === oldRow.date &&
+                        i.userId === oldRow.user_id
+                    )
+            )
         )
         return true
     }
     if (eventType === 'UPDATE' && newRow && oldRow) {
         setInvitations((prev) =>
             prev.map((i) =>
-                i.slotId === oldRow.slot_id && i.userId === oldRow.user_id
+                i.slotId === oldRow.slot_id && i.date === oldRow.date && i.userId === oldRow.user_id
                     ? mapInvitationRow(newRow)
                     : i
             )
@@ -110,10 +118,10 @@ export function mapOpenedSlotRow(r) {
     }
 }
 
-export function applyOpenedSlotPayload(payload, setOpenedSlots, dateStr) {
+export function applyOpenedSlotPayload(payload, setOpenedSlots, weekRange) {
     const { eventType, new: newRow, old: oldRow } = payload
     const row = newRow || oldRow
-    if (!row?.date || row.date !== dateStr) return false
+    if (!row?.date || row.date < weekRange.start || row.date > weekRange.end) return false
 
     if (eventType === 'INSERT' && newRow) {
         setOpenedSlots((prev) => [...prev, mapOpenedSlotRow(newRow)])
@@ -149,7 +157,6 @@ export function useCalendarData(user, selectedDate, weekStart) {
     const [weekHours, setWeekHours] = useState([])
     const [isWeekConfigured, setIsWeekConfigured] = useState(false)
     const [openedSlots, setOpenedSlots] = useState([])
-    const [daysWithOpenedSlots, setDaysWithOpenedSlots] = useState([])
 
     const maxPersons = totalTables * 2
 
@@ -214,61 +221,51 @@ export function useCalendarData(user, selectedDate, weekStart) {
         [weekStart]
     )
 
-    const loadInvitations = useCallback(
-        async (signal) => {
-            const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            const loadedInvitations = await storageService.getAllInvitationsForDate(dateStr)
-            if (!signal?.aborted) {
-                setInvitations(loadedInvitations)
-            }
-        },
-        [selectedDate]
-    )
-
-    const loadOpenedSlots = useCallback(
-        async (signal) => {
-            const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            const slots = await storageService.getOpenedSlotsForDate(dateStr)
-            if (!signal?.aborted) {
-                setOpenedSlots(slots)
-            }
-        },
-        [selectedDate]
-    )
-
-    const loadDaysWithOpenedSlots = useCallback(
+    const loadWeekInvitations = useCallback(
         async (signal) => {
             const weekStartStr = format(weekStart, 'yyyy-MM-dd')
             const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
-            const days = await storageService.getOpenedSlotsForWeek(weekStartStr, weekEndStr)
+            const loadedInvitations = await storageService.getAllInvitationsForWeek(
+                weekStartStr,
+                weekEndStr
+            )
             if (!signal?.aborted) {
-                setDaysWithOpenedSlots(days)
+                setInvitations(loadedInvitations)
             }
         },
         [weekStart]
     )
 
+    const loadWeekOpenedSlots = useCallback(
+        async (signal) => {
+            const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+            const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
+            const slots = await storageService.getOpenedSlotsForWeekFull(weekStartStr, weekEndStr)
+            if (!signal?.aborted) {
+                setOpenedSlots(slots)
+            }
+        },
+        [weekStart]
+    )
+
+    // Dériver daysWithOpenedSlots depuis openedSlots (plus besoin de requête séparée)
+    const daysWithOpenedSlots = useMemo(
+        () => [...new Set(openedSlots.map((s) => s.date))],
+        [openedSlots]
+    )
+
     // ==================== EFFECTS ====================
 
-    // Effect 1: user data + week config
+    // Effect 1: user data + week config + week opened slots + week invitations
     useEffect(() => {
         const controller = new AbortController()
         userIdRef.current = user?.id
         if (user?.id) loadData(controller.signal)
         loadWeekConfig(controller.signal)
-        loadDaysWithOpenedSlots(controller.signal)
+        loadWeekOpenedSlots(controller.signal)
+        loadWeekInvitations(controller.signal)
         return () => controller.abort()
-    }, [user?.id, loadData, loadWeekConfig, loadDaysWithOpenedSlots])
-
-    // Effect 2: date-dependent data (reset stale data immediately on date change)
-    useEffect(() => {
-        const controller = new AbortController()
-        setInvitations([])
-        setOpenedSlots([])
-        loadInvitations(controller.signal)
-        loadOpenedSlots(controller.signal)
-        return () => controller.abort()
-    }, [loadInvitations, loadOpenedSlots])
+    }, [user?.id, loadData, loadWeekConfig, loadWeekOpenedSlots, loadWeekInvitations])
 
     // Effect 3: realtime subscriptions with optimistic updates
     useEffect(() => {
@@ -276,7 +273,6 @@ export function useCalendarData(user, selectedDate, weekStart) {
             start: format(weekStart, 'yyyy-MM-dd'),
             end: format(addDays(weekStart, 6), 'yyyy-MM-dd'),
         }
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
 
         const subs = [
             storageService.subscribeToReservations((payload) => {
@@ -285,26 +281,18 @@ export function useCalendarData(user, selectedDate, weekStart) {
                 }
             }),
             storageService.subscribeToInvitations((payload) => {
-                if (!applyInvitationPayload(payload, setInvitations, dateStr)) {
-                    loadInvitations()
+                if (!applyInvitationPayload(payload, setInvitations, weekRange)) {
+                    loadWeekInvitations()
                 }
             }),
             storageService.subscribeToOpenedSlots((payload) => {
-                if (!applyOpenedSlotPayload(payload, setOpenedSlots, dateStr)) {
-                    loadOpenedSlots()
+                if (!applyOpenedSlotPayload(payload, setOpenedSlots, weekRange)) {
+                    loadWeekOpenedSlots()
                 }
-                loadDaysWithOpenedSlots()
             }),
         ]
         return () => subs.forEach((sub) => storageService.unsubscribe(sub))
-    }, [
-        loadData,
-        loadInvitations,
-        loadOpenedSlots,
-        loadDaysWithOpenedSlots,
-        weekStart,
-        selectedDate,
-    ])
+    }, [loadData, loadWeekInvitations, loadWeekOpenedSlots, weekStart])
 
     return {
         events,
@@ -320,8 +308,8 @@ export function useCalendarData(user, selectedDate, weekStart) {
         totalTables,
         maxPersons,
         loadData,
-        loadInvitations,
-        loadOpenedSlots,
+        loadWeekInvitations,
+        loadWeekOpenedSlots,
         loadWeekConfig,
     }
 }

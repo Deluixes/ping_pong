@@ -68,6 +68,7 @@ describe('getParticipants', () => {
             invitations: [
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u2',
                     name: 'Bob',
                     status: 'pending',
@@ -87,6 +88,7 @@ describe('getParticipants', () => {
             invitations: [
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u2',
                     name: 'Bob',
                     status: 'accepted',
@@ -117,6 +119,7 @@ describe('getAcceptedParticipantCount', () => {
             invitations: [
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u2',
                     name: 'Bob',
                     status: 'accepted',
@@ -125,6 +128,7 @@ describe('getAcceptedParticipantCount', () => {
                 },
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u3',
                     name: 'Charlie',
                     status: 'pending',
@@ -194,6 +198,7 @@ describe('isUserParticipating', () => {
             invitations: [
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u1',
                     name: 'Alice',
                     status: 'accepted',
@@ -210,6 +215,7 @@ describe('isUserParticipating', () => {
             invitations: [
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u1',
                     name: 'Alice',
                     status: 'pending',
@@ -233,6 +239,7 @@ describe('isUserOnSlot', () => {
             invitations: [
                 {
                     slotId: '10:00',
+                    date: DATE_STR,
                     userId: 'u1',
                     name: 'Alice',
                     status: 'pending',

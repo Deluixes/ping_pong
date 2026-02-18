@@ -31,6 +31,25 @@ export const invitationService = {
         }))
     },
 
+    async getAllInvitationsForWeek(startDate, endDate) {
+        const { data, error } = await supabase
+            .from('slot_invitations')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate)
+
+        if (error) return []
+        return data.map((inv) => ({
+            slotId: inv.slot_id,
+            date: inv.date,
+            userId: inv.user_id,
+            name: inv.user_name,
+            status: inv.status,
+            invitedBy: inv.invited_by,
+            duration: inv.duration || 1,
+        }))
+    },
+
     async getPendingInvitations(userId) {
         const { data, error } = await supabase
             .from('slot_invitations')

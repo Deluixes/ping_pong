@@ -16,6 +16,28 @@ export const openedSlotService = {
         return [...new Set(data.map((s) => s.date))]
     },
 
+    async getOpenedSlotsForWeekFull(startDate, endDate) {
+        const { data, error } = await supabase
+            .from('opened_slots')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate)
+
+        if (error) {
+            console.error('Error fetching opened slots for week (full):', error)
+            return []
+        }
+
+        return data.map((s) => ({
+            id: s.id,
+            date: s.date,
+            slotId: s.slot_id,
+            openedBy: s.opened_by,
+            target: s.target,
+            createdAt: s.created_at,
+        }))
+    },
+
     async getOpenedSlotsForDate(date) {
         const { data, error } = await supabase.from('opened_slots').select('*').eq('date', date)
 

@@ -24,7 +24,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         canUserRegister,
     } = slotHelpers
 
-    const { loadData, loadInvitations, maxPersons, isWeekConfigured } = calendarData
+    const { loadData, loadWeekInvitations, maxPersons, isWeekConfigured } = calendarData
 
     const isAdmin = user?.isAdmin
     const canManageSlots = user?.isAdminSalles
@@ -133,7 +133,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
             addToast('Désinscription confirmée.', 'success')
-            await loadInvitations()
+            await loadWeekInvitations()
         } catch {
             addToast('Erreur lors de la désinscription.', 'error')
         }
@@ -232,7 +232,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                     : 'Inscription confirmée.',
                 'success'
             )
-            await Promise.all([loadData(), loadInvitations()])
+            await Promise.all([loadData(), loadWeekInvitations()])
         } catch (error) {
             console.error('Registration error:', error)
             addToast("Erreur lors de l'inscription.", 'error')
@@ -323,7 +323,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             if (isGuest) {
                 await storageService.adminDeleteInvitation(slotId, dateStr, participantId)
-                await loadInvitations()
+                await loadWeekInvitations()
             } else {
                 await storageService.unregisterFromSlot(slotId, dateStr, participantId)
                 await loadData()
@@ -339,7 +339,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             await storageService.acceptInvitation(slotId, dateStr, user.id)
             addToast('Invitation acceptée.', 'success')
-            await loadInvitations()
+            await loadWeekInvitations()
         } catch {
             addToast("Erreur lors de l'acceptation.", 'error')
         }
@@ -350,7 +350,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             await storageService.declineInvitation(slotId, dateStr, user.id)
             addToast('Invitation refusée.', 'success')
-            await loadInvitations()
+            await loadWeekInvitations()
         } catch {
             addToast('Erreur lors du refus.', 'error')
         }

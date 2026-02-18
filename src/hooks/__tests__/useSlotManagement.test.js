@@ -49,7 +49,7 @@ function createProps(overrides = {}) {
         },
         calendarData: {
             loadData: vi.fn().mockResolvedValue(undefined),
-            loadOpenedSlots: vi.fn().mockResolvedValue(undefined),
+            loadWeekOpenedSlots: vi.fn().mockResolvedValue(undefined),
             loadWeekConfig: vi.fn().mockResolvedValue(undefined),
             ...overrides.calendarData,
         },
@@ -183,7 +183,7 @@ describe('handleOpenSlot', () => {
         expect(result.current.slotToOpen).toBe(null)
         expect(result.current.selectedTarget).toBe('all')
         expect(result.current.selectedOpenDuration).toBe(1)
-        expect(props.calendarData.loadOpenedSlots).toHaveBeenCalled()
+        expect(props.calendarData.loadWeekOpenedSlots).toHaveBeenCalled()
     })
 
     it("affiche un toast en cas d'erreur", async () => {
@@ -226,7 +226,7 @@ describe('handleCloseSlot', () => {
 
         expect(mockConfirm).not.toHaveBeenCalled()
         expect(mockStorageService.closeSlot).toHaveBeenCalledWith('2025-01-06', '10:00')
-        expect(props.calendarData.loadOpenedSlots).toHaveBeenCalled()
+        expect(props.calendarData.loadWeekOpenedSlots).toHaveBeenCalled()
     })
 
     it('demande confirmation si des participants existent', async () => {

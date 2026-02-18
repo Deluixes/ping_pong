@@ -9,7 +9,7 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
     const { addToast } = useToast()
     const confirm = useConfirm()
     const { getSlotIndex, getParticipants } = slotHelpers
-    const { loadData, loadOpenedSlots, loadWeekConfig } = calendarData
+    const { loadData, loadWeekOpenedSlots, loadWeekConfig } = calendarData
 
     const isAdmin = user?.isAdmin
     const canManageSlots = user?.isAdminSalles
@@ -46,7 +46,7 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
             setSelectedTarget('all')
             setSelectedOpenDuration(1)
             addToast('Créneau ouvert.', 'success')
-            await loadOpenedSlots()
+            await loadWeekOpenedSlots()
         } catch {
             addToast("Erreur lors de l'ouverture du créneau.", 'error')
         }
@@ -74,7 +74,7 @@ export function useSlotManagement({ user, selectedDate, slotHelpers, calendarDat
             }
             await storageService.closeSlot(dateStr, slotId)
             addToast('Créneau fermé.', 'success')
-            await loadOpenedSlots()
+            await loadWeekOpenedSlots()
         } catch {
             addToast('Erreur lors de la fermeture du créneau.', 'error')
         }

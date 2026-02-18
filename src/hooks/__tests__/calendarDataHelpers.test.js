@@ -229,7 +229,7 @@ describe('mapInvitationRow', () => {
 // ==================== applyInvitationPayload ====================
 
 describe('applyInvitationPayload', () => {
-    const dateStr = '2025-01-06'
+    const weekRange = { start: '2025-01-06', end: '2025-01-12' }
     let setInvitations
 
     beforeEach(() => {
@@ -241,7 +241,7 @@ describe('applyInvitationPayload', () => {
             eventType: 'INSERT',
             new: {
                 slot_id: '10:00',
-                date: dateStr,
+                date: '2025-01-06',
                 user_id: 'u1',
                 user_name: 'A',
                 status: 'pending',
@@ -250,14 +250,14 @@ describe('applyInvitationPayload', () => {
             },
             old: null,
         }
-        expect(applyInvitationPayload(payload, setInvitations, dateStr)).toBe(true)
+        expect(applyInvitationPayload(payload, setInvitations, weekRange)).toBe(true)
         expect(setInvitations).toHaveBeenCalled()
     })
 
     it("DELETE supprime l'invitation correspondante", () => {
         const existing = [
-            { slotId: '10:00', userId: 'u1' },
-            { slotId: '10:00', userId: 'u2' },
+            { slotId: '10:00', date: '2025-01-06', userId: 'u1' },
+            { slotId: '10:00', date: '2025-01-06', userId: 'u2' },
         ]
         let updatedList
         setInvitations = vi.fn((updater) => {
@@ -266,25 +266,25 @@ describe('applyInvitationPayload', () => {
         const payload = {
             eventType: 'DELETE',
             new: null,
-            old: { slot_id: '10:00', date: dateStr, user_id: 'u1' },
+            old: { slot_id: '10:00', date: '2025-01-06', user_id: 'u1' },
         }
-        expect(applyInvitationPayload(payload, setInvitations, dateStr)).toBe(true)
+        expect(applyInvitationPayload(payload, setInvitations, weekRange)).toBe(true)
         expect(updatedList).toHaveLength(1)
         expect(updatedList[0].userId).toBe('u2')
     })
 
     it("UPDATE change le status d'une invitation", () => {
-        const existing = [{ slotId: '10:00', userId: 'u1', status: 'pending' }]
+        const existing = [{ slotId: '10:00', date: '2025-01-06', userId: 'u1', status: 'pending' }]
         let updatedList
         setInvitations = vi.fn((updater) => {
             updatedList = updater(existing)
         })
         const payload = {
             eventType: 'UPDATE',
-            old: { slot_id: '10:00', date: dateStr, user_id: 'u1' },
+            old: { slot_id: '10:00', date: '2025-01-06', user_id: 'u1' },
             new: {
                 slot_id: '10:00',
-                date: dateStr,
+                date: '2025-01-06',
                 user_id: 'u1',
                 user_name: 'A',
                 status: 'accepted',
@@ -292,23 +292,23 @@ describe('applyInvitationPayload', () => {
                 duration: 1,
             },
         }
-        expect(applyInvitationPayload(payload, setInvitations, dateStr)).toBe(true)
+        expect(applyInvitationPayload(payload, setInvitations, weekRange)).toBe(true)
         expect(updatedList).toHaveLength(1)
         expect(updatedList[0].status).toBe('accepted')
     })
 
-    it('retourne false si la date ne correspond pas', () => {
+    it('retourne false si la date est hors de la semaine', () => {
         const payload = {
             eventType: 'INSERT',
             new: { slot_id: '10:00', date: '2025-02-01', user_id: 'u1' },
             old: null,
         }
-        expect(applyInvitationPayload(payload, setInvitations, dateStr)).toBe(false)
+        expect(applyInvitationPayload(payload, setInvitations, weekRange)).toBe(false)
     })
 
     it('retourne false si pas de date', () => {
         const payload = { eventType: 'INSERT', new: { slot_id: '10:00' }, old: null }
-        expect(applyInvitationPayload(payload, setInvitations, dateStr)).toBe(false)
+        expect(applyInvitationPayload(payload, setInvitations, weekRange)).toBe(false)
     })
 })
 
@@ -338,7 +338,7 @@ describe('mapOpenedSlotRow', () => {
 // ==================== applyOpenedSlotPayload ====================
 
 describe('applyOpenedSlotPayload', () => {
-    const dateStr = '2025-01-06'
+    const weekRange = { start: '2025-01-06', end: '2025-01-12' }
     let setOpenedSlots
 
     beforeEach(() => {
@@ -350,7 +350,7 @@ describe('applyOpenedSlotPayload', () => {
             eventType: 'INSERT',
             new: {
                 id: 'os1',
-                date: dateStr,
+                date: '2025-01-06',
                 slot_id: '10:00',
                 opened_by: 'u1',
                 target: 'all',
@@ -358,14 +358,14 @@ describe('applyOpenedSlotPayload', () => {
             },
             old: null,
         }
-        expect(applyOpenedSlotPayload(payload, setOpenedSlots, dateStr)).toBe(true)
+        expect(applyOpenedSlotPayload(payload, setOpenedSlots, weekRange)).toBe(true)
         expect(setOpenedSlots).toHaveBeenCalled()
     })
 
     it('DELETE supprime le slot ouvert correspondant', () => {
         const existing = [
-            { slotId: '10:00', date: dateStr },
-            { slotId: '11:00', date: dateStr },
+            { slotId: '10:00', date: '2025-01-06' },
+            { slotId: '11:00', date: '2025-01-06' },
         ]
         let updatedList
         setOpenedSlots = vi.fn((updater) => {
@@ -374,42 +374,42 @@ describe('applyOpenedSlotPayload', () => {
         const payload = {
             eventType: 'DELETE',
             new: null,
-            old: { slot_id: '10:00', date: dateStr },
+            old: { slot_id: '10:00', date: '2025-01-06' },
         }
-        expect(applyOpenedSlotPayload(payload, setOpenedSlots, dateStr)).toBe(true)
+        expect(applyOpenedSlotPayload(payload, setOpenedSlots, weekRange)).toBe(true)
         expect(updatedList).toHaveLength(1)
         expect(updatedList[0].slotId).toBe('11:00')
     })
 
     it("UPDATE change le target d'un slot ouvert", () => {
-        const existing = [{ slotId: '10:00', date: dateStr, target: 'all' }]
+        const existing = [{ slotId: '10:00', date: '2025-01-06', target: 'all' }]
         let updatedList
         setOpenedSlots = vi.fn((updater) => {
             updatedList = updater(existing)
         })
         const payload = {
             eventType: 'UPDATE',
-            old: { slot_id: '10:00', date: dateStr },
+            old: { slot_id: '10:00', date: '2025-01-06' },
             new: {
                 id: 'os1',
-                date: dateStr,
+                date: '2025-01-06',
                 slot_id: '10:00',
                 opened_by: 'u1',
                 target: 'loisir',
                 created_at: 'ts',
             },
         }
-        expect(applyOpenedSlotPayload(payload, setOpenedSlots, dateStr)).toBe(true)
+        expect(applyOpenedSlotPayload(payload, setOpenedSlots, weekRange)).toBe(true)
         expect(updatedList).toHaveLength(1)
         expect(updatedList[0].target).toBe('loisir')
     })
 
-    it('retourne false si la date ne correspond pas', () => {
+    it('retourne false si la date est hors de la semaine', () => {
         const payload = {
             eventType: 'INSERT',
             new: { id: 'os1', date: '2025-02-01', slot_id: '10:00' },
             old: null,
         }
-        expect(applyOpenedSlotPayload(payload, setOpenedSlots, dateStr)).toBe(false)
+        expect(applyOpenedSlotPayload(payload, setOpenedSlots, weekRange)).toBe(false)
     })
 })

@@ -89,7 +89,7 @@ function createProps(overrides = {}) {
         },
         calendarData: {
             loadData: vi.fn().mockResolvedValue(undefined),
-            loadInvitations: vi.fn().mockResolvedValue(undefined),
+            loadWeekInvitations: vi.fn().mockResolvedValue(undefined),
             maxPersons: 16,
             isWeekConfigured: true,
             approvedMembers: [
@@ -459,7 +459,7 @@ describe('handleRegister', () => {
             },
             calendarData: {
                 loadData: vi.fn().mockResolvedValue(undefined),
-                loadInvitations: vi.fn().mockResolvedValue(undefined),
+                loadWeekInvitations: vi.fn().mockResolvedValue(undefined),
                 maxPersons: 16,
                 isWeekConfigured: true,
                 approvedMembers: [],
@@ -588,7 +588,7 @@ describe('handleRegister', () => {
         expect(result.current.modalStep).toBe(null)
         expect(result.current.selectedSlotId).toBe(null)
         expect(props.calendarData.loadData).toHaveBeenCalled()
-        expect(props.calendarData.loadInvitations).toHaveBeenCalled()
+        expect(props.calendarData.loadWeekInvitations).toHaveBeenCalled()
     })
 
     it("affiche un toast en cas d'erreur", async () => {
@@ -787,7 +787,7 @@ describe('handleAdminDelete', () => {
             '2025-01-06',
             'u2'
         )
-        expect(props.calendarData.loadInvitations).toHaveBeenCalled()
+        expect(props.calendarData.loadWeekInvitations).toHaveBeenCalled()
     })
 
     it('désinscrit un participant régulier', async () => {

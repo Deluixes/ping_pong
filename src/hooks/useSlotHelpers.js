@@ -32,14 +32,14 @@ export function useSlotHelpers({
         return map
     }, [dayEvents])
 
-    // Pre-compute opened slots lookup (O(1) per slot)
+    // Pre-compute opened slots lookup for current date (O(1) per slot)
     const openedSlotsBySlotId = useMemo(() => {
         const map = new Map()
         for (const os of openedSlots) {
-            map.set(os.slotId, os)
+            if (os.date === dateStr) map.set(os.slotId, os)
         }
         return map
-    }, [openedSlots])
+    }, [openedSlots, dateStr])
 
     // Pre-compute blocked slot info for current date (O(1) per slot)
     const blockedSlotsBySlotId = useMemo(() => {
@@ -80,8 +80,9 @@ export function useSlotHelpers({
             })
         }
 
-        // Add invitations (spread across duration slots)
+        // Add invitations for current date (spread across duration slots)
         for (const inv of invitations) {
+            if (inv.date !== dateStr) continue
             const invSlotIndex = SLOT_INDEX_MAP.get(inv.slotId) ?? -1
             if (invSlotIndex === -1) continue
             const invDuration = inv.duration || 1
@@ -102,7 +103,7 @@ export function useSlotHelpers({
         }
 
         return map
-    }, [dayEvents, invitations])
+    }, [dayEvents, invitations, dateStr])
 
     // Pre-compute accepted counts and user participation for ALL slots
     const slotStats = useMemo(() => {
