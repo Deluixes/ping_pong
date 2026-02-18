@@ -95,12 +95,6 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             return
         }
 
-        // Invité → désinscription directe (sauf clic info → ouvrir le pop-up)
-        if (isUserOnSlot(slotId) && !fromInfo) {
-            handleGuestUnregister(slotId)
-            return
-        }
-
         // Créneau non disponible
         const availability = isSlotAvailable(slotId)
         if (!availability.available && !fromInfo) {
