@@ -82,14 +82,16 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const handleSlotClick = (slotId) => {
         const userReg = getUserRegistration(slotId)
 
-        // Déjà inscrit → ActionChoiceModal
+        // Déjà inscrit → pop-up unifié en mode modification
         if (userReg) {
             const { startIndex, duration } = findStartSlot(slotId)
             setSelectedSlotId(TIME_SLOTS[startIndex].id)
             setSelectedDuration(
                 DURATION_OPTIONS.find((d) => d.slots === duration) || DURATION_OPTIONS[0]
             )
-            participantsModal.setShowActionChoice(true)
+            setSelfRegister(true)
+            setGuests([{ userId: '', name: '' }])
+            setModalStep('registration')
             return
         }
 
