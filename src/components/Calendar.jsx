@@ -106,7 +106,7 @@ export default function Calendar() {
             return prev
         })
     }, [weekStart])
-    useSwipeNavigation({
+    const { swipeStyle } = useSwipeNavigation({
         onSwipeLeft: swipeNextDay,
         onSwipeRight: swipePrevDay,
         containerRef,
@@ -210,7 +210,9 @@ export default function Calendar() {
                 />
             ) : (
                 <CalendarProvider value={calendarCtx}>
-                    <DayViewSlots loading={calendarData.loading} />
+                    <div style={swipeStyle}>
+                        <DayViewSlots loading={calendarData.loading} />
+                    </div>
                 </CalendarProvider>
             )}
         </div>

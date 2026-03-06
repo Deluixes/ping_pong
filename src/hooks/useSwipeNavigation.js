@@ -1,47 +1,108 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 
-const MIN_SWIPE_DISTANCE = 50
-const MAX_SWIPE_TIME = 300
+const MIN_SWIPE_DISTANCE = 40
+const RESISTANCE = 0.4
 
 export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) {
-    const touchStart = useRef({ x: 0, y: 0, time: 0 })
+    const [swipeOffset, setSwipeOffset] = useState(0)
+    const [transitioning, setTransitioning] = useState(false)
+    const touchStart = useRef({ x: 0, y: 0 })
+    const swipingRef = useRef(false)
+    const directionRef = useRef(null) // 'horizontal' | 'vertical' | null
+    const offsetRef = useRef(0)
 
-    const handleTouchStart = useCallback((e) => {
-        touchStart.current = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY,
-            time: Date.now(),
-        }
-    }, [])
-
-    const handleTouchEnd = useCallback(
+    const handleTouchStart = useCallback(
         (e) => {
-            const dx = e.changedTouches[0].clientX - touchStart.current.x
-            const dy = e.changedTouches[0].clientY - touchStart.current.y
-            const dt = Date.now() - touchStart.current.time
-
-            // Must be fast, horizontal, and not too vertical
-            if (dt > MAX_SWIPE_TIME) return
-            if (Math.abs(dx) < MIN_SWIPE_DISTANCE) return
-            if (Math.abs(dy) > Math.abs(dx) * 0.7) return
-
-            if (dx > 0) {
-                onSwipeRight?.()
-            } else {
-                onSwipeLeft?.()
+            if (transitioning) return
+            touchStart.current = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY,
             }
+            swipingRef.current = false
+            directionRef.current = null
+            offsetRef.current = 0
         },
-        [onSwipeLeft, onSwipeRight]
+        [transitioning]
     )
+
+    const handleTouchMove = useCallback(
+        (e) => {
+            if (transitioning) return
+            const dx = e.touches[0].clientX - touchStart.current.x
+            const dy = e.touches[0].clientY - touchStart.current.y
+
+            if (!directionRef.current) {
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+                directionRef.current = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical'
+            }
+
+            if (directionRef.current === 'vertical') return
+
+            swipingRef.current = true
+            offsetRef.current = dx * RESISTANCE
+            setSwipeOffset(offsetRef.current)
+        },
+        [transitioning]
+    )
+
+    const handleTouchEnd = useCallback(() => {
+        if (!swipingRef.current || transitioning) {
+            setSwipeOffset(0)
+            directionRef.current = null
+            return
+        }
+
+        const currentOffset = offsetRef.current
+
+        if (Math.abs(currentOffset) > MIN_SWIPE_DISTANCE * RESISTANCE) {
+            // Animate out
+            setTransitioning(true)
+            const direction = currentOffset > 0 ? 1 : -1
+            const containerWidth = containerRef?.current?.offsetWidth || 300
+            setSwipeOffset(direction * containerWidth * 0.5)
+
+            setTimeout(() => {
+                if (direction > 0) {
+                    onSwipeRight?.()
+                } else {
+                    onSwipeLeft?.()
+                }
+                setSwipeOffset(0)
+                setTransitioning(false)
+            }, 150)
+        } else {
+            // Snap back
+            setSwipeOffset(0)
+        }
+
+        swipingRef.current = false
+        directionRef.current = null
+    }, [transitioning, onSwipeLeft, onSwipeRight, containerRef])
 
     useEffect(() => {
         const el = containerRef?.current
         if (!el) return
         el.addEventListener('touchstart', handleTouchStart, { passive: true })
+        el.addEventListener('touchmove', handleTouchMove, { passive: true })
         el.addEventListener('touchend', handleTouchEnd, { passive: true })
         return () => {
             el.removeEventListener('touchstart', handleTouchStart)
+            el.removeEventListener('touchmove', handleTouchMove)
             el.removeEventListener('touchend', handleTouchEnd)
         }
-    }, [containerRef, handleTouchStart, handleTouchEnd])
+    }, [containerRef, handleTouchStart, handleTouchMove, handleTouchEnd])
+
+    const isSwiping = swipingRef.current && !transitioning
+
+    return {
+        swipeStyle: swipeOffset
+            ? {
+                  transform: `translateX(${swipeOffset}px)`,
+                  transition: isSwiping
+                      ? 'none'
+                      : 'transform 0.15s ease-out, opacity 0.15s ease-out',
+                  opacity: Math.max(0.4, 1 - Math.abs(swipeOffset) / 250),
+              }
+            : undefined,
+    }
 }
