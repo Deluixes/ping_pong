@@ -1,6 +1,7 @@
 .wrapper {
     padding-bottom: 2rem;
     touch-action: pan-y;
+    min-height: 60vh;
 }
 
 .pullIndicator {
