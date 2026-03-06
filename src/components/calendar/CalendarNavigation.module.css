@@ -115,51 +115,33 @@
     font-size: 0.9rem;
 }
 
-/* View Mode Segmented Control */
+/* View Mode Select */
 .viewModeWrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     margin-bottom: 1rem;
-    background: var(--color-bg);
+}
+
+.viewModeSelect {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
     border-radius: var(--radius-md);
-    padding: 3px;
-    gap: 2px;
-}
-
-.viewModeBtn {
-    flex: 1;
-    padding: 0.5rem 0.75rem;
-    border: none;
-    border-radius: calc(var(--radius-md) - 2px);
-    background: transparent;
-    color: var(--color-text-muted);
-    font-size: 0.8rem;
-    font-weight: 400;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-
-.viewModeBtn:active {
-    transform: scale(0.97);
-}
-
-.viewModeBtnActive {
-    background: white;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
     color: var(--color-text);
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
 }
 
-.viewModeBtnEdit {
+.viewModeSelectEdit {
     background: #fee2e2;
     color: #991b1b;
+    border-color: #fca5a5;
 }
 
-.viewModeBtnManageSlots {
+.viewModeSelectManageSlots {
     background: #e0f2fe;
     color: #0369a1;
+    border-color: #7dd3fc;
 }
 
 /* ===== Dark Mode ===== */
@@ -179,16 +161,14 @@
     color: #d1d5db;
 }
 
-:global([data-theme='dark']) .viewModeBtnActive {
-    background: var(--color-surface);
-}
-
-:global([data-theme='dark']) .viewModeBtnEdit {
+:global([data-theme='dark']) .viewModeSelectEdit {
     background: #3b1a1a;
     color: #fca5a5;
+    border-color: #7f1d1d;
 }
 
-:global([data-theme='dark']) .viewModeBtnManageSlots {
+:global([data-theme='dark']) .viewModeSelectManageSlots {
     background: #0f1f35;
     color: #7dd3fc;
+    border-color: #0c4a6e;
 }

@@ -79,26 +79,23 @@ export default function CalendarNavigation({
                 </div>
             )}
 
-            {/* Filter + Edit Mode - Segmented Control */}
+            {/* Filter + Edit Mode */}
             <div className={styles.viewModeWrapper}>
-                {viewOptions.map((opt) => (
-                    <button
-                        key={opt.value}
-                        onClick={() => onSetViewMode(opt.value)}
-                        className={clsx(
-                            styles.viewModeBtn,
-                            viewMode === opt.value && styles.viewModeBtnActive,
-                            viewMode === opt.value &&
-                                opt.value === 'edit' &&
-                                styles.viewModeBtnEdit,
-                            viewMode === opt.value &&
-                                opt.value === 'manage_slots' &&
-                                styles.viewModeBtnManageSlots
-                        )}
-                    >
-                        {opt.label}
-                    </button>
-                ))}
+                <select
+                    value={viewMode}
+                    onChange={(e) => onSetViewMode(e.target.value)}
+                    className={clsx(
+                        styles.viewModeSelect,
+                        viewMode === 'edit' && styles.viewModeSelectEdit,
+                        viewMode === 'manage_slots' && styles.viewModeSelectManageSlots
+                    )}
+                >
+                    {viewOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
             </div>
         </>
     )

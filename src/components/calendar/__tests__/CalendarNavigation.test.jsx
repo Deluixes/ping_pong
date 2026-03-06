@@ -119,21 +119,23 @@ describe('CalendarNavigation', () => {
         expect(container.textContent).not.toContain('pas encore configurée')
     })
 
-    it('affiche le segmented control de mode de vue', () => {
+    it('affiche le sélecteur de mode de vue', () => {
         const { container } = render(<CalendarNavigation {...defaultProps} />)
-        const btns = container.querySelectorAll('[class*="viewModeBtn"]')
-        expect(btns.length).toBe(2)
-        expect(btns[0].textContent).toBe('Normal')
-        expect(btns[1].textContent).toBe('Modifier')
+        const select = container.querySelector('select')
+        expect(select).toBeTruthy()
+        const options = select.querySelectorAll('option')
+        expect(options.length).toBe(2)
+        expect(options[0].textContent).toBe('Normal')
+        expect(options[1].textContent).toBe('Modifier')
     })
 
-    it('appelle onSetViewMode au clic sur un bouton de mode de vue', () => {
+    it('appelle onSetViewMode au changement du sélecteur', () => {
         const onSetViewMode = vi.fn()
         const { container } = render(
             <CalendarNavigation {...defaultProps} onSetViewMode={onSetViewMode} />
         )
-        const btns = container.querySelectorAll('[class*="viewModeBtn"]')
-        fireEvent.click(btns[1])
+        const select = container.querySelector('select')
+        fireEvent.change(select, { target: { value: 'edit' } })
         expect(onSetViewMode).toHaveBeenCalledWith('edit')
     })
 })
