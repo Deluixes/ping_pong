@@ -138,6 +138,17 @@ export const invitationService = {
         return invitationService.declineInvitation(slotId, date, userId)
     },
 
+    async updateInvitation(slotId, date, userId, updates) {
+        const { error } = await supabase
+            .from('slot_invitations')
+            .update(updates)
+            .eq('slot_id', slotId)
+            .eq('date', date)
+            .eq('user_id', userId)
+
+        return { success: !error }
+    },
+
     async adminDeleteInvitation(slotId, date, userId) {
         const { error } = await supabase
             .from('slot_invitations')

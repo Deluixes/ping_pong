@@ -81,6 +81,8 @@ function createProps(overrides = {}) {
             isUserParticipating: vi.fn(() => false),
             isUserOnSlot: vi.fn(() => false),
             getUserRegistration: vi.fn(() => undefined),
+            getUserInvitation: vi.fn(() => undefined),
+            findInvitationStartSlot: vi.fn(() => null),
             getAvailableDurations: vi.fn(() => DURATION_OPTIONS.slice(0, 4)),
             getBlockedSlotInfo: vi.fn(() => undefined),
             isSlotAvailable: vi.fn(() => ({ available: true, type: 'opened', target: 'all' })),
@@ -98,7 +100,8 @@ function createProps(overrides = {}) {
             ],
             ...overrides.calendarData,
         },
-        ...overrides,
+        ...(overrides.user ? { user: overrides.user } : {}),
+        ...(overrides.selectedDate ? { selectedDate: overrides.selectedDate } : {}),
     }
 }
 

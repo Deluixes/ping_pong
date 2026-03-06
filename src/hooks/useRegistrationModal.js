@@ -18,6 +18,8 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         isUserParticipating,
         isUserOnSlot,
         getUserRegistration,
+        getUserInvitation,
+        findInvitationStartSlot,
         getAvailableDurations,
         getBlockedSlotInfo,
         isSlotAvailable,
@@ -41,8 +43,14 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const availableDurations = selectedSlotId ? getAvailableDurations(selectedSlotId) : []
     const currentSlotAccepted = selectedSlotId ? getAcceptedParticipantCount(selectedSlotId) : 0
     const isCurrentSlotOverbooked = currentSlotAccepted > maxPersons
-    const isModifying = selectedSlotId ? !!getUserRegistration(selectedSlotId) : false
-    const isInvited = selectedSlotId ? isUserOnSlot(selectedSlotId) && !isModifying : false
+    const userInvitation = selectedSlotId ? getUserInvitation(selectedSlotId) : null
+    const isModifying = selectedSlotId
+        ? !!(
+              getUserRegistration(selectedSlotId) ||
+              (userInvitation && userInvitation.status === 'accepted')
+          )
+        : false
+    const isInvited = !!userInvitation && userInvitation.status === 'pending'
 
     // ==================== SUB-HOOKS ====================
 
@@ -131,9 +139,13 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const handleGuestUnregister = async (slotId) => {
         try {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
+            const result = await storageService.removeGuestFromSlot(slotId, dateStr, user.id)
+            if (!result.success) {
+                addToast('Erreur lors de la désinscription.', 'error')
+                return
+            }
             addToast('Désinscription confirmée.', 'success')
-            await loadWeekInvitations()
+            await Promise.all([loadData(), loadWeekInvitations()])
         } catch {
             addToast('Erreur lors de la désinscription.', 'error')
         }
@@ -310,7 +322,39 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
                 addToast('Désinscription confirmée.', 'success')
                 await loadData()
             } else if (isUserOnSlot(slotId)) {
-                await handleGuestUnregister(slotId)
+                const invStart = findInvitationStartSlot(slotId)
+                if (!invStart || invStart.duration <= 1) {
+                    // Invitation simple → supprimer
+                    await handleGuestUnregister(invStart ? invStart.startSlotId : slotId)
+                } else {
+                    // Invitation multi-slots → logique partielle
+                    const clickedIndex = getSlotIndex(slotId)
+                    const positionInSequence = clickedIndex - invStart.startIndex
+
+                    if (positionInSequence === 0) {
+                        // Premier slot → décaler le start et réduire la durée
+                        const newStartSlot = TIME_SLOTS[invStart.startIndex + 1]
+                        const newDuration = invStart.duration - 1
+                        await storageService.updateInvitation(
+                            invStart.startSlotId,
+                            dateStr,
+                            user.id,
+                            { slot_id: newStartSlot.id, duration: newDuration }
+                        )
+                    } else {
+                        // Slot intermédiaire ou dernier → réduire la durée
+                        const newDuration = positionInSequence
+                        await storageService.updateInvitation(
+                            invStart.startSlotId,
+                            dateStr,
+                            user.id,
+                            { duration: newDuration }
+                        )
+                    }
+                    closeModal()
+                    addToast('Désinscription confirmée.', 'success')
+                    await Promise.all([loadData(), loadWeekInvitations()])
+                }
             }
         } catch {
             addToast('Erreur lors de la désinscription.', 'error')
@@ -344,9 +388,15 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const handleAcceptInvitation = async (slotId) => {
         try {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            await storageService.acceptInvitation(slotId, dateStr, user.id)
+            const invStart = findInvitationStartSlot(slotId)
+            const realSlotId = invStart ? invStart.startSlotId : slotId
+            const result = await storageService.acceptInvitation(realSlotId, dateStr, user.id)
+            if (!result.success) {
+                addToast("Erreur lors de l'acceptation.", 'error')
+                return
+            }
             addToast('Invitation acceptée.', 'success')
-            await loadWeekInvitations()
+            await Promise.all([loadData(), loadWeekInvitations()])
         } catch {
             addToast("Erreur lors de l'acceptation.", 'error')
         }
@@ -355,9 +405,15 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const handleDeclineInvitation = async (slotId) => {
         try {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            await storageService.declineInvitation(slotId, dateStr, user.id)
+            const invStart = findInvitationStartSlot(slotId)
+            const realSlotId = invStart ? invStart.startSlotId : slotId
+            const result = await storageService.declineInvitation(realSlotId, dateStr, user.id)
+            if (!result.success) {
+                addToast('Erreur lors du refus.', 'error')
+                return
+            }
             addToast('Invitation refusée.', 'success')
-            await loadWeekInvitations()
+            await Promise.all([loadData(), loadWeekInvitations()])
         } catch {
             addToast('Erreur lors du refus.', 'error')
         }

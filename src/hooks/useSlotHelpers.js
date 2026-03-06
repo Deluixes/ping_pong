@@ -177,6 +177,36 @@ export function useSlotHelpers({
         [eventsBySlot, user?.id]
     )
 
+    const getUserInvitation = useCallback(
+        (slotId) => {
+            const participants = participantsBySlot.get(slotId)
+            if (!participants) return undefined
+            return participants.find((p) => p.id === user?.id && p.isGuest)
+        },
+        [participantsBySlot, user?.id]
+    )
+
+    const findInvitationStartSlot = useCallback(
+        (slotId) => {
+            const inv = getUserInvitation(slotId)
+            if (!inv) return null
+            const duration = inv.duration || 1
+            const clickedIndex = getSlotIndex(slotId)
+            for (let i = 0; i < duration; i++) {
+                const candidateIndex = clickedIndex - i
+                if (candidateIndex < 0) break
+                const candidateSlot = TIME_SLOTS[candidateIndex]
+                const candidateInv = getUserInvitation(candidateSlot.id)
+                if (!candidateInv) break
+                if (candidateIndex + duration > clickedIndex) {
+                    return { startSlotId: candidateSlot.id, startIndex: candidateIndex, duration }
+                }
+            }
+            return { startSlotId: slotId, startIndex: clickedIndex, duration }
+        },
+        [getUserInvitation, getSlotIndex]
+    )
+
     const getBlockedSlotInfo = useCallback(
         (slotId) => blockedSlotsBySlotId.get(slotId),
         [blockedSlotsBySlotId]
@@ -338,6 +368,8 @@ export function useSlotHelpers({
         isUserParticipating,
         isUserOnSlot,
         getUserRegistration,
+        getUserInvitation,
+        findInvitationStartSlot,
         getAvailableDurations,
         getDayParticipantCount,
         isCurrentWeek,
