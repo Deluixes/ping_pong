@@ -5,7 +5,7 @@
 }
 
 .dialog {
-    background: white;
+    background: var(--color-surface);
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 500px;
@@ -18,7 +18,7 @@
 
 .header {
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -47,17 +47,17 @@
 .configWarning {
     margin-top: 1rem;
     padding: 0.75rem;
-    background: #fef3c7;
+    background: var(--color-yellow-bg);
     border-radius: var(--radius-md);
     font-size: 0.85rem;
-    color: #92400e;
+    color: var(--color-yellow-text);
 }
 
 /* ===== Footer ===== */
 
 .footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--color-border);
     display: flex;
     gap: 0.75rem;
 }

@@ -1,7 +1,7 @@
 /* ===== Loading ===== */
 .loadingText {
     text-align: center;
-    color: #9ca3af;
+    color: var(--color-text-muted);
     padding: 2rem 0;
     font-size: 0.9rem;
 }
@@ -18,7 +18,7 @@
 
 .skeletonTime {
     width: 60px;
-    background: #e5e7eb;
+    background: var(--color-border);
 }
 
 .skeletonContent {
@@ -28,26 +28,26 @@
     flex-direction: column;
     justify-content: center;
     gap: 0.4rem;
-    background: #f9fafb;
+    background: var(--color-bg-muted);
 }
 
 .skeletonLine {
     height: 10px;
     width: 60%;
-    background: #e5e7eb;
+    background: var(--color-border);
     border-radius: 4px;
 }
 
 .skeletonLineShort {
     height: 8px;
     width: 35%;
-    background: #e5e7eb;
+    background: var(--color-border);
     border-radius: 4px;
 }
 
 .skeletonAction {
     width: 50px;
-    background: #f3f4f6;
+    background: var(--color-bg-muted);
 }
 
 /* ===== Main Container ===== */
@@ -58,7 +58,7 @@
 }
 
 .slotGap {
-    border-top: 2px dashed #cbd5e1;
+    border-top: 2px dashed var(--color-border);
     margin: 0.25rem 0;
 }
 
@@ -72,18 +72,18 @@
 }
 
 .blockedRowCourse {
-    background: #eff6ff;
-    border: 1px solid #93c5fd;
+    background: var(--color-blue-bg);
+    border: 1px solid var(--color-blue-border);
 }
 
 .blockedRowCourseParticipating {
-    background: #f0fdf4;
+    background: var(--color-green-bg);
     border: 2px solid #22c55e;
 }
 
 .blockedRowTraining {
-    background: #f3f4f6;
-    border: 1px solid #e2e8f0;
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
     opacity: 0.8;
 }
 
@@ -110,7 +110,7 @@
 }
 
 .timeLabelTraining {
-    background: #9ca3af;
+    background: var(--color-text-muted);
 }
 
 /* ===== Slot Info ===== */
@@ -138,30 +138,30 @@
 }
 
 .courseInfoText {
-    color: #1d4ed8;
+    color: var(--color-blue-text);
 }
 
 .trainingInfoText {
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 /* ===== Badges & Text ===== */
 .infoBadge {
     font-size: 0.7rem;
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
 }
 
 .coachText {
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--color-text-muted);
 }
 
 .groupBadge {
     margin-left: 0.5rem;
-    background: #e5e7eb;
+    background: var(--color-border);
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
 }
@@ -169,7 +169,7 @@
 /* ===== Participants List (blocked slots) ===== */
 .participantsList {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin-top: 0.25rem;
     display: flex;
     flex-wrap: wrap;
@@ -214,13 +214,13 @@ button.actionBtn:active {
 }
 
 .actionBtnDelete {
-    background: #fee2e2;
+    background: var(--color-red-bg);
     color: #dc2626;
 }
 
 .actionBtnLocked {
-    background: #e5e7eb;
-    color: #9ca3af;
+    background: var(--color-border);
+    color: var(--color-text-muted);
     cursor: default;
 }
 
@@ -230,7 +230,7 @@ button.actionBtn:active {
 }
 
 .actionBtnRegisterCourse {
-    background: #dbeafe;
+    background: var(--color-blue-bg);
     color: #3b82f6;
 }
 
@@ -254,23 +254,23 @@ button.actionBtn:active {
 }
 
 .normalRowParticipating {
-    background: #f0fdf4;
+    background: var(--color-green-bg);
     border: 2px solid #22c55e;
 }
 
 .normalRowOpened {
-    background: #f0fdf4;
-    border: 1px solid #86efac;
+    background: var(--color-green-bg);
+    border: 1px solid var(--color-green-border);
 }
 
 .normalRowClosed {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
 }
 
 .normalRowDefault {
     background: var(--color-surface);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
 }
 
 /* ===== Normal Time Labels ===== */
@@ -285,13 +285,13 @@ button.actionBtn:active {
 }
 
 .timeLabelClosed {
-    background: #d1d5db;
-    color: #6b7280;
+    background: var(--color-border);
+    color: var(--color-text-muted);
 }
 
 .timeLabelDefault {
     background: var(--color-bg);
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 /* ===== Participant Count ===== */
@@ -315,7 +315,7 @@ button.actionBtn:active {
 }
 
 .pendingCount {
-    color: #9ca3af;
+    color: var(--color-text-muted);
     font-weight: normal;
 }
 
@@ -334,13 +334,13 @@ button.actionBtn:active {
 }
 
 .targetBadgeCompetition {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--color-yellow-bg);
+    color: var(--color-yellow-text);
 }
 
 .targetBadgeLoisir {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
 }
 
 /* ===== Participant Names (normal slots) ===== */
@@ -357,7 +357,7 @@ button.actionBtn:active {
 }
 
 .statusClosed {
-    color: #9ca3af;
+    color: var(--color-text-muted);
 }
 
 .statusOpened {
@@ -367,22 +367,22 @@ button.actionBtn:active {
 /* ===== Licence Hint ===== */
 .licenceHint {
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--color-text-muted);
 }
 
 /* ===== Normal Action Buttons ===== */
 .actionBtnClose {
-    background: #fee2e2;
+    background: var(--color-red-bg);
     color: #dc2626;
 }
 
 .actionBtnOpen {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
 }
 
 .actionBtnRegister {
-    background: #dcfce7;
+    background: var(--color-green-bg);
     color: #22c55e;
 }
 
@@ -410,122 +410,11 @@ button.actionBtn:active {
 }
 
 .invitationAccept {
-    background: #dcfce7;
+    background: var(--color-green-bg);
     color: #22c55e;
 }
 
 .invitationDecline {
-    background: #fee2e2;
+    background: var(--color-red-bg);
     color: #dc2626;
-}
-
-/* ===== Dark Mode ===== */
-:global([data-theme='dark']) .blockedRowCourse {
-    background: #172340;
-    border-color: #2563eb;
-}
-
-:global([data-theme='dark']) .blockedRowCourseParticipating {
-    background: #0f2d1f;
-    border-color: #16a34a;
-}
-
-:global([data-theme='dark']) .blockedRowTraining {
-    background: #1f2937;
-    border-color: #374151;
-}
-
-:global([data-theme='dark']) .normalRowParticipating {
-    background: #0f2d1f;
-    border-color: #16a34a;
-}
-
-:global([data-theme='dark']) .normalRowOpened {
-    background: #0f2d1f;
-    border-color: #22c55e;
-}
-
-:global([data-theme='dark']) .normalRowClosed {
-    background: #1f2937;
-    border-color: #374151;
-}
-
-:global([data-theme='dark']) .normalRowDefault {
-    background: var(--color-surface);
-    border-color: #374151;
-}
-
-:global([data-theme='dark']) .timeLabelDefault {
-    background: #1f2937;
-    color: #9ca3af;
-}
-
-:global([data-theme='dark']) .timeLabelClosed {
-    background: #374151;
-    color: #9ca3af;
-}
-
-:global([data-theme='dark']) .actionBtnLocked {
-    background: #374151;
-    color: #6b7280;
-}
-
-:global([data-theme='dark']) .actionBtnUnregister {
-    background: #16a34a;
-}
-
-:global([data-theme='dark']) .actionBtnRegister {
-    background: #0f2d1f;
-    color: #22c55e;
-}
-
-:global([data-theme='dark']) .actionBtnRegisterCourse {
-    background: #172340;
-    color: #60a5fa;
-}
-
-:global([data-theme='dark']) .actionBtnDelete {
-    background: #3b1a1a;
-    color: #f87171;
-}
-
-:global([data-theme='dark']) .actionBtnClose {
-    background: #3b1a1a;
-    color: #f87171;
-}
-
-:global([data-theme='dark']) .actionBtnOpen {
-    background: #0f1f35;
-    color: #7dd3fc;
-}
-
-:global([data-theme='dark']) .invitationAccept {
-    background: #0f2d1f;
-    color: #22c55e;
-}
-
-:global([data-theme='dark']) .invitationDecline {
-    background: #3b1a1a;
-    color: #f87171;
-}
-
-:global([data-theme='dark']) .slotGap {
-    border-color: #374151;
-}
-
-:global([data-theme='dark']) .skeletonTime {
-    background: #374151;
-}
-
-:global([data-theme='dark']) .skeletonContent {
-    background: #1f2937;
-}
-
-:global([data-theme='dark']) .skeletonLine,
-:global([data-theme='dark']) .skeletonLineShort {
-    background: #374151;
-}
-
-:global([data-theme='dark']) .skeletonAction {
-    background: #1f2937;
 }

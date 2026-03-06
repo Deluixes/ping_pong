@@ -17,7 +17,7 @@
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #9ca3af;
+    color: var(--color-text-muted);
 }
 
 .searchInput {
@@ -37,8 +37,8 @@
     flex: 1;
     padding: 0.5rem;
     border-radius: var(--radius-md);
-    border: 1px solid #e5e7eb;
-    background: white;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
     color: var(--color-text);
     font-weight: 400;
     cursor: pointer;
@@ -57,16 +57,16 @@
 /* Loisir (blue) active */
 .filterBtnLActive {
     border: 2px solid #1d4ed8;
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
     font-weight: 600;
 }
 
 /* Competition (purple) active */
 .filterBtnCActive {
     border: 2px solid #7c3aed;
-    background: #f3e8ff;
-    color: #7c3aed;
+    background: var(--color-purple-bg);
+    color: var(--color-purple-text);
     font-weight: 600;
 }
 
@@ -111,15 +111,15 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    background: white;
+    background: var(--color-surface);
     border-radius: var(--radius-md);
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     cursor: pointer;
     transition: background 0.15s;
 }
 
 .memberRow:hover {
-    background: #f9fafb;
+    background: var(--color-bg-muted);
 }
 
 .memberName {
@@ -130,13 +130,13 @@
 /* ===== License Badges ===== */
 
 .badgeLoisir {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
 }
 
 .badgeCompetition {
-    background: #f3e8ff;
-    color: #7c3aed;
+    background: var(--color-purple-bg);
+    color: var(--color-purple-text);
 }
 
 .badgeLg {

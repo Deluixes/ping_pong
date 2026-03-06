@@ -27,8 +27,8 @@
 .durationChip {
     padding: 0.5rem 1rem;
     border-radius: var(--radius-md);
-    border: 1px solid #e2e8f0;
-    background: white;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
     color: var(--color-text);
     font-weight: 400;
     cursor: pointer;
@@ -37,7 +37,7 @@
 
 .durationChipActive {
     border: 2px solid var(--color-primary);
-    background: #eff6ff;
+    background: var(--color-blue-bg);
     color: var(--color-primary);
     font-weight: 600;
 }
@@ -53,25 +53,25 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     cursor: pointer;
-    background: white;
+    background: var(--color-surface);
 }
 
 .radioLabelAll {
     border: 2px solid var(--color-primary);
-    background: #f0fdf4;
+    background: var(--color-green-bg);
 }
 
 .radioLabelLoisir {
-    border: 2px solid #0369a1;
-    background: #e0f2fe;
+    border: 2px solid var(--color-blue-border);
+    background: var(--color-blue-bg);
 }
 
 .radioLabelCompetition {
     border: 2px solid #92400e;
-    background: #fef3c7;
+    background: var(--color-yellow-bg);
 }
 
 .radioTitle {
@@ -79,16 +79,16 @@
 }
 
 .radioTitleLoisir {
-    color: #0369a1;
+    color: var(--color-blue-text);
 }
 
 .radioTitleCompetition {
-    color: #92400e;
+    color: var(--color-yellow-text);
 }
 
 .radioSubtitle {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 .footerButtons {

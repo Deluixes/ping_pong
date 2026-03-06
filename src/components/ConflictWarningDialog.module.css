@@ -5,7 +5,7 @@
 }
 
 .conflictDialog {
-    background: white;
+    background: var(--color-surface);
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 450px;
@@ -37,7 +37,7 @@
 }
 
 .conflictList {
-    background: #fef3c7;
+    background: var(--color-yellow-bg);
     border-radius: var(--radius-md);
     padding: 0.75rem;
     margin-bottom: 1.25rem;
@@ -47,7 +47,7 @@
 
 .conflictItem {
     font-size: 0.85rem;
-    color: #92400e;
+    color: var(--color-yellow-text);
     padding: 0.25rem 0;
 }
 

@@ -50,7 +50,7 @@
     padding: 0.75rem 1rem;
     border: 2px dashed var(--color-border);
     border-radius: var(--radius-md);
-    background: white;
+    background: var(--color-surface);
     cursor: pointer;
     text-align: left;
     color: var(--color-text-muted);
@@ -80,7 +80,7 @@
     padding: 1rem 1.5rem;
     border-radius: var(--radius-md);
     border: 2px solid var(--color-primary);
-    background: white;
+    background: var(--color-surface);
     color: var(--color-primary);
     font-weight: bold;
     font-size: 1.1rem;
@@ -102,12 +102,12 @@
 }
 
 .noDurationError {
-    background: #fee2e2;
+    background: var(--color-red-bg);
     border: 1px solid #ef4444;
     border-radius: var(--radius-md);
     padding: 1rem;
     text-align: center;
-    color: #991b1b;
+    color: var(--color-red-text);
 }
 
 /* ===== Self Register (case à cocher) ===== */
@@ -169,7 +169,7 @@
 
 .overbookingText {
     margin: 0;
-    color: #92400e;
+    color: var(--color-yellow-text);
     font-weight: 500;
 }
 
@@ -194,16 +194,16 @@
 
 .guestSelect {
     flex: 1;
-    background: white;
+    background: var(--color-surface);
     font-size: 0.95rem;
 }
 
 .removeBtn {
-    background: #fee2e2;
+    background: var(--color-red-bg);
     border: none;
     border-radius: var(--radius-md);
     padding: 0 0.75rem;
-    color: #991b1b;
+    color: var(--color-red-text);
     cursor: pointer;
 }
 

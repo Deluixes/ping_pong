@@ -96,8 +96,8 @@
 }
 
 .groupBadge {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
     font-size: 0.7rem;
@@ -154,12 +154,12 @@
 
 .typeToggleActive {
     border: 2px solid var(--color-primary);
-    background: #eff6ff;
+    background: var(--color-blue-bg);
 }
 
 .typeToggleInactive {
-    border: 2px solid #ddd;
-    background: white;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
 }
 
 .typeHint {

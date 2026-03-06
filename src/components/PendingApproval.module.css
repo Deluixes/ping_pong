@@ -31,8 +31,8 @@
 }
 
 .pendingBox {
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
+    background: var(--color-yellow-bg);
+    border: 1px solid var(--color-yellow-border);
     border-radius: var(--radius-md);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
@@ -40,13 +40,13 @@
 
 .pendingTitle {
     margin: 0 0 0.5rem;
-    color: #92400e;
+    color: var(--color-yellow-text);
     font-size: 1.1rem;
 }
 
 .pendingText {
     margin: 0;
-    color: #92400e;
+    color: var(--color-yellow-text);
     font-size: 0.9rem;
 }
 
@@ -67,7 +67,7 @@
 .logoutBtn {
     background: transparent;
     color: var(--color-text-muted);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
 }
 
 .cacheBtn {

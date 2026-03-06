@@ -64,7 +64,7 @@
 
 .userInfo {
     padding: 1rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -132,19 +132,19 @@
     padding: 0.875rem 1rem;
     text-decoration: none;
     color: var(--color-text);
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--color-border);
 }
 
 /* ===== Role Simulation ===== */
 
 .roleSimulation {
     padding: 0.75rem 1rem;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--color-border);
     background: transparent;
 }
 
 .roleSimulationActive {
-    background: #fef3c7;
+    background: var(--color-yellow-bg);
 }
 
 .roleSimulationHeader {
@@ -154,19 +154,19 @@
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 .roleSimulationHeaderActive {
-    color: #92400e;
+    color: var(--color-yellow-text);
 }
 
 .roleSelect {
     width: 100%;
     padding: 0.5rem;
     border-radius: var(--radius-md);
-    border: 1px solid #e2e8f0;
-    background: white;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
     font-size: 0.85rem;
     cursor: pointer;
 }
@@ -178,14 +178,14 @@
 .roleSimulationHint {
     margin-top: 0.5rem;
     font-size: 0.75rem;
-    color: #92400e;
+    color: var(--color-yellow-text);
 }
 
 /* ===== Logout ===== */
 
 .logoutSection {
     padding: 1rem;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--color-border);
 }
 
 .logoutBtn {

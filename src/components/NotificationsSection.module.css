@@ -11,22 +11,22 @@
 /* ===== Notifications ===== */
 
 .notifUnsupported {
-    background: #fef3c7;
+    background: var(--color-yellow-bg);
     padding: 0.75rem;
     border-radius: var(--radius-md);
     font-size: 0.9rem;
-    color: #92400e;
+    color: var(--color-yellow-text);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .notifDenied {
-    background: #fee2e2;
+    background: var(--color-red-bg);
     padding: 0.75rem;
     border-radius: var(--radius-md);
     font-size: 0.9rem;
-    color: #991b1b;
+    color: var(--color-red-text);
 }
 
 .notifDeniedTitle {
@@ -45,13 +45,13 @@
     align-items: center;
     padding: 0.75rem;
     border-radius: var(--radius-md);
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
 }
 
 .notifToggleEnabled {
-    background: #f0fdf4;
-    border-color: #86efac;
+    background: var(--color-green-bg);
+    border-color: var(--color-green-border);
     margin-bottom: 1rem;
 }
 

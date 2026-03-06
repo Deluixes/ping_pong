@@ -69,12 +69,12 @@
 
 .weekBtnSelected {
     border: 2px solid var(--color-primary);
-    background: #eff6ff;
+    background: var(--color-blue-bg);
 }
 
 .weekBtnUnselected {
-    border: 1px solid #e5e7eb;
-    background: white;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
 }
 
 /* ===== Checkbox ===== */
@@ -95,8 +95,8 @@
 }
 
 .checkboxUnchecked {
-    border: 2px solid #cbd5e1;
-    background: white;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
 }
 
 /* ===== Week Info ===== */
@@ -123,8 +123,8 @@
 }
 
 .badgeCurrent {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.7rem;
@@ -132,8 +132,8 @@
 }
 
 .badgeConfigured {
-    background: #d1fae5;
-    color: #047857;
+    background: var(--color-green-bg);
+    color: var(--color-green-text);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.7rem;
