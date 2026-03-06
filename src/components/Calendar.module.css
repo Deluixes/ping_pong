@@ -1,5 +1,15 @@
 .wrapper {
     padding-bottom: 2rem;
+    touch-action: pan-y;
+}
+
+.pullIndicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    transition: height 0.2s ease-out;
 }
 
 .loading {

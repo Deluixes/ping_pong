@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
 import { useRegistration } from '../../contexts/RegistrationContext'
+import MemberSearchSelect from './MemberSearchSelect'
 import styles from './RegistrationModal.module.css'
 
 export default function RegistrationModal() {
@@ -197,33 +198,22 @@ export default function RegistrationModal() {
                             <div className={styles.guestFieldList}>
                                 {guests.map((guest, idx) => (
                                     <div key={idx} className={styles.guestRow}>
-                                        <select
+                                        <MemberSearchSelect
+                                            members={approvedMembers.filter((m) => {
+                                                if (
+                                                    guests.some((g) => g.userId === m.userId) &&
+                                                    m.userId !== guest.userId
+                                                ) {
+                                                    return false
+                                                }
+                                                if (participants.some((p) => p.id === m.userId)) {
+                                                    return false
+                                                }
+                                                return true
+                                            })}
                                             value={guest.userId}
-                                            onChange={(e) => updateGuest(idx, e.target.value)}
-                                            className={clsx('form-input', styles.guestSelect)}
-                                        >
-                                            <option value="">-- Choisir un membre --</option>
-                                            {approvedMembers
-                                                .filter((m) => {
-                                                    if (
-                                                        guests.some((g) => g.userId === m.userId) &&
-                                                        m.userId !== guest.userId
-                                                    ) {
-                                                        return false
-                                                    }
-                                                    if (
-                                                        participants.some((p) => p.id === m.userId)
-                                                    ) {
-                                                        return false
-                                                    }
-                                                    return true
-                                                })
-                                                .map((m) => (
-                                                    <option key={m.userId} value={m.userId}>
-                                                        {m.name}
-                                                    </option>
-                                                ))}
-                                        </select>
+                                            onChange={(userId) => updateGuest(idx, userId)}
+                                        />
                                         {(guest.userId || guests.length > 1) && (
                                             <button
                                                 onClick={() => removeGuest(idx)}

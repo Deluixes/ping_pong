@@ -17,6 +17,7 @@ export default function CalendarNavigation({
     onNextWeek,
     onSelectDate,
     onSetViewMode,
+    onGoToToday,
 }) {
     return (
         <>
@@ -25,9 +26,16 @@ export default function CalendarNavigation({
                 <button onClick={onPrevWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronLeft size={20} />
                 </button>
-                <span className={styles.weekNavTitle}>
+                <button
+                    onClick={onGoToToday}
+                    className={clsx(
+                        styles.weekNavTitle,
+                        !isCurrentWeek && styles.weekNavTitleClickable
+                    )}
+                >
                     {format(weekStart, 'MMMM yyyy', { locale: fr })}
-                </span>
+                    {!isCurrentWeek && <span className={styles.todayHint}>Aujourd'hui</span>}
+                </button>
                 <button onClick={onNextWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronRight size={20} />
                 </button>
@@ -71,23 +79,26 @@ export default function CalendarNavigation({
                 </div>
             )}
 
-            {/* Filter + Edit Mode - Centered */}
+            {/* Filter + Edit Mode - Segmented Control */}
             <div className={styles.viewModeWrapper}>
-                <select
-                    value={viewMode}
-                    onChange={(e) => onSetViewMode(e.target.value)}
-                    className={clsx(
-                        styles.viewModeSelect,
-                        viewMode === 'edit' && styles.viewModeEdit,
-                        viewMode === 'manage_slots' && styles.viewModeManageSlots
-                    )}
-                >
-                    {viewOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                {viewOptions.map((opt) => (
+                    <button
+                        key={opt.value}
+                        onClick={() => onSetViewMode(opt.value)}
+                        className={clsx(
+                            styles.viewModeBtn,
+                            viewMode === opt.value && styles.viewModeBtnActive,
+                            viewMode === opt.value &&
+                                opt.value === 'edit' &&
+                                styles.viewModeBtnEdit,
+                            viewMode === opt.value &&
+                                opt.value === 'manage_slots' &&
+                                styles.viewModeBtnManageSlots
+                        )}
+                    >
+                        {opt.label}
+                    </button>
+                ))}
             </div>
         </>
     )

@@ -1,12 +1,15 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { startOfWeek, addDays } from 'date-fns'
+import { RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { CalendarProvider } from '../contexts/CalendarContext'
 import { RegistrationProvider } from '../contexts/RegistrationContext'
 import { useCalendarData } from '../hooks/useCalendarData'
 import { useSlotHelpers } from '../hooks/useSlotHelpers'
 import { useRegistrationModal } from '../hooks/useRegistrationModal'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
 
 import RegistrationModal from './calendar/RegistrationModal'
 import OpenSlotModal from './calendar/OpenSlotModal'
@@ -50,6 +53,11 @@ export default function Calendar() {
         setWeekStart((d) => addDays(d, -7))
         setSelectedDate((d) => addDays(d, -7))
     }
+    const goToToday = () => {
+        const today = new Date()
+        setSelectedDate(today)
+        setWeekStart(startOfWeek(today, { weekStartsOn: 1 }))
+    }
 
     const weekDays = []
     for (let i = 0; i < 7; i++) {
@@ -72,6 +80,37 @@ export default function Calendar() {
     const modal = useRegistrationModal({ user, selectedDate, slotHelpers, calendarData })
 
     const isAdmin = user?.isAdmin
+
+    // Pull-to-refresh
+    const handleRefresh = useCallback(() => calendarData.loadData(), [calendarData])
+    const { containerRef, pullDistance, refreshing } = usePullToRefresh(handleRefresh)
+
+    // Swipe navigation (jour suivant / precedent)
+    const swipeNextDay = useCallback(() => {
+        setSelectedDate((d) => {
+            const next = addDays(d, 1)
+            const nextWeekStart = startOfWeek(next, { weekStartsOn: 1 })
+            if (nextWeekStart.getTime() !== weekStart.getTime()) {
+                setWeekStart(nextWeekStart)
+            }
+            return next
+        })
+    }, [weekStart])
+    const swipePrevDay = useCallback(() => {
+        setSelectedDate((d) => {
+            const prev = addDays(d, -1)
+            const prevWeekStart = startOfWeek(prev, { weekStartsOn: 1 })
+            if (prevWeekStart.getTime() !== weekStart.getTime()) {
+                setWeekStart(prevWeekStart)
+            }
+            return prev
+        })
+    }, [weekStart])
+    useSwipeNavigation({
+        onSwipeLeft: swipeNextDay,
+        onSwipeRight: swipePrevDay,
+        containerRef,
+    })
 
     // Combine opened slots + week slots non-bloquants pour colorer les jours
     const daysWithSlots = useMemo(() => {
@@ -114,7 +153,22 @@ export default function Calendar() {
     // ==================== RENDER ====================
 
     return (
-        <div className={styles.wrapper}>
+        <div className={styles.wrapper} ref={containerRef}>
+            {(pullDistance > 0 || refreshing) && (
+                <div
+                    className={styles.pullIndicator}
+                    style={{ height: refreshing ? 40 : pullDistance }}
+                >
+                    <RefreshCw
+                        size={18}
+                        className={refreshing ? 'spin' : ''}
+                        style={{
+                            opacity: Math.min(pullDistance / 60, 1),
+                            transform: `rotate(${pullDistance * 3}deg)`,
+                        }}
+                    />
+                </div>
+            )}
             <RegistrationProvider
                 modal={modal}
                 selectedDate={selectedDate}
@@ -139,6 +193,7 @@ export default function Calendar() {
                 onNextWeek={nextWeek}
                 onSelectDate={setSelectedDate}
                 onSetViewMode={setViewMode}
+                onGoToToday={goToToday}
             />
 
             {viewMode === 'week' ? (

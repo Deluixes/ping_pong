@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    Navigate,
+    Link,
+    useLocation,
+} from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ConfirmProvider } from './contexts/ConfirmContext'
@@ -16,9 +23,11 @@ import Changelog from './components/Changelog'
 import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
+import WelcomeGuide from './components/WelcomeGuide'
 import { GROUP_NAME } from './constants'
 import { storageService } from './services/storage'
-import { Menu, Bell } from 'lucide-react'
+import { Menu, Bell, Calendar as CalendarIcon, Mail, Home, User } from 'lucide-react'
+import clsx from 'clsx'
 import styles from './components/App.module.css'
 
 function PrivateRoute({ children, requireApproval = true, allowPasswordChange = false }) {
@@ -50,11 +59,23 @@ function AdminRoute({ children }) {
     return children
 }
 
+const PAGE_TITLES = {
+    '/': 'Planning',
+    '/settings': 'Mon compte',
+    '/invitations': 'Invitations',
+    '/club': 'Mon club',
+    '/changelog': "Notes de l'App",
+    '/admin': 'Gestion membres',
+    '/admin/planning': 'Gestion planning',
+}
+
 function AppContent() {
     const { user, memberStatus } = useAuth()
+    const location = useLocation()
     const [menuOpen, setMenuOpen] = useState(false)
     const [notificationCount, setNotificationCount] = useState(0)
     const showMainUI = user && (memberStatus === 'approved' || user?.isAdmin)
+    const pageTitle = PAGE_TITLES[location.pathname]
 
     const refreshNotificationCount = useCallback(() => {
         if (user) {
@@ -79,19 +100,28 @@ function AppContent() {
         <div className="app-container">
             {showMainUI && (
                 <>
+                    <WelcomeGuide />
                     <SlideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
                     <header className={styles.header}>
                         <div className={styles.headerLeft}>
-                            <button onClick={() => setMenuOpen(true)} className={styles.menuBtn}>
+                            <button
+                                onClick={() => setMenuOpen(true)}
+                                className={styles.menuBtn}
+                                aria-label="Ouvrir le menu"
+                            >
                                 <Menu size={22} />
                             </button>
                             <Link to="/" className={styles.logoLink}>
-                                <h2 className={styles.logoTitle}>🏓 {GROUP_NAME}</h2>
+                                <h2 className={styles.logoTitle}>🏓 {pageTitle || GROUP_NAME}</h2>
                             </Link>
                         </div>
                         <div className={styles.headerRight}>
-                            <Link to="/invitations" className={styles.bellLink}>
+                            <Link
+                                to="/invitations"
+                                className={styles.bellLink}
+                                aria-label="Invitations"
+                            >
                                 <Bell size={20} />
                                 {notificationCount > 0 && (
                                     <span className={styles.notifBadge}>{notificationCount}</span>
@@ -103,7 +133,7 @@ function AppContent() {
                 </>
             )}
 
-            <main className={styles.main}>
+            <main className={styles.main} key={location.pathname}>
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route
@@ -174,6 +204,56 @@ function AppContent() {
             </main>
 
             <DevIndicator />
+
+            {showMainUI && (
+                <nav className={styles.bottomTab}>
+                    <Link
+                        to="/"
+                        className={clsx(
+                            styles.tabItem,
+                            location.pathname === '/' && styles.tabItemActive
+                        )}
+                    >
+                        <CalendarIcon size={20} />
+                        <span>Planning</span>
+                    </Link>
+                    <Link
+                        to="/invitations"
+                        className={clsx(
+                            styles.tabItem,
+                            location.pathname === '/invitations' && styles.tabItemActive
+                        )}
+                    >
+                        <span className={styles.tabItemIconWrap}>
+                            <Mail size={20} />
+                            {notificationCount > 0 && (
+                                <span className={styles.tabBadge}>{notificationCount}</span>
+                            )}
+                        </span>
+                        <span>Invitations</span>
+                    </Link>
+                    <Link
+                        to="/club"
+                        className={clsx(
+                            styles.tabItem,
+                            location.pathname === '/club' && styles.tabItemActive
+                        )}
+                    >
+                        <Home size={20} />
+                        <span>Club</span>
+                    </Link>
+                    <Link
+                        to="/settings"
+                        className={clsx(
+                            styles.tabItem,
+                            location.pathname === '/settings' && styles.tabItemActive
+                        )}
+                    >
+                        <User size={20} />
+                        <span>Compte</span>
+                    </Link>
+                </nav>
+            )}
         </div>
     )
 }

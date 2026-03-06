@@ -20,7 +20,20 @@ export default function DayViewSlots({ loading }) {
     } = useCalendar()
 
     if (loading) {
-        return <div className={styles.loadingText}>Chargement des créneaux...</div>
+        return (
+            <div className={styles.slotList}>
+                {Array.from({ length: 6 }, (_, i) => (
+                    <div key={i} className={styles.skeletonRow}>
+                        <div className={styles.skeletonTime} />
+                        <div className={styles.skeletonContent}>
+                            <div className={styles.skeletonLine} />
+                            <div className={styles.skeletonLineShort} />
+                        </div>
+                        <div className={styles.skeletonAction} />
+                    </div>
+                ))}
+            </div>
+        )
     }
 
     return (
@@ -186,6 +199,7 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
                     onClick={() => onDeleteWeekSlot(blockedInfo.id)}
                     className={clsx(styles.actionBtn, styles.actionBtnDelete)}
                     title="Supprimer ce créneau"
+                    aria-label="Supprimer ce créneau"
                 >
                     <Trash2 size={18} />
                 </button>
@@ -202,6 +216,7 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
                         onClick={() => onAcceptInvitation(slot.id)}
                         className={styles.invitationAccept}
                         title="Accepter l'invitation"
+                        aria-label="Accepter l'invitation"
                     >
                         <Check size={16} />
                     </button>
@@ -209,6 +224,7 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
                         onClick={() => onDeclineInvitation(slot.id)}
                         className={styles.invitationDecline}
                         title="Refuser l'invitation"
+                        aria-label="Refuser l'invitation"
                     >
                         <X size={16} />
                     </button>
@@ -218,6 +234,7 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
                     onClick={() => onUnregister(slot.id)}
                     className={clsx(styles.actionBtn, styles.actionBtnUnregister)}
                     title="Se désinscrire"
+                    aria-label="Se désinscrire"
                 >
                     <X size={20} />
                 </button>
@@ -226,6 +243,7 @@ function BlockedSlotRow({ slot, blockedInfo, isParticipating, participants, coun
                     onClick={() => onSlotClick(slot.id)}
                     className={clsx(styles.actionBtn, styles.actionBtnRegisterCourse)}
                     title="S'inscrire"
+                    aria-label="S'inscrire"
                 >
                     +
                 </button>
@@ -429,6 +447,7 @@ function NormalSlotRow({
                         onClick={() => onAcceptInvitation(slot.id)}
                         className={styles.invitationAccept}
                         title="Accepter l'invitation"
+                        aria-label="Accepter l'invitation"
                     >
                         <Check size={16} />
                     </button>
@@ -436,6 +455,7 @@ function NormalSlotRow({
                         onClick={() => onDeclineInvitation(slot.id)}
                         className={styles.invitationDecline}
                         title="Refuser l'invitation"
+                        aria-label="Refuser l'invitation"
                     >
                         <X size={16} />
                     </button>
@@ -445,6 +465,7 @@ function NormalSlotRow({
                     onClick={() => onUnregister(slot.id)}
                     className={clsx(styles.actionBtn, styles.actionBtnUnregister)}
                     title="Se désinscrire"
+                    aria-label="Se désinscrire"
                 >
                     <X size={20} />
                 </button>
@@ -453,6 +474,7 @@ function NormalSlotRow({
                     onClick={() => onSlotClick(slot.id)}
                     className={clsx(styles.actionBtn, styles.actionBtnRegister)}
                     title="S'inscrire"
+                    aria-label="S'inscrire"
                 >
                     +
                 </button>

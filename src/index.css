@@ -7,7 +7,7 @@
     --color-bg: #f0f4f8; /* Light blue-grey background */
     --color-surface: #ffffff;
     --color-text: #1a202c;
-    --color-text-muted: #718096;
+    --color-text-muted: #5f6b7a;
 
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -16,6 +16,88 @@
     --radius-lg: 1rem;
 
     --font-body: system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: #0f1419;
+        --color-surface: #1a1f2e;
+        --color-text: #e4e6eb;
+        --color-text-muted: #8b95a5;
+
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-danger {
+        background: #3b1a1a;
+        color: #fca5a5;
+    }
+
+    .btn-back {
+        background: var(--color-surface);
+    }
+
+    .form-input {
+        background: #252b3b;
+        border-color: #374151;
+        color: var(--color-text);
+    }
+
+    .modal-dialog {
+        background: var(--color-surface);
+    }
+
+    .alert--error {
+        background: #3b1a1a;
+        color: #fca5a5;
+    }
+
+    .alert--success {
+        background: #0f2d1f;
+        color: #6ee7b7;
+    }
+
+    .alert--warning {
+        background: #352a0f;
+        border-color: #b45309;
+        color: #fcd34d;
+    }
+
+    .alert--info {
+        background: #0f1f35;
+        color: #7dd3fc;
+    }
+
+    .badge--warning {
+        background: #352a0f;
+        color: #fcd34d;
+    }
+
+    .badge--info {
+        background: #0f1f35;
+        color: #7dd3fc;
+    }
+
+    .badge--success {
+        background: #0f2d1f;
+        color: #6ee7b7;
+    }
+
+    .badge--danger {
+        background: #3b1a1a;
+        color: #fca5a5;
+    }
+
+    .tab-bar {
+        background: var(--color-bg);
+    }
+
+    .tab-btn--active {
+        background: var(--color-surface);
+        color: var(--color-primary);
+    }
 }
 
 * {
@@ -420,5 +502,15 @@ button {
     }
     to {
         transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
     }
 }

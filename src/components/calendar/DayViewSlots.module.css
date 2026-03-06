@@ -6,6 +6,50 @@
     font-size: 0.9rem;
 }
 
+/* ===== Skeleton ===== */
+.skeletonRow {
+    display: flex;
+    align-items: stretch;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    height: 52px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonTime {
+    width: 60px;
+    background: #e5e7eb;
+}
+
+.skeletonContent {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.4rem;
+    background: #f9fafb;
+}
+
+.skeletonLine {
+    height: 10px;
+    width: 60%;
+    background: #e5e7eb;
+    border-radius: 4px;
+}
+
+.skeletonLineShort {
+    height: 8px;
+    width: 35%;
+    background: #e5e7eb;
+    border-radius: 4px;
+}
+
+.skeletonAction {
+    width: 50px;
+    background: #f3f4f6;
+}
+
 /* ===== Main Container ===== */
 .slotList {
     display: flex;
@@ -159,6 +203,14 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition:
+        transform 0.1s,
+        filter 0.1s;
+}
+
+button.actionBtn:active {
+    transform: scale(0.85);
+    filter: brightness(0.9);
 }
 
 .actionBtnDelete {
@@ -349,6 +401,12 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: filter 0.1s;
+}
+
+.invitationAccept:active,
+.invitationDecline:active {
+    filter: brightness(0.85);
 }
 
 .invitationAccept {
@@ -359,4 +417,117 @@
 .invitationDecline {
     background: #fee2e2;
     color: #dc2626;
+}
+
+/* ===== Dark Mode ===== */
+@media (prefers-color-scheme: dark) {
+    .blockedRowCourse {
+        background: #172340;
+        border-color: #2563eb;
+    }
+
+    .blockedRowCourseParticipating {
+        background: #0f2d1f;
+        border-color: #16a34a;
+    }
+
+    .blockedRowTraining {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .normalRowParticipating {
+        background: #0f2d1f;
+        border-color: #16a34a;
+    }
+
+    .normalRowOpened {
+        background: #0f2d1f;
+        border-color: #22c55e;
+    }
+
+    .normalRowClosed {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .normalRowDefault {
+        background: var(--color-surface);
+        border-color: #374151;
+    }
+
+    .timeLabelDefault {
+        background: #1f2937;
+        color: #9ca3af;
+    }
+
+    .timeLabelClosed {
+        background: #374151;
+        color: #9ca3af;
+    }
+
+    .actionBtnLocked {
+        background: #374151;
+        color: #6b7280;
+    }
+
+    .actionBtnUnregister {
+        background: #16a34a;
+    }
+
+    .actionBtnRegister {
+        background: #0f2d1f;
+        color: #22c55e;
+    }
+
+    .actionBtnRegisterCourse {
+        background: #172340;
+        color: #60a5fa;
+    }
+
+    .actionBtnDelete {
+        background: #3b1a1a;
+        color: #f87171;
+    }
+
+    .actionBtnClose {
+        background: #3b1a1a;
+        color: #f87171;
+    }
+
+    .actionBtnOpen {
+        background: #0f1f35;
+        color: #7dd3fc;
+    }
+
+    .invitationAccept {
+        background: #0f2d1f;
+        color: #22c55e;
+    }
+
+    .invitationDecline {
+        background: #3b1a1a;
+        color: #f87171;
+    }
+
+    .slotGap {
+        border-color: #374151;
+    }
+
+    .skeletonTime {
+        background: #374151;
+    }
+
+    .skeletonContent {
+        background: #1f2937;
+    }
+
+    .skeletonLine,
+    .skeletonLineShort {
+        background: #374151;
+    }
+
+    .skeletonAction {
+        background: #1f2937;
+    }
 }

@@ -14,6 +14,7 @@ export default function NotificationsSection() {
     const [notifPrefs, setNotifPrefs] = useState({
         invitations_enabled: true,
         slot_openings_enabled: true,
+        registrations_enabled: true,
     })
     const [notifLoading, setNotifLoading] = useState(false)
     const [notifPermission, setNotifPermission] = useState('default')
@@ -30,6 +31,7 @@ export default function NotificationsSection() {
                 setNotifPrefs({
                     invitations_enabled: prefs.invitations_enabled,
                     slot_openings_enabled: prefs.slot_openings_enabled,
+                    registrations_enabled: prefs.registrations_enabled,
                 })
             }
         }
@@ -170,6 +172,26 @@ export default function NotificationsSection() {
                                     </div>
                                     <div className={styles.notifPrefSub}>
                                         Quand un créneau correspondant à votre licence s'ouvre
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label className={styles.notifPrefLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={notifPrefs.registrations_enabled}
+                                    onChange={(e) =>
+                                        handleUpdateNotifPref(
+                                            'registrations_enabled',
+                                            e.target.checked
+                                        )
+                                    }
+                                    className={styles.notifPrefCheckbox}
+                                />
+                                <div>
+                                    <div className={styles.notifPrefTitle}>Inscriptions</div>
+                                    <div className={styles.notifPrefSub}>
+                                        Quand quelqu'un s'inscrit sur un de vos créneaux
                                     </div>
                                 </div>
                             </label>

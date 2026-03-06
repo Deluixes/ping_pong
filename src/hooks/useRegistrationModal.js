@@ -240,6 +240,13 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     }
 
     const handleUnregister = async (slotId) => {
+        const confirmed = await confirm({
+            title: 'Se désinscrire',
+            message: 'Voulez-vous vraiment vous désinscrire de ce créneau ?',
+            confirmLabel: 'Se désinscrire',
+        })
+        if (!confirmed) return
+
         try {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             const registration = getUserRegistration(slotId)

@@ -25,6 +25,7 @@ const defaultProps = {
     onNextWeek: vi.fn(),
     onSelectDate: vi.fn(),
     onSetViewMode: vi.fn(),
+    onGoToToday: vi.fn(),
 }
 
 describe('CalendarNavigation', () => {
@@ -118,20 +119,21 @@ describe('CalendarNavigation', () => {
         expect(container.textContent).not.toContain('pas encore configurée')
     })
 
-    it('affiche le sélecteur de mode de vue', () => {
+    it('affiche le segmented control de mode de vue', () => {
         const { container } = render(<CalendarNavigation {...defaultProps} />)
-        const select = container.querySelector('select')
-        expect(select).toBeTruthy()
-        expect(select.value).toBe('normal')
+        const btns = container.querySelectorAll('[class*="viewModeBtn"]')
+        expect(btns.length).toBe(2)
+        expect(btns[0].textContent).toBe('Normal')
+        expect(btns[1].textContent).toBe('Modifier')
     })
 
-    it('appelle onSetViewMode au changement du mode de vue', () => {
+    it('appelle onSetViewMode au clic sur un bouton de mode de vue', () => {
         const onSetViewMode = vi.fn()
         const { container } = render(
             <CalendarNavigation {...defaultProps} onSetViewMode={onSetViewMode} />
         )
-        const select = container.querySelector('select')
-        fireEvent.change(select, { target: { value: 'edit' } })
+        const btns = container.querySelectorAll('[class*="viewModeBtn"]')
+        fireEvent.click(btns[1])
         expect(onSetViewMode).toHaveBeenCalledWith('edit')
     })
 })
