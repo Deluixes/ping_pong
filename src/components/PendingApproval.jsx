@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { GROUP_NAME } from '../constants'
-import { UserPlus, Clock, LogOut, RefreshCw } from 'lucide-react'
+import { UserPlus, Clock, LogOut, RefreshCw, Trash2 } from 'lucide-react'
 import styles from './PendingApproval.module.css'
 
 export default function PendingApproval() {
     const { user, memberStatus, requestAccess, logout, refreshMemberStatus } = useAuth()
+    const confirm = useConfirm()
     const [isRequesting, setIsRequesting] = useState(false)
     const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -100,6 +102,34 @@ export default function PendingApproval() {
                 <button onClick={handleLogout} className={clsx('btn btn-full', styles.logoutBtn)}>
                     <LogOut size={16} className="label-icon" />
                     Se déconnecter
+                </button>
+
+                <button
+                    onClick={async () => {
+                        const confirmed = await confirm({
+                            title: 'Vider le cache',
+                            message:
+                                "Cela va supprimer les données temporaires et recharger l'application. Continuer ?",
+                            confirmLabel: 'Vider le cache',
+                            variant: 'danger',
+                        })
+                        if (!confirmed) return
+                        localStorage.removeItem('pingpong_events')
+                        if ('caches' in window) {
+                            const keys = await caches.keys()
+                            await Promise.all(keys.map((k) => caches.delete(k)))
+                        }
+                        if ('serviceWorker' in navigator) {
+                            const registrations = await navigator.serviceWorker.getRegistrations()
+                            await Promise.all(registrations.map((r) => r.unregister()))
+                            navigator.serviceWorker.register('/sw-custom.js')
+                        }
+                        window.location.reload()
+                    }}
+                    className={clsx('btn btn-full', styles.cacheBtn)}
+                >
+                    <Trash2 size={16} />
+                    Vider le cache
                 </button>
 
                 <p className={styles.footerText}>Connecté en tant que {user?.email}</p>
