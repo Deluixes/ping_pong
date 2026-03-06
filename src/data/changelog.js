@@ -1,5 +1,21 @@
 export const changelog = [
     {
+        version: '1.2.0',
+        date: '2026-03-06',
+        title: 'Mise à jour de mars',
+        changes: [
+            "Mode sombre amélioré : toutes les modales, menus, badges et composants s'adaptent désormais correctement au thème sombre.",
+            'Nouveau thème : choix entre Clair, Sombre et Auto (suit les préférences système) dans les paramètres.',
+            'Navigation par swipe : balayez vers la gauche ou la droite pour changer de jour dans le calendrier.',
+            'Tirer vers le bas pour actualiser le calendrier (pull-to-refresh).',
+            'Guide de bienvenue pour les nouveaux utilisateurs.',
+            "Recherche de membres avec auto-complétion lors de l'inscription à un créneau.",
+            "Notifications push lors de l'inscription ou de la désinscription d'un joueur à un créneau.",
+            "Améliorations visuelles de la page d'attente d'approbation.",
+            'Corrections de bugs divers et améliorations de la stabilité.',
+        ],
+    },
+    {
         version: '1.1.0',
         date: '2026-02-18',
         title: 'Mise à jour de février',
