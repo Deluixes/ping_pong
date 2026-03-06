@@ -192,17 +192,16 @@ export function useSlotHelpers({
             if (!inv) return null
             const duration = inv.duration || 1
             const clickedIndex = getSlotIndex(slotId)
-            for (let i = 0; i < duration; i++) {
-                const candidateIndex = clickedIndex - i
-                if (candidateIndex < 0) break
-                const candidateSlot = TIME_SLOTS[candidateIndex]
-                const candidateInv = getUserInvitation(candidateSlot.id)
-                if (!candidateInv) break
-                if (candidateIndex + duration > clickedIndex) {
-                    return { startSlotId: candidateSlot.id, startIndex: candidateIndex, duration }
-                }
+            // Remonter tant que le slot précédent a la même invitation (même objet spread)
+            let startIndex = clickedIndex
+            for (let i = 1; i < duration; i++) {
+                const prevIndex = clickedIndex - i
+                if (prevIndex < 0) break
+                const prevInv = getUserInvitation(TIME_SLOTS[prevIndex].id)
+                if (!prevInv) break
+                startIndex = prevIndex
             }
-            return { startSlotId: slotId, startIndex: clickedIndex, duration }
+            return { startSlotId: TIME_SLOTS[startIndex].id, startIndex, duration }
         },
         [getUserInvitation, getSlotIndex]
     )
