@@ -82,7 +82,7 @@ export default function Calendar() {
     const isAdmin = user?.isAdmin
 
     // Pull-to-refresh
-    const handleRefresh = useCallback(() => calendarData.loadData(), [calendarData])
+    const handleRefresh = useCallback(() => calendarData.loadData(), [calendarData.loadData])
     const { containerRef, pullDistance, refreshing } = usePullToRefresh(handleRefresh)
 
     // Swipe navigation (jour suivant / precedent)

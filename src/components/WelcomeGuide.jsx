@@ -7,25 +7,25 @@ const STEPS = [
         icon: Calendar,
         title: 'Consultez le planning',
         description:
-            "Parcourez les jours de la semaine pour voir les creneaux disponibles. Les creneaux verts sont ouverts a l'inscription.",
+            "Parcourez les jours de la semaine pour voir les créneaux disponibles. Les créneaux verts sont ouverts à l'inscription.",
     },
     {
         icon: UserPlus,
         title: 'Inscrivez-vous en un tap',
         description:
-            'Appuyez sur le bouton "+" pour vous inscrire a un creneau. Choisissez votre duree et invitez d\'autres membres.',
+            'Appuyez sur le bouton "+" pour vous inscrire à un créneau. Choisissez votre durée et invitez d\'autres membres.',
     },
     {
         icon: Bell,
         title: 'Recevez des notifications',
         description:
-            "Activez les notifications dans les parametres pour etre prevenu quand un joueur s'inscrit sur vos creneaux.",
+            "Activez les notifications dans les paramètres pour être prévenu quand un joueur s'inscrit sur vos créneaux.",
     },
     {
         icon: Smartphone,
         title: 'Naviguez facilement',
         description:
-            'Swipez gauche/droite pour changer de jour. Tirez vers le bas pour rafraichir. Utilisez la barre en bas pour naviguer.',
+            'Swipez gauche/droite pour changer de jour. Tirez vers le bas pour rafraîchir. Utilisez la barre en bas pour naviguer.',
     },
 ]
 

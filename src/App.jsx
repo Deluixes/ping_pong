@@ -24,6 +24,7 @@ import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
 import WelcomeGuide from './components/WelcomeGuide'
+import { useTheme } from './hooks/useTheme'
 import { GROUP_NAME } from './constants'
 import { storageService } from './services/storage'
 import { Menu, Bell, Calendar as CalendarIcon, Mail, Home, User } from 'lucide-react'
@@ -70,6 +71,7 @@ const PAGE_TITLES = {
 }
 
 function AppContent() {
+    useTheme()
     const { user, memberStatus } = useAuth()
     const location = useLocation()
     const [menuOpen, setMenuOpen] = useState(false)

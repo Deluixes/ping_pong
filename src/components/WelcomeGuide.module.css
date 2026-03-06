@@ -38,7 +38,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #d1d5db;
+    background: var(--color-border);
     transition: background 0.2s;
 }
 

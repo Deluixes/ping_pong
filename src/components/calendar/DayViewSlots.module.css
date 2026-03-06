@@ -420,114 +420,112 @@ button.actionBtn:active {
 }
 
 /* ===== Dark Mode ===== */
-@media (prefers-color-scheme: dark) {
-    .blockedRowCourse {
-        background: #172340;
-        border-color: #2563eb;
-    }
+:global([data-theme='dark']) .blockedRowCourse {
+    background: #172340;
+    border-color: #2563eb;
+}
 
-    .blockedRowCourseParticipating {
-        background: #0f2d1f;
-        border-color: #16a34a;
-    }
+:global([data-theme='dark']) .blockedRowCourseParticipating {
+    background: #0f2d1f;
+    border-color: #16a34a;
+}
 
-    .blockedRowTraining {
-        background: #1f2937;
-        border-color: #374151;
-    }
+:global([data-theme='dark']) .blockedRowTraining {
+    background: #1f2937;
+    border-color: #374151;
+}
 
-    .normalRowParticipating {
-        background: #0f2d1f;
-        border-color: #16a34a;
-    }
+:global([data-theme='dark']) .normalRowParticipating {
+    background: #0f2d1f;
+    border-color: #16a34a;
+}
 
-    .normalRowOpened {
-        background: #0f2d1f;
-        border-color: #22c55e;
-    }
+:global([data-theme='dark']) .normalRowOpened {
+    background: #0f2d1f;
+    border-color: #22c55e;
+}
 
-    .normalRowClosed {
-        background: #1f2937;
-        border-color: #374151;
-    }
+:global([data-theme='dark']) .normalRowClosed {
+    background: #1f2937;
+    border-color: #374151;
+}
 
-    .normalRowDefault {
-        background: var(--color-surface);
-        border-color: #374151;
-    }
+:global([data-theme='dark']) .normalRowDefault {
+    background: var(--color-surface);
+    border-color: #374151;
+}
 
-    .timeLabelDefault {
-        background: #1f2937;
-        color: #9ca3af;
-    }
+:global([data-theme='dark']) .timeLabelDefault {
+    background: #1f2937;
+    color: #9ca3af;
+}
 
-    .timeLabelClosed {
-        background: #374151;
-        color: #9ca3af;
-    }
+:global([data-theme='dark']) .timeLabelClosed {
+    background: #374151;
+    color: #9ca3af;
+}
 
-    .actionBtnLocked {
-        background: #374151;
-        color: #6b7280;
-    }
+:global([data-theme='dark']) .actionBtnLocked {
+    background: #374151;
+    color: #6b7280;
+}
 
-    .actionBtnUnregister {
-        background: #16a34a;
-    }
+:global([data-theme='dark']) .actionBtnUnregister {
+    background: #16a34a;
+}
 
-    .actionBtnRegister {
-        background: #0f2d1f;
-        color: #22c55e;
-    }
+:global([data-theme='dark']) .actionBtnRegister {
+    background: #0f2d1f;
+    color: #22c55e;
+}
 
-    .actionBtnRegisterCourse {
-        background: #172340;
-        color: #60a5fa;
-    }
+:global([data-theme='dark']) .actionBtnRegisterCourse {
+    background: #172340;
+    color: #60a5fa;
+}
 
-    .actionBtnDelete {
-        background: #3b1a1a;
-        color: #f87171;
-    }
+:global([data-theme='dark']) .actionBtnDelete {
+    background: #3b1a1a;
+    color: #f87171;
+}
 
-    .actionBtnClose {
-        background: #3b1a1a;
-        color: #f87171;
-    }
+:global([data-theme='dark']) .actionBtnClose {
+    background: #3b1a1a;
+    color: #f87171;
+}
 
-    .actionBtnOpen {
-        background: #0f1f35;
-        color: #7dd3fc;
-    }
+:global([data-theme='dark']) .actionBtnOpen {
+    background: #0f1f35;
+    color: #7dd3fc;
+}
 
-    .invitationAccept {
-        background: #0f2d1f;
-        color: #22c55e;
-    }
+:global([data-theme='dark']) .invitationAccept {
+    background: #0f2d1f;
+    color: #22c55e;
+}
 
-    .invitationDecline {
-        background: #3b1a1a;
-        color: #f87171;
-    }
+:global([data-theme='dark']) .invitationDecline {
+    background: #3b1a1a;
+    color: #f87171;
+}
 
-    .slotGap {
-        border-color: #374151;
-    }
+:global([data-theme='dark']) .slotGap {
+    border-color: #374151;
+}
 
-    .skeletonTime {
-        background: #374151;
-    }
+:global([data-theme='dark']) .skeletonTime {
+    background: #374151;
+}
 
-    .skeletonContent {
-        background: #1f2937;
-    }
+:global([data-theme='dark']) .skeletonContent {
+    background: #1f2937;
+}
 
-    .skeletonLine,
-    .skeletonLineShort {
-        background: #374151;
-    }
+:global([data-theme='dark']) .skeletonLine,
+:global([data-theme='dark']) .skeletonLineShort {
+    background: #374151;
+}
 
-    .skeletonAction {
-        background: #1f2937;
-    }
+:global([data-theme='dark']) .skeletonAction {
+    background: #1f2937;
 }

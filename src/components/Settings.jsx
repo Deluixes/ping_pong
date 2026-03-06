@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Lock } from 'lucide-react'
+import { ArrowLeft, Lock, Sun, Moon, Monitor } from 'lucide-react'
 import ChangePassword from './ChangePassword'
 import ProfileSection from './ProfileSection'
 import NotificationsSection from './NotificationsSection'
 import MaintenanceSection from './MaintenanceSection'
+import { useTheme } from '../hooks/useTheme'
 import clsx from 'clsx'
 import styles from './Settings.module.css'
 
@@ -13,6 +14,7 @@ export default function Settings() {
     const { logout } = useAuth()
     const navigate = useNavigate()
     const [showPasswordModal, setShowPasswordModal] = useState(false)
+    const { preference, setTheme } = useTheme()
 
     const handleLogout = async () => {
         await logout()
@@ -53,6 +55,33 @@ export default function Settings() {
             {/* Notifications Section */}
             <div className={clsx('card', styles.section)}>
                 <NotificationsSection />
+            </div>
+
+            {/* Theme Section */}
+            <div className={clsx('card', styles.section)}>
+                <h2 className={styles.sectionHeading}>
+                    <Sun size={18} />
+                    Apparence
+                </h2>
+                <div className={styles.themeToggle}>
+                    {[
+                        { value: 'light', label: 'Clair', icon: Sun },
+                        { value: 'auto', label: 'Auto', icon: Monitor },
+                        { value: 'dark', label: 'Sombre', icon: Moon },
+                    ].map(({ value, label, icon: Icon }) => (
+                        <button
+                            key={value}
+                            onClick={() => setTheme(value)}
+                            className={clsx(
+                                styles.themeBtn,
+                                preference === value && styles.themeBtnActive
+                            )}
+                        >
+                            <Icon size={16} />
+                            {label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Maintenance Section */}

@@ -163,34 +163,32 @@
 }
 
 /* ===== Dark Mode ===== */
-@media (prefers-color-scheme: dark) {
-    .dayBtn {
-        border-color: #374151;
-    }
+:global([data-theme='dark']) .dayBtn {
+    border-color: #374151;
+}
 
-    .dayBtnHasSlots {
-        background: #0f2d1f;
-        border-color: #16a34a;
-        color: #6ee7b7;
-    }
+:global([data-theme='dark']) .dayBtnHasSlots {
+    background: #0f2d1f;
+    border-color: #16a34a;
+    color: #6ee7b7;
+}
 
-    .dayBtnSelected {
-        border-color: #6b7280;
-        background: #1f2937;
-        color: #d1d5db;
-    }
+:global([data-theme='dark']) .dayBtnSelected {
+    border-color: #6b7280;
+    background: #1f2937;
+    color: #d1d5db;
+}
 
-    .viewModeBtnActive {
-        background: var(--color-surface);
-    }
+:global([data-theme='dark']) .viewModeBtnActive {
+    background: var(--color-surface);
+}
 
-    .viewModeBtnEdit {
-        background: #3b1a1a;
-        color: #fca5a5;
-    }
+:global([data-theme='dark']) .viewModeBtnEdit {
+    background: #3b1a1a;
+    color: #fca5a5;
+}
 
-    .viewModeBtnManageSlots {
-        background: #0f1f35;
-        color: #7dd3fc;
-    }
+:global([data-theme='dark']) .viewModeBtnManageSlots {
+    background: #0f1f35;
+    color: #7dd3fc;
 }

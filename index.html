@@ -9,6 +9,10 @@
     <title>Ping Pong Club</title>
   </head>
   <body>
+    <script>
+      // Apply theme before first paint to prevent flash
+      (function(){var t=localStorage.getItem('pingpong_theme')||'auto';var d=t==='auto'?window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light':t;document.documentElement.setAttribute('data-theme',d)})();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
