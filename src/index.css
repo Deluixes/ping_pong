@@ -198,7 +198,6 @@ button {
     padding: 1.5rem;
     width: 90%;
     max-width: 400px;
-    animation: slideUp 0.2s ease-out;
 }
 
 .modal-dialog--wide {
@@ -211,6 +210,7 @@ button {
     max-width: 500px;
     max-height: 80vh;
     overflow: auto;
+    animation: slideUp 0.2s ease-out;
 }
 
 .modal-dialog--centered {
@@ -222,6 +222,7 @@ button {
     box-shadow: var(--shadow-lg);
     max-height: 90vh;
     overflow: auto;
+    animation: fadeIn 0.15s ease-out;
 }
 
 .modal-dialog--fullscreen {
@@ -467,6 +468,17 @@ button {
     }
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 
