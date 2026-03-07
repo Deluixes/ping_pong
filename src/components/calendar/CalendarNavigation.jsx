@@ -40,8 +40,8 @@ export default function CalendarNavigation({
     const extendingRef = useRef(false)
     const scrollRAF = useRef(null)
     const lastMonthRef = useRef('')
-    const [todayVisible, setTodayVisible] = useState(true)
-    const todayVisibleRef = useRef(true)
+    const [todayVisible, setTodayVisible] = useState(false)
+    const todayVisibleRef = useRef(false)
 
     // Recentrer le buffer si selectedDate est hors du buffer
     useEffect(() => {
@@ -53,17 +53,86 @@ export default function CalendarNavigation({
 
     // Scroll vers le jour selectionne
     useEffect(() => {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
-        const container = daySelectorRef.current
-        if (btn && container?.scrollTo) {
+        const scrollToSelected = () => {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
+            const container = daySelectorRef.current
+            if (!btn || !container?.scrollTo) return false
+
+            // Si offsetLeft est 0 et ce n'est pas le premier bouton, le layout n'est pas prêt
+            if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
+
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
             container.scrollTo({
                 left: scrollTarget,
                 behavior: swipeActive ? 'instant' : 'smooth',
             })
+            return true
+        }
+
+        // Double rAF pour attendre que le layout DOM soit terminé
+        let cancelled = false
+        requestAnimationFrame(() => {
+            if (cancelled) return
+            requestAnimationFrame(() => {
+                if (cancelled) return
+                if (!scrollToSelected()) {
+                    // Fallback : retry après un court délai (sécurité mobile)
+                    setTimeout(() => {
+                        if (!cancelled) scrollToSelected()
+                    }, 100)
+                }
+            })
+        })
+
+        return () => {
+            cancelled = true
         }
     }, [selectedDate, swipeActive, dayBuffer])
+
+    // Scroll initial robuste (montage uniquement)
+    const hasInitialScrolled = useRef(false)
+    useEffect(() => {
+        if (hasInitialScrolled.current) return
+
+        const attemptScroll = (attemptsLeft) => {
+            if (hasInitialScrolled.current || attemptsLeft <= 0) return
+
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
+            const container = daySelectorRef.current
+
+            if (btn && container && (btn.offsetLeft > 0 || container.children[0] === btn)) {
+                const scrollTarget =
+                    btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+                container.scrollTo({ left: scrollTarget, behavior: 'instant' })
+                hasInitialScrolled.current = true
+
+                // Mettre à jour todayVisible après le scroll initial
+                setTimeout(() => {
+                    const todayStr = format(new Date(), 'yyyy-MM-dd')
+                    const todayBtn = container.querySelector(`[data-date="${todayStr}"]`)
+                    if (todayBtn) {
+                        const btnLeft = todayBtn.offsetLeft
+                        const btnRight = btnLeft + todayBtn.offsetWidth
+                        const isVisible =
+                            btnRight > container.scrollLeft &&
+                            btnLeft < container.scrollLeft + container.clientWidth
+                        todayVisibleRef.current = isVisible
+                        setTodayVisible(isVisible)
+                    }
+                }, 50)
+            } else {
+                setTimeout(() => attemptScroll(attemptsLeft - 1), 50)
+            }
+        }
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                attemptScroll(5)
+            })
+        })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Initialiser le mois affiche
     useEffect(() => {
