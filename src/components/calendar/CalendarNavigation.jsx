@@ -40,6 +40,9 @@ export default function CalendarNavigation({
 }) {
     const daySelectorRef = useRef(null)
     const [dayBuffer, setDayBuffer] = useState(() => generateDayBuffer(selectedDate))
+    const [visibleMonth, setVisibleMonth] = useState(() =>
+        format(selectedDate, 'MMMM yyyy', { locale: fr })
+    )
     const scrollAdjustRef = useRef(null)
     const isExtendingRef = useRef(false)
     const scrollRAF = useRef(null)
@@ -69,14 +72,37 @@ export default function CalendarNavigation({
     // Ajuster scrollLeft apres un prepend de jours et debloquer
     useLayoutEffect(() => {
         if (scrollAdjustRef.current && daySelectorRef.current) {
-            const { oldScrollLeft, oldScrollWidth } = scrollAdjustRef.current
+            const { oldScrollLeft, oldScrollWidth, trimLeft } = scrollAdjustRef.current
             const newScrollWidth = daySelectorRef.current.scrollWidth
-            const delta = newScrollWidth - oldScrollWidth
-            daySelectorRef.current.scrollLeft = oldScrollLeft + delta
+            if (trimLeft) {
+                // On a trimme a gauche : reduire scrollLeft
+                const delta = oldScrollWidth - newScrollWidth
+                daySelectorRef.current.scrollLeft = oldScrollLeft - delta
+            } else {
+                // On a prepend a gauche : augmenter scrollLeft
+                const delta = newScrollWidth - oldScrollWidth
+                daySelectorRef.current.scrollLeft = oldScrollLeft + delta
+            }
             scrollAdjustRef.current = null
         }
         isExtendingRef.current = false
     })
+
+    const updateVisibleMonth = useCallback((el) => {
+        const centerX = el.scrollLeft + el.clientWidth / 2
+        const buttons = el.querySelectorAll('[data-date]')
+        for (const btn of buttons) {
+            if (btn.offsetLeft <= centerX && btn.offsetLeft + btn.offsetWidth >= centerX) {
+                const dateStr = btn.dataset.date
+                if (dateStr) {
+                    const parsed = new Date(dateStr + 'T00:00:00')
+                    const month = format(parsed, 'MMMM yyyy', { locale: fr })
+                    setVisibleMonth(month)
+                }
+                break
+            }
+        }
+    }, [])
 
     const handleScroll = useCallback(() => {
         if (scrollRAF.current) return
@@ -88,35 +114,52 @@ export default function CalendarNavigation({
 
             const { scrollLeft, scrollWidth, clientWidth } = el
 
+            // Mettre a jour le mois visible
+            updateVisibleMonth(el)
+
             if (scrollLeft < SCROLL_EDGE_THRESHOLD) {
                 isExtendingRef.current = true
                 setDayBuffer((prev) => {
-                    if (prev.length >= MAX_BUFFER) return prev
                     const firstDay = prev[0]
                     const newDays = []
                     for (let i = EXTEND_COUNT; i >= 1; i--) {
                         newDays.push(addDays(firstDay, -i))
                     }
+                    const extended = [...newDays, ...prev]
+                    // Trim a droite si trop grand
+                    const result =
+                        extended.length > MAX_BUFFER ? extended.slice(0, MAX_BUFFER) : extended
                     scrollAdjustRef.current = {
                         oldScrollLeft: scrollLeft,
                         oldScrollWidth: scrollWidth,
+                        trimLeft: false,
                     }
-                    return [...newDays, ...prev]
+                    return result
                 })
             } else if (scrollLeft + clientWidth > scrollWidth - SCROLL_EDGE_THRESHOLD) {
                 isExtendingRef.current = true
                 setDayBuffer((prev) => {
-                    if (prev.length >= MAX_BUFFER) return prev
                     const lastDay = prev[prev.length - 1]
                     const newDays = []
                     for (let i = 1; i <= EXTEND_COUNT; i++) {
                         newDays.push(addDays(lastDay, i))
                     }
-                    return [...prev, ...newDays]
+                    const extended = [...prev, ...newDays]
+                    // Trim a gauche si trop grand
+                    if (extended.length > MAX_BUFFER) {
+                        const trimCount = extended.length - MAX_BUFFER
+                        scrollAdjustRef.current = {
+                            oldScrollLeft: scrollLeft,
+                            oldScrollWidth: scrollWidth,
+                            trimLeft: true,
+                        }
+                        return extended.slice(trimCount)
+                    }
+                    return extended
                 })
             }
         })
-    }, [])
+    }, [updateVisibleMonth])
 
     return (
         <>
@@ -134,9 +177,7 @@ export default function CalendarNavigation({
                 <button onClick={onPrevWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronLeft size={20} />
                 </button>
-                <span className={styles.weekNavTitle}>
-                    {format(selectedDate, 'MMMM yyyy', { locale: fr })}
-                </span>
+                <span className={styles.weekNavTitle}>{visibleMonth}</span>
                 <button onClick={onNextWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronRight size={20} />
                 </button>
