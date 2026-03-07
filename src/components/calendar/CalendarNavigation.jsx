@@ -5,8 +5,8 @@ import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
 import styles from './CalendarNavigation.module.css'
 
-const HALF_BUFFER = 180 // 180 jours de chaque cote = ~1 an
-const EXTEND_THRESHOLD = 1000 // px du bord pour declencher l'extension
+const HALF_BUFFER = 180
+const EXTEND_THRESHOLD = 2000
 const EXTEND_DAYS = 180
 
 function generateDays(centerDate) {
@@ -34,12 +34,11 @@ export default function CalendarNavigation({
     onGoToToday,
 }) {
     const daySelectorRef = useRef(null)
+    const monthTitleRef = useRef(null)
     const [dayBuffer, setDayBuffer] = useState(() => generateDays(selectedDate))
-    const [visibleMonth, setVisibleMonth] = useState(() =>
-        format(selectedDate, 'MMMM yyyy', { locale: fr })
-    )
     const extendingRef = useRef(false)
     const scrollRAF = useRef(null)
+    const lastMonthRef = useRef('')
 
     // Recentrer le buffer si selectedDate est hors du buffer
     useEffect(() => {
@@ -63,6 +62,15 @@ export default function CalendarNavigation({
         }
     }, [selectedDate, swipeActive, dayBuffer])
 
+    // Initialiser le mois affiche
+    useEffect(() => {
+        const month = format(selectedDate, 'MMMM yyyy', { locale: fr })
+        lastMonthRef.current = month
+        if (monthTitleRef.current) {
+            monthTitleRef.current.textContent = month
+        }
+    }, [selectedDate])
+
     const handleScroll = useCallback(() => {
         if (scrollRAF.current) return
         scrollRAF.current = requestAnimationFrame(() => {
@@ -72,27 +80,27 @@ export default function CalendarNavigation({
 
             const { scrollLeft, scrollWidth, clientWidth } = el
 
-            // Mettre a jour le mois visible
+            // Mois visible — manipulation DOM directe, pas de React state
             const centerX = scrollLeft + clientWidth / 2
-            const buttons = el.querySelectorAll('[data-date]')
-            let closestBtn = null
-            let closestDist = Infinity
-            for (const btn of buttons) {
-                const btnCenter = btn.offsetLeft + btn.offsetWidth / 2
-                const dist = Math.abs(btnCenter - centerX)
-                if (dist < closestDist) {
-                    closestDist = dist
-                    closestBtn = btn
+            // Estimer l'index du bouton central (chaque bouton fait ~78px : 70 + 8 gap)
+            const btnStep = 78
+            const estimatedIndex = Math.round(centerX / btnStep)
+            const buttons = el.children
+            const idx = Math.max(0, Math.min(estimatedIndex, buttons.length - 1))
+            const btn = buttons[idx]
+            if (btn?.dataset?.date) {
+                const parts = btn.dataset.date.split('-')
+                const d = new Date(+parts[0], +parts[1] - 1, +parts[2])
+                const month = format(d, 'MMMM yyyy', { locale: fr })
+                if (month !== lastMonthRef.current) {
+                    lastMonthRef.current = month
+                    if (monthTitleRef.current) {
+                        monthTitleRef.current.textContent = month
+                    }
                 }
-                if (btnCenter > centerX + 100) break // Optimisation: stop apres le centre
-            }
-            if (closestBtn?.dataset.date) {
-                const parsed = new Date(closestBtn.dataset.date + 'T00:00:00')
-                const month = format(parsed, 'MMMM yyyy', { locale: fr })
-                setVisibleMonth(month)
             }
 
-            // Extension aux bords (une seule fois)
+            // Extension aux bords
             if (extendingRef.current) return
 
             if (scrollLeft < EXTEND_THRESHOLD) {
@@ -107,7 +115,6 @@ export default function CalendarNavigation({
                     }
                     return [...newDays, ...prev]
                 })
-                // Ajuster scrollLeft apres le re-render
                 requestAnimationFrame(() => {
                     if (daySelectorRef.current) {
                         const delta = daySelectorRef.current.scrollWidth - oldScrollWidth
@@ -146,7 +153,9 @@ export default function CalendarNavigation({
                 <button onClick={onPrevWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronLeft size={20} />
                 </button>
-                <span className={styles.weekNavTitle}>{visibleMonth}</span>
+                <span className={styles.weekNavTitle} ref={monthTitleRef}>
+                    {format(selectedDate, 'MMMM yyyy', { locale: fr })}
+                </span>
                 <button onClick={onNextWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronRight size={20} />
                 </button>
