@@ -27,7 +27,7 @@ import WelcomeGuide from './components/WelcomeGuide'
 import { useTheme } from './hooks/useTheme'
 import { GROUP_NAME } from './constants'
 import { storageService } from './services/storage'
-import { Menu, Bell, Calendar as CalendarIcon, Mail, Home, User } from 'lucide-react'
+import { Menu, Calendar as CalendarIcon, Mail, Home, User } from 'lucide-react'
 import clsx from 'clsx'
 import styles from './components/App.module.css'
 
@@ -119,16 +119,6 @@ function AppContent() {
                             </Link>
                         </div>
                         <div className={styles.headerRight}>
-                            <Link
-                                to="/invitations"
-                                className={styles.bellLink}
-                                aria-label="Invitations"
-                            >
-                                <Bell size={20} />
-                                {notificationCount > 0 && (
-                                    <span className={styles.notifBadge}>{notificationCount}</span>
-                                )}
-                            </Link>
                             <span className={styles.userName}>{user?.name}</span>
                         </div>
                     </header>
