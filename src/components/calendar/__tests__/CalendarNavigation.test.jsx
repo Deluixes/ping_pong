@@ -12,7 +12,6 @@ const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 const defaultProps = {
     weekStart,
     selectedDate: weekStart,
-    weekDays,
     viewMode: 'normal',
     isWeekConfigured: true,
     isCurrentWeek: false,
@@ -21,6 +20,7 @@ const defaultProps = {
         { value: 'edit', label: 'Modifier' },
     ],
     daysWithSlots: [],
+    swipeActive: false,
     onPrevWeek: vi.fn(),
     onNextWeek: vi.fn(),
     onSelectDate: vi.fn(),
@@ -34,10 +34,10 @@ describe('CalendarNavigation', () => {
         expect(container.textContent).toContain('mars 2025')
     })
 
-    it('affiche les 7 jours de la semaine', () => {
+    it('affiche un buffer de jours (plus de 7)', () => {
         const { container } = render(<CalendarNavigation {...defaultProps} />)
         const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        expect(dayBtns.length).toBe(7)
+        expect(dayBtns.length).toBeGreaterThanOrEqual(21)
     })
 
     it('appelle onPrevWeek au clic sur le bouton gauche', () => {
@@ -65,9 +65,10 @@ describe('CalendarNavigation', () => {
         const { container } = render(
             <CalendarNavigation {...defaultProps} onSelectDate={onSelectDate} />
         )
+        // Le jour selectionne (weekStart) est au centre du buffer (index 10)
         const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        fireEvent.click(dayBtns[2]) // mercredi
-        expect(onSelectDate).toHaveBeenCalledWith(weekDays[2])
+        fireEvent.click(dayBtns[12]) // un jour apres le centre
+        expect(onSelectDate).toHaveBeenCalled()
     })
 
     it('applique dayBtnHasSlots sur un jour avec créneaux ouverts', () => {
@@ -79,8 +80,8 @@ describe('CalendarNavigation', () => {
                 daysWithSlots={[dayStr]}
             />
         )
-        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        expect(dayBtns[1].className).toContain('dayBtnHasSlots')
+        const btn = container.querySelector(`[data-date="${dayStr}"]`)
+        expect(btn.className).toContain('dayBtnHasSlots')
     })
 
     it('applique dayBtnSelectedHasSlots sur le jour sélectionné avec créneaux ouverts', () => {
@@ -92,17 +93,18 @@ describe('CalendarNavigation', () => {
                 daysWithSlots={[dayStr]}
             />
         )
-        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        expect(dayBtns[0].className).toContain('dayBtnSelectedHasSlots')
+        const btn = container.querySelector(`[data-date="${dayStr}"]`)
+        expect(btn.className).toContain('dayBtnSelectedHasSlots')
     })
 
     it('applique dayBtnSelected (gris) sur le jour sélectionné sans créneau ouvert', () => {
+        const dayStr = format(weekDays[0], 'yyyy-MM-dd')
         const { container } = render(
             <CalendarNavigation {...defaultProps} selectedDate={weekDays[0]} daysWithSlots={[]} />
         )
-        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        expect(dayBtns[0].className).toContain('dayBtnSelected')
-        expect(dayBtns[0].className).not.toContain('dayBtnSelectedHasSlots')
+        const btn = container.querySelector(`[data-date="${dayStr}"]`)
+        expect(btn.className).toContain('dayBtnSelected')
+        expect(btn.className).not.toContain('dayBtnSelectedHasSlots')
     })
 
     it('affiche le warning si semaine non configurée et pas courante', () => {

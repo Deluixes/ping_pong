@@ -71,6 +71,12 @@
     margin-bottom: 1rem;
     margin-left: -0.5rem;
     margin-right: -0.5rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.daySelector::-webkit-scrollbar {
+    display: none;
 }
 
 .dayBtn {

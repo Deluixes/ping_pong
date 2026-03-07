@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, startTransition } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { startOfWeek, addDays, isSameDay } from 'date-fns'
 import { RefreshCw } from 'lucide-react'
@@ -59,11 +59,6 @@ export default function Calendar() {
         setWeekStart(startOfWeek(today, { weekStartsOn: 1 }))
     }
 
-    const weekDays = []
-    for (let i = 0; i < 7; i++) {
-        weekDays.push(addDays(weekStart, i))
-    }
-
     // Hooks extraits
     const calendarData = useCalendarData(user, selectedDate, weekStart)
     const slotHelpers = useSlotHelpers({
@@ -84,6 +79,7 @@ export default function Calendar() {
     // Pull-to-refresh
     const handleRefresh = useCallback(() => calendarData.loadData(), [calendarData.loadData])
     const { containerRef, pullDistance, refreshing } = usePullToRefresh(handleRefresh)
+    const swipeTargetRef = useRef(null)
 
     // Swipe navigation (jour suivant / precedent)
     const swipeNextDay = useCallback(() => {
@@ -106,11 +102,24 @@ export default function Calendar() {
             return prev
         })
     }, [weekStart])
-    const { swipeStyle } = useSwipeNavigation({
+    const { swipeStyle, isTransitioning } = useSwipeNavigation({
         onSwipeLeft: swipeNextDay,
         onSwipeRight: swipePrevDay,
         containerRef,
+        targetRef: swipeTargetRef,
     })
+
+    // Selection de jour (met a jour weekStart si necessaire)
+    const handleSelectDate = useCallback(
+        (day) => {
+            setSelectedDate(day)
+            const newWeekStart = startOfWeek(day, { weekStartsOn: 1 })
+            if (newWeekStart.getTime() !== weekStart.getTime()) {
+                startTransition(() => setWeekStart(newWeekStart))
+            }
+        },
+        [weekStart]
+    )
 
     // Combine opened slots + week slots non-bloquants pour colorer les jours
     const daysWithSlots = useMemo(() => {
@@ -183,16 +192,16 @@ export default function Calendar() {
             <CalendarNavigation
                 weekStart={weekStart}
                 selectedDate={selectedDate}
-                weekDays={weekDays}
                 viewMode={viewMode}
                 isWeekConfigured={calendarData.isWeekConfigured}
                 isCurrentWeek={slotHelpers.isCurrentWeek()}
                 isToday={isSameDay(selectedDate, new Date())}
                 viewOptions={modal.getViewOptions()}
                 daysWithSlots={daysWithSlots}
+                swipeActive={isTransitioning}
                 onPrevWeek={prevWeek}
                 onNextWeek={nextWeek}
-                onSelectDate={setSelectedDate}
+                onSelectDate={handleSelectDate}
                 onSetViewMode={setViewMode}
                 onGoToToday={goToToday}
             />
@@ -211,7 +220,7 @@ export default function Calendar() {
                 />
             ) : (
                 <CalendarProvider value={calendarCtx}>
-                    <div style={swipeStyle}>
+                    <div ref={swipeTargetRef} style={swipeStyle}>
                         <DayViewSlots loading={calendarData.loading} />
                     </div>
                 </CalendarProvider>
