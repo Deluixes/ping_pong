@@ -7,27 +7,40 @@ export function usePullToRefresh(onRefresh) {
     const [pullDistance, setPullDistance] = useState(0)
     const [refreshing, setRefreshing] = useState(false)
     const startY = useRef(0)
+    const startX = useRef(0)
+    const directionRef = useRef(null)
     const containerRef = useRef(null)
 
     const handleTouchStart = useCallback((e) => {
         if (window.scrollY === 0) {
             startY.current = e.touches[0].clientY
+            startX.current = e.touches[0].clientX
+            directionRef.current = null
             setPulling(true)
         }
     }, [])
 
     const handleTouchMove = useCallback(
         (e) => {
-            if (!pulling) return
-            const diff = e.touches[0].clientY - startY.current
-            if (diff > 0) {
-                setPullDistance(Math.min(diff * 0.5, 80))
+            if (!pulling || directionRef.current === 'horizontal') return
+            const dx = e.touches[0].clientX - startX.current
+            const dy = e.touches[0].clientY - startY.current
+
+            if (!directionRef.current) {
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+                directionRef.current = Math.abs(dy) > Math.abs(dx) ? 'vertical' : 'horizontal'
+                if (directionRef.current === 'horizontal') return
+            }
+
+            if (dy > 0) {
+                setPullDistance(Math.min(dy * 0.5, 80))
             }
         },
         [pulling]
     )
 
     const handleTouchEnd = useCallback(async () => {
+        directionRef.current = null
         if (pullDistance > THRESHOLD && !refreshing) {
             setRefreshing(true)
             setPullDistance(40)
