@@ -6,7 +6,7 @@ import clsx from 'clsx'
 import styles from './CalendarNavigation.module.css'
 
 const HALF_BUFFER = 180
-const EXTEND_THRESHOLD = 2000
+const EXTEND_THRESHOLD = 10000
 const EXTEND_DAYS = 180
 
 function generateDays(centerDate) {
@@ -35,10 +35,12 @@ export default function CalendarNavigation({
 }) {
     const daySelectorRef = useRef(null)
     const monthTitleRef = useRef(null)
+    const todayBtnRef = useRef(null)
     const [dayBuffer, setDayBuffer] = useState(() => generateDays(selectedDate))
     const extendingRef = useRef(false)
     const scrollRAF = useRef(null)
     const lastMonthRef = useRef('')
+    const todayVisibleRef = useRef(true)
 
     // Recentrer le buffer si selectedDate est hors du buffer
     useEffect(() => {
@@ -79,6 +81,26 @@ export default function CalendarNavigation({
             if (!el) return
 
             const { scrollLeft, scrollWidth, clientWidth } = el
+
+            // Verifier si aujourd'hui est visible dans le strip
+            const todayStr = format(new Date(), 'yyyy-MM-dd')
+            const todayBtn = el.querySelector(`[data-date="${todayStr}"]`)
+            if (todayBtn) {
+                const btnLeft = todayBtn.offsetLeft
+                const btnRight = btnLeft + todayBtn.offsetWidth
+                const isVisible = btnRight > scrollLeft && btnLeft < scrollLeft + clientWidth
+                if (isVisible !== todayVisibleRef.current) {
+                    todayVisibleRef.current = isVisible
+                    if (todayBtnRef.current) {
+                        todayBtnRef.current.disabled = isVisible
+                        if (isVisible) {
+                            todayBtnRef.current.classList.add(styles.returnTodayDisabled)
+                        } else {
+                            todayBtnRef.current.classList.remove(styles.returnTodayDisabled)
+                        }
+                    }
+                }
+            }
 
             // Mois visible — manipulation DOM directe, pas de React state
             const centerX = scrollLeft + clientWidth / 2
@@ -142,6 +164,7 @@ export default function CalendarNavigation({
     return (
         <>
             <button
+                ref={todayBtnRef}
                 onClick={onGoToToday}
                 disabled={isToday}
                 className={clsx(styles.returnToday, isToday && styles.returnTodayDisabled)}
