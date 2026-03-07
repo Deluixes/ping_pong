@@ -27,8 +27,13 @@ export default function CalendarNavigation({
     useEffect(() => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd')
         const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
-        if (btn?.scrollIntoView) {
-            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+        const container = daySelectorRef.current
+        if (btn && container?.scrollTo) {
+            const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+            container.scrollTo({
+                left: scrollTarget,
+                behavior: 'smooth',
+            })
         }
     }, [selectedDate])
 
@@ -40,7 +45,7 @@ export default function CalendarNavigation({
                 disabled={isToday}
                 className={clsx(styles.returnToday, isToday && styles.returnTodayDisabled)}
             >
-                Revenir a aujourd'hui
+                Revenir à aujourd'hui
             </button>
 
             {/* Week Navigation */}

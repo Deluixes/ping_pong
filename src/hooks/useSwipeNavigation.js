@@ -73,7 +73,7 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
                 }
                 // Position new content off-screen on the opposite side (no transition)
                 setSlidePhase('in')
-                setSwipeOffset(-direction * containerWidth * 0.3)
+                setSwipeOffset(-direction * containerWidth * 0.15)
 
                 // Next frame: animate slide-in to center
                 requestAnimationFrame(() => {
@@ -114,7 +114,7 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
         if (isSwiping) return 'none'
         if (slidePhase === 'in' && swipeOffset !== 0) return 'none'
         if (slidePhase === 'in')
-            return `transform ${SLIDE_IN_MS}ms ease-out, opacity ${SLIDE_IN_MS}ms ease-out`
+            return `transform ${SLIDE_IN_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1), opacity ${SLIDE_IN_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
         return `transform ${SLIDE_OUT_MS}ms ease-out, opacity ${SLIDE_OUT_MS}ms ease-out`
     }
 
@@ -128,7 +128,7 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
                           slidePhase === 'in'
                               ? swipeOffset === 0
                                   ? 1
-                                  : 0.6
+                                  : 0.7
                               : Math.max(0.4, 1 - Math.abs(swipeOffset) / 250),
                   }
                 : undefined,
