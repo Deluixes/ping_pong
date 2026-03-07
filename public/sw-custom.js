@@ -3,6 +3,11 @@
  * This file is imported by the main Workbox-generated service worker
  */
 
+// Minimal fetch handler required for PWA install (not just a shortcut)
+self.addEventListener('fetch', function(event) {
+    event.respondWith(fetch(event.request))
+})
+
 // Handle push notifications
 self.addEventListener('push', function(event) {
     if (!event.data) {
