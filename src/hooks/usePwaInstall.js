@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 export function usePwaInstall() {
     const [deferredPrompt, setDeferredPrompt] = useState(null)
+    const [dismissed, setDismissed] = useState(false)
 
     const isStandalone =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -17,6 +18,7 @@ export function usePwaInstall() {
 
         const installedHandler = () => {
             setDeferredPrompt(null)
+            setDismissed(true)
         }
 
         window.addEventListener('beforeinstallprompt', handler)
@@ -29,16 +31,21 @@ export function usePwaInstall() {
     }, [isStandalone])
 
     const promptInstall = useCallback(async () => {
-        if (!deferredPrompt) return
-        deferredPrompt.prompt()
-        const { outcome } = await deferredPrompt.userChoice
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null)
+        if (deferredPrompt) {
+            deferredPrompt.prompt()
+            const { outcome } = await deferredPrompt.userChoice
+            if (outcome === 'accepted') {
+                setDeferredPrompt(null)
+                setDismissed(true)
+            }
+            return true
         }
+        return false
     }, [deferredPrompt])
 
     return {
-        canInstall: !isStandalone && deferredPrompt !== null,
+        canInstall: !isStandalone && !dismissed,
+        hasNativePrompt: deferredPrompt !== null,
         promptInstall,
     }
 }

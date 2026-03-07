@@ -23,7 +23,8 @@ import styles from './SlideMenu.module.css'
 
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout, simulatedRole, setSimulatedRole, getSimulatableRoles } = useAuth()
-    const { canInstall, promptInstall } = usePwaInstall()
+    const { canInstall, hasNativePrompt, promptInstall } = usePwaInstall()
+    const [showInstallTip, setShowInstallTip] = useState(false)
     const location = useLocation()
     const navigate = useNavigate()
     const [pendingCount, setPendingCount] = useState(0)
@@ -204,10 +205,24 @@ export default function SlideMenu({ isOpen, onClose }) {
 
                 {/* Install PWA */}
                 {canInstall && (
-                    <button onClick={promptInstall} className={styles.installBtn}>
-                        <Download size={20} />
-                        Installer l'app
-                    </button>
+                    <>
+                        <button
+                            onClick={async () => {
+                                const prompted = await promptInstall()
+                                if (!prompted) setShowInstallTip(true)
+                            }}
+                            className={styles.installBtn}
+                        >
+                            <Download size={20} />
+                            Installer l'app
+                        </button>
+                        {showInstallTip && (
+                            <div className={styles.installTip}>
+                                Ouvre le menu de ton navigateur (⋮) puis appuie sur{' '}
+                                <strong>« Ajouter à l'écran d'accueil »</strong>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Role Simulation */}
