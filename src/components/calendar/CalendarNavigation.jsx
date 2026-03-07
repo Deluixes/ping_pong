@@ -5,13 +5,12 @@ import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
 import styles from './CalendarNavigation.module.css'
 
-// Largeur d'un bouton jour + gap
 const BTN_WIDTH = 70
 const BTN_GAP = 8
 const BTN_STEP = BTN_WIDTH + BTN_GAP
-const EXTRA_EACH_SIDE = 3
-const FRICTION = 0.95
-const MIN_VELOCITY = 0.5
+const EXTRA_EACH_SIDE = 6
+const FRICTION = 0.94
+const MIN_VELOCITY = 0.3
 
 export default function CalendarNavigation({
     weekStart,
@@ -31,64 +30,65 @@ export default function CalendarNavigation({
 }) {
     const containerRef = useRef(null)
     const trackRef = useRef(null)
-
-    // dayOffset: nombre de jours de decalage par rapport a selectedDate
-    // 0 = selectedDate est centre, -1 = on a scroll d'un jour vers la droite, etc.
     const [dayOffset, setDayOffset] = useState(0)
-    const [dragPx, setDragPx] = useState(0)
+    const dayOffsetRef = useRef(0)
 
     const touchStartRef = useRef(null)
     const lastTouchRef = useRef(null)
     const velocityRef = useRef(0)
     const inertiaRef = useRef(null)
     const isDraggingRef = useRef(false)
-    const directionRef = useRef(null) // 'horizontal' | 'vertical' | null
-    const accumulatedRef = useRef(0)
+    const directionRef = useRef(null)
+    const accumulatedPxRef = useRef(0)
 
     // Nombre de boutons visibles
-    const getVisibleCount = useCallback(() => {
-        const w = containerRef.current?.clientWidth || 350
-        return Math.ceil(w / BTN_STEP) + 1
-    }, [])
+    const containerWidth = containerRef.current?.clientWidth || 350
+    const visibleCount = Math.ceil(containerWidth / BTN_STEP) + 1
+    const totalRendered = visibleCount + EXTRA_EACH_SIDE * 2
+    const halfRendered = Math.floor(totalRendered / 2)
 
-    // Jour central affiche
+    // Jour central et mois visible
     const centerDay = addDays(selectedDate, dayOffset)
     const visibleMonth = format(centerDay, 'MMMM yyyy', { locale: fr })
 
-    // Generer les jours a rendre
-    const visibleCount = getVisibleCount()
-    const totalRendered = visibleCount + EXTRA_EACH_SIDE * 2
-    const halfRendered = Math.floor(totalRendered / 2)
+    // Generer les jours
     const days = []
     for (let i = -halfRendered; i <= halfRendered; i++) {
         days.push(addDays(centerDay, i))
     }
 
-    // Position X du track : centrer le jour central + dragPx
-    const centerOffset = (() => {
-        const containerWidth = containerRef.current?.clientWidth || 350
-        return containerWidth / 2 - BTN_WIDTH / 2 - halfRendered * BTN_STEP
-    })()
+    // Position de base du track (sans drag)
+    const baseOffset = containerWidth / 2 - BTN_WIDTH / 2 - halfRendered * BTN_STEP
 
-    // Recentrer quand selectedDate change (via swipe ou clic externe)
+    // Appliquer le transform directement sur le DOM (pas de React state)
+    const applyTransform = useCallback(
+        (px) => {
+            if (trackRef.current) {
+                trackRef.current.style.transform = `translateX(${baseOffset + px}px)`
+            }
+        },
+        [baseOffset]
+    )
+
+    // Recentrer quand selectedDate change
     useEffect(() => {
+        dayOffsetRef.current = 0
+        accumulatedPxRef.current = 0
         setDayOffset(0)
-        setDragPx(0)
-        accumulatedRef.current = 0
         if (inertiaRef.current) {
             cancelAnimationFrame(inertiaRef.current)
             inertiaRef.current = null
         }
     }, [selectedDate])
 
-    const commitDrag = useCallback(() => {
-        // Convertir les pixels accumules en jours
-        const accumulated = accumulatedRef.current
-        const dayShift = Math.round(accumulated / BTN_STEP)
-        if (dayShift !== 0) {
-            setDayOffset((prev) => prev - dayShift)
-            accumulatedRef.current = accumulated - dayShift * BTN_STEP
-            setDragPx(accumulatedRef.current)
+    // Commit : convertir les pixels accumules en jours (re-render React)
+    const commitDayShift = useCallback(() => {
+        const px = accumulatedPxRef.current
+        const shift = Math.round(px / BTN_STEP)
+        if (shift !== 0) {
+            dayOffsetRef.current -= shift
+            accumulatedPxRef.current = px - shift * BTN_STEP
+            setDayOffset(dayOffsetRef.current)
         }
     }, [])
 
@@ -97,40 +97,36 @@ export default function CalendarNavigation({
             velocityRef.current *= FRICTION
             if (Math.abs(velocityRef.current) < MIN_VELOCITY) {
                 velocityRef.current = 0
-                // Snap au jour le plus proche
-                const remainder = accumulatedRef.current % BTN_STEP
-                const snapTarget =
-                    Math.abs(remainder) > BTN_STEP / 2
-                        ? accumulatedRef.current +
-                          (remainder > 0 ? BTN_STEP - remainder : -BTN_STEP - remainder)
-                        : accumulatedRef.current - remainder
-                const dayShift = Math.round(snapTarget / BTN_STEP)
-                setDayOffset((prev) => prev - dayShift)
-                accumulatedRef.current = 0
-                setDragPx(0)
+                // Snap final
+                const px = accumulatedPxRef.current
+                const shift = Math.round(px / BTN_STEP)
+                dayOffsetRef.current -= shift
+                accumulatedPxRef.current = 0
+                setDayOffset(dayOffsetRef.current)
+                applyTransform(0)
                 inertiaRef.current = null
                 return
             }
-            accumulatedRef.current += velocityRef.current
-            setDragPx(accumulatedRef.current)
 
-            // Commit des jours pendant l'inertie pour le mois visible
-            const dayShift = Math.round(accumulatedRef.current / BTN_STEP)
-            if (dayShift !== 0) {
-                setDayOffset((prev) => prev - dayShift)
-                accumulatedRef.current -= dayShift * BTN_STEP
-                setDragPx(accumulatedRef.current)
+            accumulatedPxRef.current += velocityRef.current
+            applyTransform(accumulatedPxRef.current)
+
+            // Commit quand on depasse un BTN_STEP
+            const shift = Math.round(accumulatedPxRef.current / BTN_STEP)
+            if (Math.abs(shift) >= 1) {
+                dayOffsetRef.current -= shift
+                accumulatedPxRef.current -= shift * BTN_STEP
+                setDayOffset(dayOffsetRef.current)
+                applyTransform(accumulatedPxRef.current)
             }
 
             inertiaRef.current = requestAnimationFrame(tick)
         }
         inertiaRef.current = requestAnimationFrame(tick)
-    }, [])
+    }, [applyTransform])
 
     const handleTouchStart = useCallback((e) => {
-        // Empecher le swipe de jour de capturer les touch events du day selector
         e.stopPropagation()
-        // Arreter l'inertie
         if (inertiaRef.current) {
             cancelAnimationFrame(inertiaRef.current)
             inertiaRef.current = null
@@ -138,10 +134,10 @@ export default function CalendarNavigation({
         velocityRef.current = 0
         isDraggingRef.current = false
         directionRef.current = null
+        accumulatedPxRef.current = 0
         touchStartRef.current = {
             x: e.touches[0].clientX,
             y: e.touches[0].clientY,
-            time: Date.now(),
         }
         lastTouchRef.current = {
             x: e.touches[0].clientX,
@@ -149,48 +145,52 @@ export default function CalendarNavigation({
         }
     }, [])
 
-    const handleTouchMove = useCallback((e) => {
-        e.stopPropagation()
-        if (!touchStartRef.current) return
-        const dx = e.touches[0].clientX - touchStartRef.current.x
-        const dy = e.touches[0].clientY - touchStartRef.current.y
+    const handleTouchMove = useCallback(
+        (e) => {
+            e.stopPropagation()
+            if (!touchStartRef.current) return
+            const dx = e.touches[0].clientX - touchStartRef.current.x
+            const dy = e.touches[0].clientY - touchStartRef.current.y
 
-        if (!directionRef.current) {
-            if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return
-            directionRef.current = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical'
-        }
+            if (!directionRef.current) {
+                if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return
+                directionRef.current = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical'
+            }
 
-        if (directionRef.current === 'vertical') return
+            if (directionRef.current === 'vertical') return
+            e.preventDefault()
 
-        // Empecher le scroll vertical pendant le drag horizontal
-        e.preventDefault()
+            isDraggingRef.current = true
 
-        isDraggingRef.current = true
-        const now = Date.now()
-        const last = lastTouchRef.current
-        if (last && now - last.time > 0) {
-            velocityRef.current = ((e.touches[0].clientX - last.x) / (now - last.time)) * 16
-        }
-        lastTouchRef.current = { x: e.touches[0].clientX, time: now }
+            // Calculer la velocite
+            const now = Date.now()
+            const last = lastTouchRef.current
+            if (last && now - last.time > 0) {
+                velocityRef.current = ((e.touches[0].clientX - last.x) / (now - last.time)) * 16
+            }
+            lastTouchRef.current = { x: e.touches[0].clientX, time: now }
 
-        accumulatedRef.current = dx
-        setDragPx(dx)
+            // Mettre a jour le pixel offset - DOM direct, pas de React state
+            accumulatedPxRef.current = dx
+            applyTransform(accumulatedPxRef.current)
 
-        // Commit des jours pendant le drag pour le mois visible
-        const dayShift = Math.round(accumulatedRef.current / BTN_STEP)
-        if (dayShift !== 0) {
-            setDayOffset((prev) => prev - dayShift)
-            accumulatedRef.current -= dayShift * BTN_STEP
-            setDragPx(accumulatedRef.current)
-            touchStartRef.current.x = e.touches[0].clientX - accumulatedRef.current
-        }
-    }, [])
+            // Commit si on depasse un BTN_STEP (pour mettre a jour le mois + les jours rendus)
+            const shift = Math.round(accumulatedPxRef.current / BTN_STEP)
+            if (Math.abs(shift) >= 1) {
+                dayOffsetRef.current -= shift
+                accumulatedPxRef.current -= shift * BTN_STEP
+                setDayOffset(dayOffsetRef.current)
+                // Re-ajuster le touchStart pour le prochain delta
+                touchStartRef.current.x = e.touches[0].clientX - accumulatedPxRef.current
+            }
+        },
+        [applyTransform]
+    )
 
     const handleTouchEnd = useCallback(
         (e) => {
             e.stopPropagation()
             if (!isDraggingRef.current) {
-                // C'etait un tap, pas un drag
                 touchStartRef.current = null
                 return
             }
@@ -201,18 +201,17 @@ export default function CalendarNavigation({
             if (Math.abs(velocityRef.current) > 2) {
                 startInertia()
             } else {
-                // Snap au jour le plus proche
-                const remainder = accumulatedRef.current % BTN_STEP
-                const snapDayShift = Math.round(accumulatedRef.current / BTN_STEP)
-                setDayOffset((prev) => prev - snapDayShift)
-                accumulatedRef.current = 0
-                setDragPx(0)
+                // Snap final
+                const shift = Math.round(accumulatedPxRef.current / BTN_STEP)
+                dayOffsetRef.current -= shift
+                accumulatedPxRef.current = 0
+                setDayOffset(dayOffsetRef.current)
+                applyTransform(0)
             }
         },
-        [startInertia]
+        [startInertia, applyTransform]
     )
 
-    // Attacher les events touch (non-passive pour pouvoir preventDefault)
     useEffect(() => {
         const el = containerRef.current
         if (!el) return
@@ -226,7 +225,6 @@ export default function CalendarNavigation({
         }
     }, [handleTouchStart, handleTouchMove, handleTouchEnd])
 
-    // Cleanup inertia on unmount
     useEffect(() => {
         return () => {
             if (inertiaRef.current) cancelAnimationFrame(inertiaRef.current)
@@ -235,7 +233,6 @@ export default function CalendarNavigation({
 
     return (
         <>
-            {/* Bouton Revenir a aujourd'hui */}
             <button
                 onClick={onGoToToday}
                 disabled={isToday}
@@ -244,7 +241,6 @@ export default function CalendarNavigation({
                 Revenir à aujourd'hui
             </button>
 
-            {/* Week Navigation */}
             <div className={styles.weekNav}>
                 <button onClick={onPrevWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronLeft size={20} />
@@ -255,14 +251,11 @@ export default function CalendarNavigation({
                 </button>
             </div>
 
-            {/* Day Selector - Touch-based infinite scroll */}
             <div className={styles.daySelector} ref={containerRef}>
                 <div
                     ref={trackRef}
                     className={styles.daySelectorTrack}
-                    style={{
-                        transform: `translateX(${centerOffset + dragPx}px)`,
-                    }}
+                    style={{ transform: `translateX(${baseOffset}px)` }}
                 >
                     {days.map((day) => {
                         const isSelected = isSameDay(day, selectedDate)
@@ -291,7 +284,6 @@ export default function CalendarNavigation({
                 </div>
             </div>
 
-            {/* Warning if week not configured and not current week */}
             {!isWeekConfigured && !isCurrentWeek && (
                 <div className={clsx('alert--warning', styles.warningContent)}>
                     <Info size={18} />
@@ -302,7 +294,6 @@ export default function CalendarNavigation({
                 </div>
             )}
 
-            {/* Filter + Edit Mode */}
             <div className={styles.viewModeWrapper}>
                 <select
                     value={viewMode}
