@@ -135,6 +135,23 @@
     border-top: 1px solid var(--color-border);
 }
 
+/* ===== Install PWA ===== */
+
+.installBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    width: 100%;
+    border: none;
+    background: none;
+    color: var(--color-primary);
+    font-size: inherit;
+    font-family: inherit;
+    cursor: pointer;
+    border-top: 1px solid var(--color-border);
+}
+
 /* ===== Role Simulation ===== */
 
 .roleSimulation {
