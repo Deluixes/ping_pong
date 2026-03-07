@@ -106,6 +106,10 @@ button {
     font-family: inherit;
 }
 
+select {
+    padding-right: 2rem;
+}
+
 /* ===== Buttons ===== */
 
 .btn {
