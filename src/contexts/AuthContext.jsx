@@ -45,6 +45,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let isMounted = true
+        let initialSessionHandled = false
 
         // Fonction pour traiter la session
         const handleSession = async (session, shouldCheckMember = false) => {
@@ -107,10 +108,12 @@ export const AuthProvider = ({ children }) => {
         supabase.auth
             .getSession()
             .then(({ data: { session } }) => {
+                initialSessionHandled = true
                 handleSession(session, true)
             })
             .catch((err) => {
                 console.error('Session error:', err)
+                initialSessionHandled = true
                 if (isMounted) setLoading(false)
             })
 
@@ -119,6 +122,8 @@ export const AuthProvider = ({ children }) => {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN') {
+                // Ignorer si getSession() a déjà traité la session initiale
+                if (!initialSessionHandled) return
                 handleSession(session, true)
             } else if (event === 'SIGNED_OUT') {
                 handleSession(null)
@@ -174,7 +179,7 @@ export const AuthProvider = ({ children }) => {
     }, [user?.id])
 
     // Inscription avec mot de passe
-    const signUp = async (email, password, name) => {
+    const signUp = useCallback(async (email, password, name) => {
         setAuthError(null)
         try {
             const { data, error } = await supabase.auth.signUp({
@@ -192,10 +197,10 @@ export const AuthProvider = ({ children }) => {
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
     // Connexion avec mot de passe
-    const signIn = async (email, password) => {
+    const signIn = useCallback(async (email, password) => {
         setAuthError(null)
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -209,10 +214,10 @@ export const AuthProvider = ({ children }) => {
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
     // Réinitialisation du mot de passe (envoi email)
-    const resetPassword = async (email) => {
+    const resetPassword = useCallback(async (email) => {
         setAuthError(null)
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -225,38 +230,40 @@ export const AuthProvider = ({ children }) => {
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
     // Changement de mot de passe (utilisateur connecté)
-    const changePassword = async (newPassword) => {
-        setAuthError(null)
-        try {
-            const { error } = await supabase.auth.updateUser({
-                password: newPassword,
-            })
-            if (error) throw error
-            // Après changement réussi, marquer comme n'ayant plus besoin de changer
-            if (user?.id) {
-                await storageService.clearMustChangePassword(user.id)
-                setMustChangePassword(false)
+    const changePassword = useCallback(
+        async (newPassword) => {
+            setAuthError(null)
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPassword,
+                })
+                if (error) throw error
+                // Après changement réussi, marquer comme n'ayant plus besoin de changer
+                if (user?.id) {
+                    await storageService.clearMustChangePassword(user.id)
+                    setMustChangePassword(false)
+                }
+                return { success: true }
+            } catch (error) {
+                console.error('Change password error:', error)
+                setAuthError(error.message)
+                return { success: false, error: error.message }
             }
-            return { success: true }
-        } catch (error) {
-            console.error('Change password error:', error)
-            setAuthError(error.message)
-            return { success: false, error: error.message }
-        }
-    }
+        },
+        [user?.id]
+    )
 
-    const requestAccess = async () => {
+    const requestAccess = useCallback(async () => {
         if (!user) return { success: false }
-        // Default role is member unless updated later
         const result = await storageService.requestAccess(user.id, user.email, user.name)
         setMemberStatus(result.status)
         return { success: true, status: result.status }
-    }
+    }, [user])
 
-    const updateName = async (name) => {
+    const updateName = useCallback(async (name) => {
         try {
             const { error } = await supabase.auth.updateUser({
                 data: { name },
@@ -268,30 +275,35 @@ export const AuthProvider = ({ children }) => {
             console.error('Update name error:', error)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         setUser(null)
         await supabase.auth.signOut()
-    }
+    }, [])
 
     // Refresh member status (useful after admin approval or name change)
-    const refreshMemberStatus = async () => {
-        if (user) {
-            const { role, licenseType, name } = await checkMemberStatus(user.id)
-            setUser((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          name: name || prev.name,
-                          role: role,
-                          ...derivePermissions(role),
-                          licenseType: licenseType,
-                      }
-                    : null
-            )
-        }
-    }
+    const refreshMemberStatus = useCallback(async () => {
+        // Utilise le setter fonctionnel pour accéder à la valeur courante
+        setUser((prev) => {
+            if (prev?.id) {
+                checkMemberStatus(prev.id).then(({ role, licenseType, name }) => {
+                    setUser((curr) =>
+                        curr
+                            ? {
+                                  ...curr,
+                                  name: name || curr.name,
+                                  role: role,
+                                  ...derivePermissions(role),
+                                  licenseType: licenseType,
+                              }
+                            : null
+                    )
+                })
+            }
+            return prev
+        })
+    }, [checkMemberStatus])
 
     // Obtenir les rôles qu'on peut simuler
     const getSimulatableRoles = useCallback(() => {
@@ -339,6 +351,14 @@ export const AuthProvider = ({ children }) => {
             authError,
             memberStatus,
             mustChangePassword,
+            signUp,
+            signIn,
+            resetPassword,
+            changePassword,
+            requestAccess,
+            updateName,
+            logout,
+            refreshMemberStatus,
             simulatedRole,
             getSimulatableRoles,
         ]

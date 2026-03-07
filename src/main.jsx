@@ -14,4 +14,5 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker
         .register('/sw-custom.js', { updateViaCache: 'none' })
         .then((reg) => reg.update())
+        .catch((err) => console.error('SW registration failed:', err))
 }

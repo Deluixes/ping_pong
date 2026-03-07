@@ -223,14 +223,18 @@ export function useCalendarData(user, selectedDate, weekStart) {
 
     const loadWeekInvitations = useCallback(
         async (signal) => {
-            const weekStartStr = format(weekStart, 'yyyy-MM-dd')
-            const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
-            const loadedInvitations = await storageService.getAllInvitationsForWeek(
-                weekStartStr,
-                weekEndStr
-            )
-            if (!signal?.aborted) {
-                setInvitations(loadedInvitations)
+            try {
+                const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+                const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
+                const loadedInvitations = await storageService.getAllInvitationsForWeek(
+                    weekStartStr,
+                    weekEndStr
+                )
+                if (!signal?.aborted) {
+                    setInvitations(loadedInvitations)
+                }
+            } catch (error) {
+                console.error('Error loading week invitations:', error)
             }
         },
         [weekStart]
@@ -238,11 +242,18 @@ export function useCalendarData(user, selectedDate, weekStart) {
 
     const loadWeekOpenedSlots = useCallback(
         async (signal) => {
-            const weekStartStr = format(weekStart, 'yyyy-MM-dd')
-            const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
-            const slots = await storageService.getOpenedSlotsForWeekFull(weekStartStr, weekEndStr)
-            if (!signal?.aborted) {
-                setOpenedSlots(slots)
+            try {
+                const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+                const weekEndStr = format(addDays(weekStart, 6), 'yyyy-MM-dd')
+                const slots = await storageService.getOpenedSlotsForWeekFull(
+                    weekStartStr,
+                    weekEndStr
+                )
+                if (!signal?.aborted) {
+                    setOpenedSlots(slots)
+                }
+            } catch (error) {
+                console.error('Error loading week opened slots:', error)
             }
         },
         [weekStart]

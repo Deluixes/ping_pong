@@ -71,7 +71,10 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
         let startIndex = clickedIndex
         for (let i = 1; i < duration; i++) {
             const prevSlot = TIME_SLOTS[clickedIndex - i]
-            if (prevSlot && getUserRegistration(prevSlot.id)) {
+            if (!prevSlot) break
+            const prevReg = getUserRegistration(prevSlot.id)
+            // Vérifier que c'est le même bloc (même durée)
+            if (prevReg && prevReg.duration === duration) {
                 startIndex = clickedIndex - i
             } else {
                 break
@@ -197,8 +200,16 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
             }
         }
 
-        const currentAccepted = getAcceptedParticipantCount(selectedSlotId)
-        const totalAfter = currentAccepted + (selfRegister ? 1 : 0)
+        // Vérifier l'overbooking sur TOUS les slots de la durée sélectionnée
+        let maxAccepted = 0
+        for (let i = 0; i < selectedDuration.slots; i++) {
+            const slot = TIME_SLOTS[startIndex + i]
+            if (slot) {
+                const slotAccepted = getAcceptedParticipantCount(slot.id)
+                if (slotAccepted > maxAccepted) maxAccepted = slotAccepted
+            }
+        }
+        const totalAfter = maxAccepted + (selfRegister ? 1 : 0)
         const isOverbooked = totalAfter > maxPersons
 
         try {

@@ -4,9 +4,12 @@ export function usePwaInstall() {
     const [deferredPrompt, setDeferredPrompt] = useState(null)
     const [dismissed, setDismissed] = useState(false)
 
-    const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true
+    const [isStandalone] = useState(
+        () =>
+            (typeof window.matchMedia === 'function' &&
+                window.matchMedia('(display-mode: standalone)').matches) ||
+            window.navigator.standalone === true
+    )
 
     useEffect(() => {
         if (isStandalone) return
