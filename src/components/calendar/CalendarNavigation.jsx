@@ -72,16 +72,19 @@ export default function CalendarNavigation({
 
         // Double rAF pour attendre que le layout DOM soit terminé
         let cancelled = false
+        const attemptWithRetries = (retriesLeft) => {
+            if (cancelled) return
+            if (scrollToSelected()) return
+            if (retriesLeft > 0) {
+                setTimeout(() => attemptWithRetries(retriesLeft - 1), 50)
+            }
+        }
+
         requestAnimationFrame(() => {
             if (cancelled) return
             requestAnimationFrame(() => {
                 if (cancelled) return
-                if (!scrollToSelected()) {
-                    // Fallback : retry après un court délai (sécurité mobile)
-                    setTimeout(() => {
-                        if (!cancelled) scrollToSelected()
-                    }, 100)
-                }
+                attemptWithRetries(5)
             })
         })
 
