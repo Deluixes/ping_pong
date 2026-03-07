@@ -40,6 +40,8 @@ export default function CalendarNavigation({
     const extendingRef = useRef(false)
     const scrollRAF = useRef(null)
     const lastMonthRef = useRef('')
+    const [todayVisible, setTodayVisible] = useState(true)
+    const todayVisibleRef = useRef(true)
 
     // Recentrer le buffer si selectedDate est hors du buffer
     useEffect(() => {
@@ -80,6 +82,19 @@ export default function CalendarNavigation({
             if (!el) return
 
             const { scrollLeft, scrollWidth, clientWidth } = el
+
+            // Vérifier si aujourd'hui est visible dans le strip
+            const todayStr = format(new Date(), 'yyyy-MM-dd')
+            const todayBtn = el.querySelector(`[data-date="${todayStr}"]`)
+            if (todayBtn) {
+                const btnLeft = todayBtn.offsetLeft
+                const btnRight = btnLeft + todayBtn.offsetWidth
+                const isVisible = btnRight > scrollLeft && btnLeft < scrollLeft + clientWidth
+                if (isVisible !== todayVisibleRef.current) {
+                    todayVisibleRef.current = isVisible
+                    setTodayVisible(isVisible)
+                }
+            }
 
             // Mois visible — manipulation DOM directe, pas de React state
             const centerX = scrollLeft + clientWidth / 2
@@ -144,8 +159,11 @@ export default function CalendarNavigation({
         <>
             <button
                 onClick={onGoToToday}
-                disabled={isToday}
-                className={clsx(styles.returnToday, isToday && styles.returnTodayDisabled)}
+                disabled={isToday && todayVisible}
+                className={clsx(
+                    styles.returnToday,
+                    isToday && todayVisible && styles.returnTodayDisabled
+                )}
             >
                 Revenir à aujourd'hui
             </button>
