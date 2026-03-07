@@ -56,6 +56,11 @@ export default function MemberSearchSelect({ members, value, onChange, placehold
                                 {selectedMember.name.charAt(0).toUpperCase()}
                             </span>
                             {selectedMember.name}
+                            {selectedMember.licenseType && (
+                                <span className={styles.licenseBadge}>
+                                    {selectedMember.licenseType}
+                                </span>
+                            )}
                         </span>
                     ) : (
                         <span className={styles.placeholder}>
@@ -96,6 +101,9 @@ export default function MemberSearchSelect({ members, value, onChange, placehold
                                         {m.name.charAt(0).toUpperCase()}
                                     </span>
                                     {m.name}
+                                    {m.licenseType && (
+                                        <span className={styles.licenseBadge}>{m.licenseType}</span>
+                                    )}
                                 </button>
                             ))
                         )}

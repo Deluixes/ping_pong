@@ -108,6 +108,17 @@
     background: var(--color-bg);
 }
 
+.licenseBadge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
 .empty {
     padding: 0.75rem;
     text-align: center;
