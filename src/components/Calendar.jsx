@@ -93,7 +93,9 @@ export default function Calendar() {
 
     // Pull-to-refresh
     const handleRefresh = useCallback(() => calendarData.loadData(), [calendarData.loadData])
-    const { containerRef, pullDistance, refreshing } = usePullToRefresh(handleRefresh)
+    const { containerRef, pullDistance, refreshing } = usePullToRefresh(handleRefresh, {
+        disabled: isModalOpen,
+    })
     const swipeTargetRef = useRef(null)
 
     // Swipe navigation (jour suivant / precedent)

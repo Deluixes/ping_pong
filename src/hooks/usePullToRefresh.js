@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 
 const THRESHOLD = 60
 
-export function usePullToRefresh(onRefresh) {
+export function usePullToRefresh(onRefresh, { disabled = false } = {}) {
     const [pulling, setPulling] = useState(false)
     const [pullDistance, setPullDistance] = useState(0)
     const [refreshing, setRefreshing] = useState(false)
@@ -11,14 +11,18 @@ export function usePullToRefresh(onRefresh) {
     const directionRef = useRef(null)
     const containerRef = useRef(null)
 
-    const handleTouchStart = useCallback((e) => {
-        if (window.scrollY === 0) {
-            startY.current = e.touches[0].clientY
-            startX.current = e.touches[0].clientX
-            directionRef.current = null
-            setPulling(true)
-        }
-    }, [])
+    const handleTouchStart = useCallback(
+        (e) => {
+            if (disabled) return
+            if (window.scrollY === 0) {
+                startY.current = e.touches[0].clientY
+                startX.current = e.touches[0].clientX
+                directionRef.current = null
+                setPulling(true)
+            }
+        },
+        [disabled]
+    )
 
     const handleTouchMove = useCallback(
         (e) => {
