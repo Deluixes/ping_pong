@@ -1,5 +1,18 @@
 export const changelog = [
     {
+        version: '1.2.1',
+        date: '2026-03-07',
+        title: 'Corrections et améliorations',
+        changes: [
+            'Nouvel onglet Statistiques : consultez vos stats de jeu et celles du club.',
+            'Scroll infini sur le calendrier : parcourez les jours sans limite, le calendrier charge automatiquement les semaines suivantes et précédentes.',
+            'Bouton "Revenir à aujourd\'hui" amélioré : il se désactive quand la date du jour est visible et se réactive dès que vous scrollez plus loin.',
+            'Affichage du type de licence des joueurs inscrits à un créneau.',
+            'Amélioration de la fluidité du swipe entre les jours.',
+            'Corrections de bugs divers sur le calendrier et les inscriptions.',
+        ],
+    },
+    {
         version: '1.2.0',
         date: '2026-03-06',
         title: 'Mise à jour de mars',
