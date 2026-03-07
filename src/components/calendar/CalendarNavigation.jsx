@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
-import { format, isSameDay, addDays, startOfWeek } from 'date-fns'
+import { format, isSameDay, addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import clsx from 'clsx'
 import styles from './CalendarNavigation.module.css'
@@ -41,20 +41,14 @@ export default function CalendarNavigation({
     const daySelectorRef = useRef(null)
     const [dayBuffer, setDayBuffer] = useState(() => generateDayBuffer(selectedDate))
     const scrollAdjustRef = useRef(null)
-    const lastCenterRef = useRef(selectedDate)
+    const isExtendingRef = useRef(false)
+    const scrollRAF = useRef(null)
 
-    // Recentrer le buffer quand selectedDate change significativement
+    // Recentrer le buffer UNIQUEMENT si selectedDate est hors du buffer
     useEffect(() => {
-        const first = dayBuffer[0]
-        const last = dayBuffer[dayBuffer.length - 1]
-        const edgeThreshold = 5
-
-        const daysFromStart = Math.round((selectedDate - first) / (1000 * 60 * 60 * 24))
-        const daysFromEnd = Math.round((last - selectedDate) / (1000 * 60 * 60 * 24))
-
-        if (daysFromStart < edgeThreshold || daysFromEnd < edgeThreshold) {
+        const isInBuffer = dayBuffer.some((d) => isSameDay(d, selectedDate))
+        if (!isInBuffer) {
             setDayBuffer(generateDayBuffer(selectedDate))
-            lastCenterRef.current = selectedDate
         }
     }, [selectedDate])
 
@@ -72,7 +66,7 @@ export default function CalendarNavigation({
         }
     }, [selectedDate, swipeActive])
 
-    // Ajuster scrollLeft apres un prepend de jours
+    // Ajuster scrollLeft apres un prepend de jours et debloquer
     useLayoutEffect(() => {
         if (scrollAdjustRef.current && daySelectorRef.current) {
             const { oldScrollLeft, oldScrollWidth } = scrollAdjustRef.current
@@ -81,21 +75,24 @@ export default function CalendarNavigation({
             daySelectorRef.current.scrollLeft = oldScrollLeft + delta
             scrollAdjustRef.current = null
         }
+        isExtendingRef.current = false
     })
 
     const handleScroll = useCallback(() => {
-        const el = daySelectorRef.current
-        if (!el) return
+        if (scrollRAF.current) return
+        scrollRAF.current = requestAnimationFrame(() => {
+            scrollRAF.current = null
+            if (isExtendingRef.current) return
+            const el = daySelectorRef.current
+            if (!el) return
 
-        const { scrollLeft, scrollWidth, clientWidth } = el
+            const { scrollLeft, scrollWidth, clientWidth } = el
 
-        if (scrollLeft < SCROLL_EDGE_THRESHOLD) {
-            // Prepend jours
-            setDayBuffer((prev) => {
-                if (prev.length >= MAX_BUFFER) {
-                    // Trim de la fin si buffer trop grand
-                    const trimmed = prev.slice(0, prev.length - EXTEND_COUNT)
-                    const firstDay = trimmed[0]
+            if (scrollLeft < SCROLL_EDGE_THRESHOLD) {
+                isExtendingRef.current = true
+                setDayBuffer((prev) => {
+                    if (prev.length >= MAX_BUFFER) return prev
+                    const firstDay = prev[0]
                     const newDays = []
                     for (let i = EXTEND_COUNT; i >= 1; i--) {
                         newDays.push(addDays(firstDay, -i))
@@ -104,39 +101,21 @@ export default function CalendarNavigation({
                         oldScrollLeft: scrollLeft,
                         oldScrollWidth: scrollWidth,
                     }
-                    return [...newDays, ...trimmed]
-                }
-                const firstDay = prev[0]
-                const newDays = []
-                for (let i = EXTEND_COUNT; i >= 1; i--) {
-                    newDays.push(addDays(firstDay, -i))
-                }
-                scrollAdjustRef.current = { oldScrollLeft: scrollLeft, oldScrollWidth: scrollWidth }
-                return [...newDays, ...prev]
-            })
-        }
-
-        if (scrollLeft + clientWidth > scrollWidth - SCROLL_EDGE_THRESHOLD) {
-            // Append jours
-            setDayBuffer((prev) => {
-                if (prev.length >= MAX_BUFFER) {
-                    // Trim du debut si buffer trop grand
-                    const trimmed = prev.slice(EXTEND_COUNT)
-                    const lastDay = trimmed[trimmed.length - 1]
+                    return [...newDays, ...prev]
+                })
+            } else if (scrollLeft + clientWidth > scrollWidth - SCROLL_EDGE_THRESHOLD) {
+                isExtendingRef.current = true
+                setDayBuffer((prev) => {
+                    if (prev.length >= MAX_BUFFER) return prev
+                    const lastDay = prev[prev.length - 1]
                     const newDays = []
                     for (let i = 1; i <= EXTEND_COUNT; i++) {
                         newDays.push(addDays(lastDay, i))
                     }
-                    return [...trimmed, ...newDays]
-                }
-                const lastDay = prev[prev.length - 1]
-                const newDays = []
-                for (let i = 1; i <= EXTEND_COUNT; i++) {
-                    newDays.push(addDays(lastDay, i))
-                }
-                return [...prev, ...newDays]
-            })
-        }
+                    return [...prev, ...newDays]
+                })
+            }
+        })
     }, [])
 
     return (
@@ -156,9 +135,7 @@ export default function CalendarNavigation({
                     <ChevronLeft size={20} />
                 </button>
                 <span className={styles.weekNavTitle}>
-                    {format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'MMMM yyyy', {
-                        locale: fr,
-                    })}
+                    {format(selectedDate, 'MMMM yyyy', { locale: fr })}
                 </span>
                 <button onClick={onNextWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronRight size={20} />
