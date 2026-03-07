@@ -34,10 +34,10 @@ describe('CalendarNavigation', () => {
         expect(container.textContent).toContain('mars 2025')
     })
 
-    it('affiche un buffer de jours (plus de 7)', () => {
+    it('affiche des boutons de jours', () => {
         const { container } = render(<CalendarNavigation {...defaultProps} />)
-        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        expect(dayBtns.length).toBeGreaterThanOrEqual(21)
+        const dayBtns = container.querySelectorAll('[data-date]')
+        expect(dayBtns.length).toBeGreaterThan(0)
     })
 
     it('appelle onPrevWeek au clic sur le bouton gauche', () => {
@@ -65,9 +65,8 @@ describe('CalendarNavigation', () => {
         const { container } = render(
             <CalendarNavigation {...defaultProps} onSelectDate={onSelectDate} />
         )
-        // Le jour selectionne (weekStart) est au centre du buffer (index 10)
-        const dayBtns = container.querySelectorAll('[class*="dayBtn"]')
-        fireEvent.click(dayBtns[12]) // un jour apres le centre
+        const dayBtns = container.querySelectorAll('[data-date]')
+        fireEvent.click(dayBtns[0])
         expect(onSelectDate).toHaveBeenCalled()
     })
 

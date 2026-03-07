@@ -64,19 +64,20 @@
 
 /* Day Selector */
 .daySelector {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
+    position: relative;
+    overflow: hidden;
     padding: 0.5rem;
     margin-bottom: 1rem;
     margin-left: -0.5rem;
     margin-right: -0.5rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    user-select: none;
 }
 
-.daySelector::-webkit-scrollbar {
-    display: none;
+.daySelectorTrack {
+    display: flex;
+    gap: 0.5rem;
+    will-change: transform;
 }
 
 .dayBtn {
