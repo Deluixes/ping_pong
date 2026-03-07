@@ -78,6 +78,19 @@ export default function Calendar() {
 
     const isAdmin = user?.isAdmin
 
+    // Verrouiller le scroll quand une modale est ouverte
+    const isModalOpen = !!(modal.modalStep || modal.showParticipantsList || modal.showOpenSlotModal)
+    useEffect(() => {
+        if (isModalOpen) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = ''
+        }
+        return () => {
+            document.body.style.overflow = ''
+        }
+    }, [isModalOpen])
+
     // Pull-to-refresh
     const handleRefresh = useCallback(() => calendarData.loadData(), [calendarData.loadData])
     const { containerRef, pullDistance, refreshing } = usePullToRefresh(handleRefresh)
