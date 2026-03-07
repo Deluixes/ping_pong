@@ -20,6 +20,7 @@ import PlanningSettings from './components/PlanningSettings'
 import MyInvitations from './components/MyInvitations'
 import MyClub from './components/MyClub'
 import Changelog from './components/Changelog'
+import Statistics from './components/Statistics'
 import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
@@ -66,6 +67,7 @@ const PAGE_TITLES = {
     '/invitations': 'Invitations',
     '/club': 'Mon club',
     '/changelog': "Notes de l'App",
+    '/stats': 'Statistiques',
     '/admin': 'Gestion membres',
     '/admin/planning': 'Gestion planning',
 }
@@ -157,6 +159,14 @@ function AppContent() {
                         element={
                             <PrivateRoute>
                                 <MyClub />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/stats"
+                        element={
+                            <PrivateRoute>
+                                <Statistics />
                             </PrivateRoute>
                         }
                     />

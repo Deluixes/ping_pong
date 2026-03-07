@@ -5,17 +5,14 @@ import { storageService } from '../services/storage'
 import { GROUP_NAME, CLUB_URL } from '../constants'
 import {
     X,
-    Calendar,
     Users,
     LogOut,
-    User,
     Settings,
-    Mail,
     Shield,
-    Home,
     ExternalLink,
     Sparkles,
     Download,
+    BarChart3,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { usePwaInstall } from '../hooks/usePwaInstall'
@@ -28,7 +25,6 @@ export default function SlideMenu({ isOpen, onClose }) {
     const location = useLocation()
     const navigate = useNavigate()
     const [pendingCount, setPendingCount] = useState(0)
-    const [invitationsCount, setInvitationsCount] = useState(0)
     const [profilePhotoUrl, setProfilePhotoUrl] = useState(null)
 
     useEffect(() => {
@@ -36,7 +32,6 @@ export default function SlideMenu({ isOpen, onClose }) {
             storageService.getPendingCount().then(setPendingCount)
         }
         if (isOpen && user) {
-            storageService.getPendingInvitationsCount(user.id).then(setInvitationsCount)
             storageService.getProfilePhotoUrl(user.id).then(setProfilePhotoUrl)
         }
     }, [isOpen, user?.isAdmin, user])
@@ -104,48 +99,12 @@ export default function SlideMenu({ isOpen, onClose }) {
                 {/* Navigation */}
                 <nav className={styles.nav}>
                     <Link
-                        to="/"
+                        to="/stats"
                         onClick={onClose}
-                        className={clsx(styles.navLink, isActive('/') && styles.navLinkActive)}
+                        className={clsx(styles.navLink, isActive('/stats') && styles.navLinkActive)}
                     >
-                        <Calendar size={20} />
-                        Planning
-                    </Link>
-
-                    <Link
-                        to="/settings"
-                        onClick={onClose}
-                        className={clsx(
-                            styles.navLink,
-                            isActive('/settings') && styles.navLinkActive
-                        )}
-                    >
-                        <User size={20} />
-                        Mon compte
-                    </Link>
-
-                    <Link
-                        to="/invitations"
-                        onClick={onClose}
-                        className={clsx(
-                            styles.navLink,
-                            isActive('/invitations') && styles.navLinkActive
-                        )}
-                    >
-                        <Mail size={20} />
-                        <span className={styles.navLinkLabel}>Invitations reçues</span>
-                        {invitationsCount > 0 && (
-                            <span className="badge--count">{invitationsCount}</span>
-                        )}
-                    </Link>
-
-                    <Link
-                        to="/club"
-                        onClick={onClose}
-                        className={clsx(styles.navLink, isActive('/club') && styles.navLinkActive)}
-                    >
-                        <Home size={20} />
-                        Mon club
+                        <BarChart3 size={20} />
+                        Statistiques
                     </Link>
 
                     <Link

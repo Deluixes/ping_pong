@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { CalendarProvider } from '../contexts/CalendarContext'
 import { RegistrationProvider } from '../contexts/RegistrationContext'
 import { useCalendarData } from '../hooks/useCalendarData'
+import { useDaysWithSlotsWide } from '../hooks/useDaysWithSlotsWide'
 import { useSlotHelpers } from '../hooks/useSlotHelpers'
 import { useRegistrationModal } from '../hooks/useRegistrationModal'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
@@ -60,6 +61,7 @@ export default function Calendar() {
     }
 
     // Hooks extraits
+    const wideDaysWithSlots = useDaysWithSlotsWide(selectedDate)
     const calendarData = useCalendarData(user, selectedDate, weekStart)
     const slotHelpers = useSlotHelpers({
         events: calendarData.events,
@@ -121,14 +123,15 @@ export default function Calendar() {
         [weekStart]
     )
 
-    // Combine opened slots + week slots non-bloquants pour colorer les jours
+    // Combine wide-range days + current week's detailed data
     const daysWithSlots = useMemo(() => {
-        const dates = new Set(calendarData.daysWithOpenedSlots)
+        const dates = new Set(wideDaysWithSlots)
+        for (const d of calendarData.daysWithOpenedSlots) dates.add(d)
         for (const ws of calendarData.weekSlots) {
             if (ws.date && !ws.isBlocking) dates.add(ws.date)
         }
         return [...dates]
-    }, [calendarData.daysWithOpenedSlots, calendarData.weekSlots])
+    }, [wideDaysWithSlots, calendarData.daysWithOpenedSlots, calendarData.weekSlots])
 
     const calendarCtx = useMemo(
         () => ({

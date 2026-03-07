@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { format, isSameDay, addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -33,6 +33,7 @@ export default function CalendarNavigation({
     onSetViewMode,
     onGoToToday,
 }) {
+    const slotsSet = useMemo(() => new Set(daysWithSlots), [daysWithSlots])
     const daySelectorRef = useRef(null)
     const monthTitleRef = useRef(null)
     const todayBtnRef = useRef(null)
@@ -188,7 +189,7 @@ export default function CalendarNavigation({
                 {dayBuffer.map((day) => {
                     const isSelected = isSameDay(day, selectedDate)
                     const dayStr = format(day, 'yyyy-MM-dd')
-                    const hasSlots = daysWithSlots.includes(dayStr)
+                    const hasSlots = slotsSet.has(dayStr)
 
                     return (
                         <button

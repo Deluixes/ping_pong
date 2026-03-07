@@ -440,6 +440,22 @@ export const weekConfigService = {
         return config.hours
     },
 
+    async getWeekSlotDates(startDate, endDate) {
+        const { data, error } = await supabase
+            .from('week_slots')
+            .select('date')
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .eq('is_blocking', false)
+
+        if (error) {
+            console.error('Error fetching week slot dates:', error)
+            return []
+        }
+
+        return [...new Set(data.map((s) => s.date))]
+    },
+
     async deleteWeekConfig(weekStart) {
         const { error } = await supabase.from('week_configs').delete().eq('week_start', weekStart)
 

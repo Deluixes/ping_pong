@@ -84,7 +84,7 @@
     min-width: 70px;
     padding: 0.75rem 0.5rem;
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
+    border: 2px solid var(--color-border);
     background: var(--color-surface);
     color: inherit;
     display: flex;
