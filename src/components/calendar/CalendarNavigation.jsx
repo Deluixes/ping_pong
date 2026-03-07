@@ -279,16 +279,6 @@ export default function CalendarNavigation({
                 })}
             </div>
 
-            {!isWeekConfigured && !isCurrentWeek && (
-                <div className={clsx('alert--warning', styles.warningContent)}>
-                    <Info size={18} />
-                    <span className={styles.warningText}>
-                        Cette semaine n'est pas encore configurée. Les réservations ne sont pas
-                        ouvertes.
-                    </span>
-                </div>
-            )}
-
             <div className={styles.viewModeWrapper}>
                 <select
                     value={viewMode}
@@ -306,6 +296,16 @@ export default function CalendarNavigation({
                     ))}
                 </select>
             </div>
+
+            {!isWeekConfigured && !isCurrentWeek && (
+                <div className={clsx('alert--warning', styles.warningContent)}>
+                    <Info size={18} />
+                    <span className={styles.warningText}>
+                        Cette semaine n'est pas encore configurée. Les réservations ne sont pas
+                        ouvertes.
+                    </span>
+                </div>
+            )}
         </>
     )
 }

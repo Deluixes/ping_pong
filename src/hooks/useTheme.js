@@ -13,7 +13,7 @@ function applyTheme(resolved) {
 
 export function useTheme() {
     const [preference, setPreference] = useState(() => {
-        return localStorage.getItem(STORAGE_KEY) || 'auto'
+        return localStorage.getItem(STORAGE_KEY) || 'light'
     })
 
     const resolved = preference === 'auto' ? getSystemTheme() : preference
