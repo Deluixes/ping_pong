@@ -1,3 +1,33 @@
+/* Today Button */
+.returnToday {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition:
+        opacity 0.2s,
+        background 0.2s;
+}
+
+.returnToday:active:not(:disabled) {
+    opacity: 0.85;
+}
+
+.returnTodayDisabled {
+    background: var(--color-bg-muted);
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    cursor: default;
+    opacity: 0.6;
+}
+
 /* Week Navigation */
 .weekNav {
     display: flex;
@@ -30,21 +60,6 @@
     flex-direction: column;
     align-items: center;
     gap: 0.1rem;
-}
-
-.weekNavTitleClickable {
-    cursor: pointer;
-}
-
-.weekNavTitleClickable:active {
-    background: var(--color-bg);
-}
-
-.todayHint {
-    font-size: 0.65rem;
-    font-weight: 500;
-    color: var(--color-primary);
-    text-transform: none;
 }
 
 /* Day Selector */

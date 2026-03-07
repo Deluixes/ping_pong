@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, startTransition } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { startOfWeek, addDays } from 'date-fns'
+import { startOfWeek, addDays, isSameDay } from 'date-fns'
 import { RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { CalendarProvider } from '../contexts/CalendarContext'
@@ -91,7 +91,7 @@ export default function Calendar() {
             const next = addDays(d, 1)
             const nextWeekStart = startOfWeek(next, { weekStartsOn: 1 })
             if (nextWeekStart.getTime() !== weekStart.getTime()) {
-                setWeekStart(nextWeekStart)
+                startTransition(() => setWeekStart(nextWeekStart))
             }
             return next
         })
@@ -101,7 +101,7 @@ export default function Calendar() {
             const prev = addDays(d, -1)
             const prevWeekStart = startOfWeek(prev, { weekStartsOn: 1 })
             if (prevWeekStart.getTime() !== weekStart.getTime()) {
-                setWeekStart(prevWeekStart)
+                startTransition(() => setWeekStart(prevWeekStart))
             }
             return prev
         })
@@ -187,6 +187,7 @@ export default function Calendar() {
                 viewMode={viewMode}
                 isWeekConfigured={calendarData.isWeekConfigured}
                 isCurrentWeek={slotHelpers.isCurrentWeek()}
+                isToday={isSameDay(selectedDate, new Date())}
                 viewOptions={modal.getViewOptions()}
                 daysWithSlots={daysWithSlots}
                 onPrevWeek={prevWeek}

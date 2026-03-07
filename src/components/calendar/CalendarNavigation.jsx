@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { format, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -11,6 +12,7 @@ export default function CalendarNavigation({
     viewMode,
     isWeekConfigured,
     isCurrentWeek,
+    isToday,
     viewOptions,
     daysWithSlots,
     onPrevWeek,
@@ -19,30 +21,43 @@ export default function CalendarNavigation({
     onSetViewMode,
     onGoToToday,
 }) {
+    const daySelectorRef = useRef(null)
+
+    // Scroll le jour selectionne en vue quand selectedDate change
+    useEffect(() => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd')
+        const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
+        if (btn?.scrollIntoView) {
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+        }
+    }, [selectedDate])
+
     return (
         <>
+            {/* Bouton Revenir a aujourd'hui */}
+            <button
+                onClick={onGoToToday}
+                disabled={isToday}
+                className={clsx(styles.returnToday, isToday && styles.returnTodayDisabled)}
+            >
+                Revenir a aujourd'hui
+            </button>
+
             {/* Week Navigation */}
             <div className={styles.weekNav}>
                 <button onClick={onPrevWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronLeft size={20} />
                 </button>
-                <button
-                    onClick={onGoToToday}
-                    className={clsx(
-                        styles.weekNavTitle,
-                        !isCurrentWeek && styles.weekNavTitleClickable
-                    )}
-                >
+                <span className={styles.weekNavTitle}>
                     {format(weekStart, 'MMMM yyyy', { locale: fr })}
-                    {!isCurrentWeek && <span className={styles.todayHint}>Aujourd'hui</span>}
-                </button>
+                </span>
                 <button onClick={onNextWeek} className={clsx('btn', styles.weekNavBtn)}>
                     <ChevronRight size={20} />
                 </button>
             </div>
 
             {/* Day Selector */}
-            <div className={styles.daySelector}>
+            <div className={styles.daySelector} ref={daySelectorRef}>
                 {weekDays.map((day) => {
                     const isSelected = isSameDay(day, selectedDate)
                     const dayStr = format(day, 'yyyy-MM-dd')
@@ -51,6 +66,7 @@ export default function CalendarNavigation({
                     return (
                         <button
                             key={day.toISOString()}
+                            data-date={dayStr}
                             onClick={() => onSelectDate(day)}
                             className={clsx(
                                 styles.dayBtn,

@@ -2,8 +2,8 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 
 const MIN_SWIPE_DISTANCE = 40
 const RESISTANCE = 0.4
-const SLIDE_OUT_MS = 150
-const SLIDE_IN_MS = 200
+const SLIDE_OUT_MS = 180
+const SLIDE_IN_MS = 250
 
 export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) {
     const [swipeOffset, setSwipeOffset] = useState(0)

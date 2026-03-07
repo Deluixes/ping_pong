@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import clsx from 'clsx'
-import { Users, X, Check, Lock, Unlock, Trash2 } from 'lucide-react'
+import { Users, X, Check, Lock, Unlock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { TIME_SLOTS, SLOT_INDEX_MAP } from './calendarUtils'
 import { useCalendar } from '../../contexts/CalendarContext'
 import styles from './DayViewSlots.module.css'
@@ -36,25 +36,38 @@ export default function DayViewSlots({ loading }) {
         )
     }
 
+    const filteredSlots = TIME_SLOTS.filter((slot) => {
+        // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
+        const blockedInfo = getBlockedSlotInfo(slot.id)
+        const isBlocked = blockedInfo !== undefined
+        if (!isBlocked && !isSlotInOpeningHours(slot.id)) return false
+
+        // 2. Filtre selon viewMode
+        if (viewMode === 'occupied') {
+            const hasParticipants = getParticipants(slot.id).length > 0
+            const isOpenedSlot = getOpenedSlotInfo(slot.id) !== undefined
+            return hasParticipants || isBlocked || isOpenedSlot
+        }
+        return true
+    })
+
+    if (filteredSlots.length === 0) {
+        return (
+            <div className={styles.slotList}>
+                <div className={styles.emptyState}>
+                    <ChevronLeft size={20} className={styles.emptyArrow} />
+                    <span>Swipez pour changer de jour</span>
+                    <ChevronRight size={20} className={styles.emptyArrow} />
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={styles.slotList}>
-            {TIME_SLOTS.filter((slot) => {
-                // 1. Filtrer par plages horaires (sauf créneaux bloqués qui s'affichent toujours)
-                const blockedInfo = getBlockedSlotInfo(slot.id)
-                const isBlocked = blockedInfo !== undefined
-                if (!isBlocked && !isSlotInOpeningHours(slot.id)) return false
-
-                // 2. Filtre selon viewMode
-                if (viewMode === 'occupied') {
-                    const hasParticipants = getParticipants(slot.id).length > 0
-                    const isOpenedSlot = getOpenedSlotInfo(slot.id) !== undefined
-                    return hasParticipants || isBlocked || isOpenedSlot
-                }
-                return true
-            }).map((slot, idx, filteredSlots) => {
+            {filteredSlots.map((slot, idx, arr) => {
                 const showGap =
-                    idx > 0 &&
-                    SLOT_INDEX_MAP.get(slot.id) - SLOT_INDEX_MAP.get(filteredSlots[idx - 1].id) > 1
+                    idx > 0 && SLOT_INDEX_MAP.get(slot.id) - SLOT_INDEX_MAP.get(arr[idx - 1].id) > 1
 
                 const blockedInfo = getBlockedSlotInfo(slot.id)
                 const availability = isSlotAvailable(slot.id)
