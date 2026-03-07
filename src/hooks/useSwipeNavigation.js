@@ -13,10 +13,28 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
     const swipingRef = useRef(false)
     const directionRef = useRef(null) // 'horizontal' | 'vertical' | null
     const offsetRef = useRef(0)
+    const inScrollableRef = useRef(false)
 
     const handleTouchStart = useCallback(
         (e) => {
             if (transitioning) return
+
+            // Ignorer le swipe si le touch demarre dans un element scrollable horizontalement
+            let el = e.target
+            const container = containerRef?.current
+            inScrollableRef.current = false
+            while (el && el !== container) {
+                if (el.scrollWidth > el.clientWidth) {
+                    const style = window.getComputedStyle(el)
+                    const overflowX = style.overflowX
+                    if (overflowX === 'auto' || overflowX === 'scroll') {
+                        inScrollableRef.current = true
+                        break
+                    }
+                }
+                el = el.parentElement
+            }
+
             touchStart.current = {
                 x: e.touches[0].clientX,
                 y: e.touches[0].clientY,
@@ -25,12 +43,12 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
             directionRef.current = null
             offsetRef.current = 0
         },
-        [transitioning]
+        [transitioning, containerRef]
     )
 
     const handleTouchMove = useCallback(
         (e) => {
-            if (transitioning) return
+            if (transitioning || inScrollableRef.current) return
             const dx = e.touches[0].clientX - touchStart.current.x
             const dy = e.touches[0].clientY - touchStart.current.y
 
