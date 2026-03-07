@@ -59,6 +59,7 @@ export function useRegistrationModal({ user, selectedDate, slotHelpers, calendar
     const participantsModal = useParticipantsModal({
         slotHelpers,
         calendarData,
+        user,
     })
 
     // ==================== HELPERS ====================

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { storageService } from '../services/storage'
 
-export function useParticipantsModal({ slotHelpers, calendarData }) {
+export function useParticipantsModal({ slotHelpers, calendarData, user }) {
     const { getParticipants } = slotHelpers
     const { approvedMembers } = calendarData
 
@@ -16,7 +16,7 @@ export function useParticipantsModal({ slotHelpers, calendarData }) {
                 return {
                     ...p,
                     profilePhotoUrl: p.id ? await storageService.getProfilePhotoUrl(p.id) : null,
-                    licenseType: member?.licenseType || null,
+                    licenseType: p.id === user?.id ? user.licenseType : member?.licenseType || null,
                 }
             })
         )
