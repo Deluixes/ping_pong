@@ -2,10 +2,13 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 
 const MIN_SWIPE_DISTANCE = 40
 const RESISTANCE = 0.4
+const SLIDE_OUT_MS = 150
+const SLIDE_IN_MS = 200
 
 export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) {
     const [swipeOffset, setSwipeOffset] = useState(0)
     const [transitioning, setTransitioning] = useState(false)
+    const [slidePhase, setSlidePhase] = useState(null) // 'out' | 'in' | null
     const touchStart = useRef({ x: 0, y: 0 })
     const swipingRef = useRef(false)
     const directionRef = useRef(null) // 'horizontal' | 'vertical' | null
@@ -61,15 +64,28 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
             const containerWidth = containerRef?.current?.offsetWidth || 300
             setSwipeOffset(direction * containerWidth * 0.5)
 
+            // After slide-out, change day and slide-in from opposite side
             setTimeout(() => {
                 if (direction > 0) {
                     onSwipeRight?.()
                 } else {
                     onSwipeLeft?.()
                 }
-                setSwipeOffset(0)
-                setTransitioning(false)
-            }, 150)
+                // Position new content off-screen on the opposite side (no transition)
+                setSlidePhase('in')
+                setSwipeOffset(-direction * containerWidth * 0.3)
+
+                // Next frame: animate slide-in to center
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        setSwipeOffset(0)
+                        setTimeout(() => {
+                            setTransitioning(false)
+                            setSlidePhase(null)
+                        }, SLIDE_IN_MS)
+                    })
+                })
+            }, SLIDE_OUT_MS)
         } else {
             // Snap back
             setSwipeOffset(0)
@@ -94,15 +110,27 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight, containerRef }) 
 
     const isSwiping = swipingRef.current && !transitioning
 
+    const getTransition = () => {
+        if (isSwiping) return 'none'
+        if (slidePhase === 'in' && swipeOffset !== 0) return 'none'
+        if (slidePhase === 'in')
+            return `transform ${SLIDE_IN_MS}ms ease-out, opacity ${SLIDE_IN_MS}ms ease-out`
+        return `transform ${SLIDE_OUT_MS}ms ease-out, opacity ${SLIDE_OUT_MS}ms ease-out`
+    }
+
     return {
-        swipeStyle: swipeOffset
-            ? {
-                  transform: `translateX(${swipeOffset}px)`,
-                  transition: isSwiping
-                      ? 'none'
-                      : 'transform 0.15s ease-out, opacity 0.15s ease-out',
-                  opacity: Math.max(0.4, 1 - Math.abs(swipeOffset) / 250),
-              }
-            : undefined,
+        swipeStyle:
+            swipeOffset || slidePhase
+                ? {
+                      transform: `translateX(${swipeOffset}px)`,
+                      transition: getTransition(),
+                      opacity:
+                          slidePhase === 'in'
+                              ? swipeOffset === 0
+                                  ? 1
+                                  : 0.6
+                              : Math.max(0.4, 1 - Math.abs(swipeOffset) / 250),
+                  }
+                : undefined,
     }
 }
