@@ -1,9 +1,17 @@
 /**
- * Custom Service Worker for Push Notifications
- * This file is imported by the main Workbox-generated service worker
+ * Custom Service Worker for Push Notifications and PWA Install
  */
 
-// Minimal fetch handler required for PWA install (not just a shortcut)
+// Take control immediately on install/activate
+self.addEventListener('install', function() {
+    self.skipWaiting()
+})
+
+self.addEventListener('activate', function(event) {
+    event.waitUntil(self.clients.claim())
+})
+
+// Fetch handler required for PWA install (not just a shortcut)
 self.addEventListener('fetch', function(event) {
     event.respondWith(fetch(event.request))
 })

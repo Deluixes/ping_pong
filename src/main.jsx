@@ -9,7 +9,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </React.StrictMode>
 )
 
-// Register service worker for push notifications only (no asset caching)
+// Register service worker for push notifications and PWA install
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw-custom.js')
+    navigator.serviceWorker
+        .register('/sw-custom.js', { updateViaCache: 'none' })
+        .then((reg) => reg.update())
 }
