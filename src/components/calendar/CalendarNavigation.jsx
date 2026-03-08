@@ -48,12 +48,54 @@ export default function CalendarNavigation({
     const skipNextScrollRef = useRef(false)
 
     // Recentrer le buffer si selectedDate est hors du buffer
+    // On utilise un ref pour signaler au useEffect de scroll qu'il doit attendre la régénération
+    const needsScrollAfterBufferRegen = useRef(false)
     useEffect(() => {
         const isInBuffer = dayBuffer.some((d) => isSameDay(d, selectedDate))
         if (!isInBuffer) {
+            needsScrollAfterBufferRegen.current = true
             setDayBuffer(generateDays(selectedDate))
         }
     }, [selectedDate])
+
+    // Re-scroller après régénération du buffer
+    useEffect(() => {
+        if (!needsScrollAfterBufferRegen.current) return
+        needsScrollAfterBufferRegen.current = false
+
+        const scrollToSelected = () => {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd')
+            const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
+            const container = daySelectorRef.current
+            if (!btn || !container?.scrollTo) return false
+            if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
+            if (container.offsetWidth === 0) return false
+
+            const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+            programmaticScrollRef.current = true
+            container.scrollTo({ left: scrollTarget, behavior: 'instant' })
+            return true
+        }
+
+        let cancelled = false
+        const attempt = (retriesLeft) => {
+            if (cancelled) return
+            if (scrollToSelected()) return
+            if (retriesLeft > 0) setTimeout(() => attempt(retriesLeft - 1), 50)
+        }
+
+        requestAnimationFrame(() => {
+            if (cancelled) return
+            requestAnimationFrame(() => {
+                if (cancelled) return
+                attempt(5)
+            })
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [dayBuffer]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Scroll vers le jour sélectionné quand selectedDate change
     useEffect(() => {
@@ -62,6 +104,8 @@ export default function CalendarNavigation({
             skipNextScrollRef.current = false
             return
         }
+        // Si le buffer va être régénéré, le useEffect sur dayBuffer s'en chargera
+        if (needsScrollAfterBufferRegen.current) return
 
         const scrollToSelected = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
