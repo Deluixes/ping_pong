@@ -56,17 +56,7 @@ export default function CalendarNavigation({
     }, [selectedDate])
 
     // Scroll vers le jour sélectionné quand selectedDate change
-    const prevSelectedRef = useRef(selectedDate)
     useEffect(() => {
-        const prevDate = prevSelectedRef.current
-        prevSelectedRef.current = selectedDate
-        console.log('[DEBUG useEffect triggered]', {
-            selectedDate: format(selectedDate, 'yyyy-MM-dd'),
-            prevDate: format(prevDate, 'yyyy-MM-dd'),
-            skipNextScroll: skipNextScrollRef.current,
-            sameRef: prevDate === selectedDate,
-        })
-
         // Si le changement vient d'un clic direct sur un bouton jour, ne pas scroller
         if (skipNextScrollRef.current) {
             skipNextScrollRef.current = false
@@ -77,31 +67,13 @@ export default function CalendarNavigation({
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
             const container = daySelectorRef.current
-            console.log('[DEBUG scroll]', {
-                dateStr,
-                btnFound: !!btn,
-                containerFound: !!container,
-                offsetLeft: btn?.offsetLeft,
-                containerWidth: container?.offsetWidth,
-            })
             if (!btn || !container?.scrollTo) return false
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
-            console.log('[DEBUG scroll target]', {
-                scrollTarget,
-                currentScrollLeft: container.scrollLeft,
-            })
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
-            requestAnimationFrame(() => {
-                console.log('[DEBUG after scroll]', {
-                    scrollLeft: container.scrollLeft,
-                    scrollTarget,
-                })
-                programmaticScrollRef.current = false
-            })
             return true
         }
 
@@ -222,20 +194,13 @@ export default function CalendarNavigation({
             }
 
             // Extension aux bords (pas pendant un scroll programmatique)
-            if (extendingRef.current || programmaticScrollRef.current) return
-
-            console.log('[DEBUG handleScroll extension check]', {
-                scrollLeft,
-                threshold: EXTEND_THRESHOLD,
-                willExtendLeft: scrollLeft < EXTEND_THRESHOLD,
-            })
+            if (extendingRef.current) return
+            if (programmaticScrollRef.current) {
+                programmaticScrollRef.current = false
+                return
+            }
 
             if (scrollLeft < EXTEND_THRESHOLD) {
-                console.log('[DEBUG EXTENDING LEFT]', {
-                    scrollLeft,
-                    scrollWidth,
-                    oldChildCount: el.children.length,
-                })
                 extendingRef.current = true
                 const oldScrollWidth = scrollWidth
                 const oldScrollLeft = scrollLeft
@@ -250,11 +215,6 @@ export default function CalendarNavigation({
                 requestAnimationFrame(() => {
                     if (daySelectorRef.current) {
                         const delta = daySelectorRef.current.scrollWidth - oldScrollWidth
-                        console.log('[DEBUG extension correction]', {
-                            delta,
-                            oldScrollLeft,
-                            newScrollLeft: oldScrollLeft + delta,
-                        })
                         daySelectorRef.current.scrollLeft = oldScrollLeft + delta
                     }
                     extendingRef.current = false
