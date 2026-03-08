@@ -34,11 +34,30 @@ function getContiguousRange(originalSlotId, openedSlots, blockedSlots, invDate, 
         }
     }
 
+    // Inclure les slots du week_slot parent (entraînement contenant l'invitation)
+    const [oh, om] = originalSlotId.split(':').map(Number)
+    const origTime = `${oh.toString().padStart(2, '0')}:${om.toString().padStart(2, '0')}`
+    for (const ws of blockedSlots) {
+        if (ws.date !== invDate) continue
+        const wsStart = ws.startTime.slice(0, 5)
+        const wsEnd = ws.endTime.slice(0, 5)
+        if (origTime >= wsStart && origTime < wsEnd) {
+            for (let idx = 0; idx < TIME_SLOTS.length; idx++) {
+                const slot = TIME_SLOTS[idx]
+                const [sh, sm] = slot.id.split(':').map(Number)
+                const st = `${sh.toString().padStart(2, '0')}:${sm.toString().padStart(2, '0')}`
+                if (st >= wsStart && st < wsEnd) {
+                    openedSet.add(slot.id)
+                    invSlotIds.add(slot.id)
+                }
+            }
+        }
+    }
+
     const isAvailable = (idx) => {
         if (idx < 0 || idx >= TIME_SLOTS.length) return false
         const slot = TIME_SLOTS[idx]
         if (!openedSet.has(slot.id)) return false
-        // Les slots de l'invitation originale sont toujours disponibles
         if (invSlotIds.has(slot.id)) return true
         const [h, m] = slot.id.split(':').map(Number)
         const slotTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
@@ -54,22 +73,7 @@ function getContiguousRange(originalSlotId, openedSlots, blockedSlots, invDate, 
     let right = startIndex
     while (right < TIME_SLOTS.length - 1 && isAvailable(right + 1)) right++
 
-    const range = TIME_SLOTS.slice(left, right + 1).map((s) => s.id)
-    console.log('[DEBUG getContiguousRange]', {
-        originalSlotId,
-        invDuration,
-        startIndex,
-        openedSlotsCount: openedSlots.length,
-        openedSet: [...openedSet],
-        invSlotIds: [...invSlotIds],
-        blockedSlots: blockedSlots
-            .filter((bs) => bs.date === invDate && bs.isBlocking)
-            .map((bs) => `${bs.startTime}-${bs.endTime}`),
-        left,
-        right,
-        range,
-    })
-    return range
+    return TIME_SLOTS.slice(left, right + 1).map((s) => s.id)
 }
 
 function getDurationsForSlotInRange(slotId, contiguousRange) {
