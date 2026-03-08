@@ -16,13 +16,19 @@ const SWIPE_HINT_KEY = 'pingpong_swipe_hint_seen'
 
 // ── Logique créneaux contigus ──
 
-function getContiguousRange(originalSlotId, openedSlots, blockedSlots, invDate) {
+function getContiguousRange(originalSlotId, openedSlots, blockedSlots, invDate, invDuration = 1) {
     const startIndex = SLOT_INDEX_MAP.get(originalSlotId) ?? -1
     if (startIndex === -1) return []
 
     const openedSet = new Set(
         openedSlots.filter((os) => os.date === invDate).map((os) => os.slotId)
     )
+
+    // Inclure les slots couverts par l'invitation originale
+    for (let i = 0; i < invDuration; i++) {
+        const slot = TIME_SLOTS[startIndex + i]
+        if (slot) openedSet.add(slot.id)
+    }
 
     const isAvailable = (idx) => {
         if (idx < 0 || idx >= TIME_SLOTS.length) return false
@@ -243,7 +249,7 @@ function InvitationModal({ inv, onClose, onAccept, onAcceptModified, onDecline, 
     }, [inv.date, user.id, addToast])
 
     const contiguousRange = !loading
-        ? getContiguousRange(inv.slotId, openedSlots, blockedSlots, inv.date)
+        ? getContiguousRange(inv.slotId, openedSlots, blockedSlots, inv.date, inv.duration)
         : []
 
     const availableDurations = getDurationsForSlotInRange(selectedSlotId, contiguousRange)
@@ -601,7 +607,9 @@ export default function MyInvitations({ onNotificationChange }) {
             ) : (
                 <>
                     {showHint && (
-                        <p className={styles.swipeHint}>← Glissez pour accepter ou refuser →</p>
+                        <p className={styles.swipeHint}>
+                            ← Glissez pour accepter ou refuser → · Appuyez pour le détail
+                        </p>
                     )}
                     <div className={styles.list}>
                         {invitations.map((inv, i) => (
