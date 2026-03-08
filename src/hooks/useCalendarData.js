@@ -1,21 +1,16 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { format, addDays } from 'date-fns'
 import { storageService } from '../services/storage'
+import { mapReservationRow } from '../services/reservationService'
+import { mapInvitationRow } from '../services/invitationService'
+import { mapOpenedSlotRow } from '../services/openedSlotService'
 import { DEFAULT_TOTAL_TABLES } from '../constants'
 import { getCachedEvents, setCachedEvents } from '../components/calendar/calendarUtils'
 
-// ==================== OPTIMISTIC UPDATE HELPERS ====================
+// Re-export mappers for tests and external consumers
+export { mapReservationRow, mapInvitationRow, mapOpenedSlotRow }
 
-export function mapReservationRow(r) {
-    return {
-        slotId: r.slot_id,
-        date: r.date,
-        userId: r.user_id,
-        userName: r.user_name,
-        duration: r.duration,
-        overbooked: r.overbooked || false,
-    }
-}
+// ==================== OPTIMISTIC UPDATE HELPERS ====================
 
 export function applyReservationPayload(payload, setEvents, weekRange) {
     const { eventType, new: newRow, old: oldRow } = payload
@@ -60,18 +55,6 @@ export function applyReservationPayload(payload, setEvents, weekRange) {
     return false
 }
 
-export function mapInvitationRow(r) {
-    return {
-        slotId: r.slot_id,
-        date: r.date,
-        userId: r.user_id,
-        name: r.user_name,
-        status: r.status,
-        invitedBy: r.invited_by,
-        duration: r.duration || 1,
-    }
-}
-
 export function applyInvitationPayload(payload, setInvitations, weekRange) {
     const { eventType, new: newRow, old: oldRow } = payload
     const row = newRow || oldRow
@@ -105,17 +88,6 @@ export function applyInvitationPayload(payload, setInvitations, weekRange) {
         return true
     }
     return false
-}
-
-export function mapOpenedSlotRow(r) {
-    return {
-        id: r.id,
-        date: r.date,
-        slotId: r.slot_id,
-        openedBy: r.opened_by,
-        target: r.target,
-        createdAt: r.created_at,
-    }
 }
 
 export function applyOpenedSlotPayload(payload, setOpenedSlots, weekRange) {

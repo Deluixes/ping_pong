@@ -274,12 +274,12 @@ export function useSlotHelpers({
     )
 
     const getAvailableDurations = useCallback(
-        (startSlotId) => {
+        (startSlotId, { adminOpen = false } = {}) => {
             const startIndex = SLOT_INDEX_MAP.get(startSlotId) ?? -1
             if (startIndex === -1) return []
 
             const available = []
-            const startAvailability = isSlotAvailable(startSlotId)
+            const startAvailability = adminOpen ? null : isSlotAvailable(startSlotId)
 
             for (const duration of DURATION_OPTIONS) {
                 if (startIndex + duration.slots > TIME_SLOTS.length) break
@@ -292,7 +292,7 @@ export function useSlotHelpers({
                         isValidDuration = false
                         break
                     }
-                    if (i > 0) {
+                    if (!adminOpen && i > 0) {
                         const slotAvailability = isSlotAvailable(slot.id)
                         if (!slotAvailability.available) {
                             isValidDuration = false
@@ -318,30 +318,6 @@ export function useSlotHelpers({
         [isSlotAvailable, blockedSlotsBySlotId]
     )
 
-    const getAvailableOpenDurations = useCallback(
-        (startSlotId) => {
-            const startIndex = SLOT_INDEX_MAP.get(startSlotId) ?? -1
-            if (startIndex === -1) return []
-
-            const available = []
-            for (const duration of DURATION_OPTIONS) {
-                if (startIndex + duration.slots > TIME_SLOTS.length) break
-                let isValidDuration = true
-                for (let i = 0; i < duration.slots; i++) {
-                    const slot = TIME_SLOTS[startIndex + i]
-                    const blockedInfo = blockedSlotsBySlotId.get(slot.id)
-                    if (blockedInfo && blockedInfo.isBlocking !== false) {
-                        isValidDuration = false
-                        break
-                    }
-                }
-                if (isValidDuration) available.push(duration)
-            }
-            return available
-        },
-        [blockedSlotsBySlotId]
-    )
-
     const getDayParticipantCount = useCallback(
         (day) => {
             const dayStr = format(day, 'yyyy-MM-dd')
@@ -357,6 +333,11 @@ export function useSlotHelpers({
         if (endSlot) return endSlot.label
         return '22:00'
     }, [])
+
+    const getAvailableOpenDurations = useCallback(
+        (startSlotId) => getAvailableDurations(startSlotId, { adminOpen: true }),
+        [getAvailableDurations]
+    )
 
     return {
         getSlotIndex,

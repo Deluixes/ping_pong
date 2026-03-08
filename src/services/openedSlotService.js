@@ -1,5 +1,16 @@
 import { supabase } from '../lib/supabase'
 
+export function mapOpenedSlotRow(r) {
+    return {
+        id: r.id,
+        date: r.date,
+        slotId: r.slot_id,
+        openedBy: r.opened_by,
+        target: r.target,
+        createdAt: r.created_at,
+    }
+}
+
 export const openedSlotService = {
     async getOpenedSlotsForWeek(startDate, endDate) {
         const { data, error } = await supabase
@@ -28,14 +39,7 @@ export const openedSlotService = {
             return []
         }
 
-        return data.map((s) => ({
-            id: s.id,
-            date: s.date,
-            slotId: s.slot_id,
-            openedBy: s.opened_by,
-            target: s.target,
-            createdAt: s.created_at,
-        }))
+        return data.map(mapOpenedSlotRow)
     },
 
     async getOpenedSlotsForDate(date) {
@@ -46,14 +50,7 @@ export const openedSlotService = {
             return []
         }
 
-        return data.map((s) => ({
-            id: s.id,
-            date: s.date,
-            slotId: s.slot_id,
-            openedBy: s.opened_by,
-            target: s.target,
-            createdAt: s.created_at,
-        }))
+        return data.map(mapOpenedSlotRow)
     },
 
     async openSlot(date, slotId, openedBy, target = 'all') {

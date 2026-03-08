@@ -45,13 +45,31 @@ beforeEach(() => {
 describe('getSlotInvitations', () => {
     it('mappe les données (userId, name, status, invitedBy)', async () => {
         mockResponses['slot_invitations'] = {
-            data: [{ user_id: 'u1', user_name: 'Alice', status: 'pending', invited_by: 'u2' }],
+            data: [
+                {
+                    slot_id: '10:00',
+                    date: '2025-01-06',
+                    user_id: 'u1',
+                    user_name: 'Alice',
+                    status: 'pending',
+                    invited_by: 'u2',
+                    duration: 1,
+                },
+            ],
             error: null,
         }
 
         const result = await invitationService.getSlotInvitations('10:00', '2025-01-06')
         expect(result).toEqual([
-            { userId: 'u1', name: 'Alice', status: 'pending', invitedBy: 'u2' },
+            {
+                slotId: '10:00',
+                date: '2025-01-06',
+                userId: 'u1',
+                name: 'Alice',
+                status: 'pending',
+                invitedBy: 'u2',
+                duration: 1,
+            },
         ])
     })
 

@@ -1,5 +1,16 @@
 import { supabase } from '../lib/supabase'
 
+export function mapReservationRow(r) {
+    return {
+        slotId: r.slot_id,
+        date: r.date,
+        userId: r.user_id,
+        userName: r.user_name,
+        duration: r.duration,
+        overbooked: r.overbooked || false,
+    }
+}
+
 export const reservationService = {
     async getEvents(startDate, endDate) {
         let query = supabase.from('reservations').select('*').order('date', { ascending: true })
@@ -14,14 +25,7 @@ export const reservationService = {
             return []
         }
 
-        return data.map((r) => ({
-            slotId: r.slot_id,
-            date: r.date,
-            userId: r.user_id,
-            userName: r.user_name,
-            duration: r.duration,
-            overbooked: r.overbooked || false,
-        }))
+        return data.map(mapReservationRow)
     },
 
     async registerForSlot(slotId, date, userId, userName, duration = 1, overbooked = false) {

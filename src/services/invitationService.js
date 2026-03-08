@@ -1,5 +1,17 @@
 import { supabase } from '../lib/supabase'
 
+export function mapInvitationRow(r) {
+    return {
+        slotId: r.slot_id,
+        date: r.date,
+        userId: r.user_id,
+        name: r.user_name,
+        status: r.status,
+        invitedBy: r.invited_by,
+        duration: r.duration || 1,
+    }
+}
+
 export const invitationService = {
     async getSlotInvitations(slotId, date) {
         const { data, error } = await supabase
@@ -8,27 +20,21 @@ export const invitationService = {
             .eq('slot_id', slotId)
             .eq('date', date)
 
-        if (error) return []
-        return data.map((inv) => ({
-            userId: inv.user_id,
-            name: inv.user_name,
-            status: inv.status,
-            invitedBy: inv.invited_by,
-        }))
+        if (error) {
+            console.error('Error fetching slot invitations:', error)
+            return []
+        }
+        return data.map(mapInvitationRow)
     },
 
     async getAllInvitationsForDate(date) {
         const { data, error } = await supabase.from('slot_invitations').select('*').eq('date', date)
 
-        if (error) return []
-        return data.map((inv) => ({
-            slotId: inv.slot_id,
-            userId: inv.user_id,
-            name: inv.user_name,
-            status: inv.status,
-            invitedBy: inv.invited_by,
-            duration: inv.duration || 1,
-        }))
+        if (error) {
+            console.error('Error fetching invitations for date:', error)
+            return []
+        }
+        return data.map(mapInvitationRow)
     },
 
     async getAllInvitationsForWeek(startDate, endDate) {
@@ -38,16 +44,11 @@ export const invitationService = {
             .gte('date', startDate)
             .lte('date', endDate)
 
-        if (error) return []
-        return data.map((inv) => ({
-            slotId: inv.slot_id,
-            date: inv.date,
-            userId: inv.user_id,
-            name: inv.user_name,
-            status: inv.status,
-            invitedBy: inv.invited_by,
-            duration: inv.duration || 1,
-        }))
+        if (error) {
+            console.error('Error fetching invitations for week:', error)
+            return []
+        }
+        return data.map(mapInvitationRow)
     },
 
     async getPendingInvitations(userId) {
@@ -57,7 +58,10 @@ export const invitationService = {
             .eq('user_id', userId)
             .eq('status', 'pending')
 
-        if (error) return []
+        if (error) {
+            console.error('Error fetching pending invitations:', error)
+            return []
+        }
 
         const inviterIds = [...new Set(data.map((inv) => inv.invited_by).filter(Boolean))]
         let inviterNames = {}
@@ -90,7 +94,10 @@ export const invitationService = {
             .eq('user_id', userId)
             .eq('status', 'pending')
 
-        if (error) return 0
+        if (error) {
+            console.error('Error fetching pending invitations count:', error)
+            return 0
+        }
         return count || 0
     },
 
