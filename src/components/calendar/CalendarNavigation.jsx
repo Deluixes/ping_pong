@@ -139,27 +139,39 @@ export default function CalendarNavigation({
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
+            const containerRect = container.getBoundingClientRect()
+            const parentRect = container.parentElement.getBoundingClientRect()
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
             console.log('[NAV] selectedDate scrollTo', {
                 scrollTarget,
                 btnOffsetLeft: btn.offsetLeft,
-                containerWidth: container.offsetWidth,
+                containerOffsetWidth: container.offsetWidth,
+                containerClientWidth: container.clientWidth,
+                containerRectLeft: containerRect.left,
+                containerRectRight: containerRect.right,
+                containerRectWidth: containerRect.width,
+                parentRectLeft: parentRect.left,
+                parentRectRight: parentRect.right,
+                parentRectWidth: parentRect.width,
                 btnWidth: btn.offsetWidth,
+                clippedLeft: containerRect.left - parentRect.left,
             })
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
-            console.log('[NAV] scrollLeft immediately after scrollTo', container.scrollLeft)
-            // Monitor scroll changes for 2 seconds
-            let monitorCount = 0
-            const monitorInterval = setInterval(() => {
-                monitorCount++
-                console.log(`[NAV] scroll monitor #${monitorCount}`, {
+            setTimeout(() => {
+                const btnRect = btn.getBoundingClientRect()
+                const cRect = container.getBoundingClientRect()
+                console.log('[NAV] after scroll rects', {
                     scrollLeft: container.scrollLeft,
-                    scrollTarget,
-                    diff: container.scrollLeft - scrollTarget,
+                    btnRectLeft: btnRect.left,
+                    btnRectRight: btnRect.right,
+                    containerVisibleLeft: cRect.left,
+                    containerVisibleRight: cRect.right,
+                    containerVisibleWidth: cRect.width,
+                    btnVisibleOnScreen: btnRect.right > cRect.left && btnRect.left < cRect.right,
+                    windowWidth: window.innerWidth,
                 })
-                if (monitorCount >= 20) clearInterval(monitorInterval)
-            }, 100)
+            }, 50)
             return true
         }
 
