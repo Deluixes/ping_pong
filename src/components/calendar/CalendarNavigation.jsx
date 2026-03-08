@@ -52,6 +52,7 @@ export default function CalendarNavigation({
     }, [selectedDate])
 
     // Scroll vers le jour selectionne
+    const programmaticScrollRef = useRef(false)
     useEffect(() => {
         const scrollToSelected = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
@@ -63,17 +64,15 @@ export default function CalendarNavigation({
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
-            // Ne pas scroller si le jour est déjà bien visible
-            const btnLeft = btn.offsetLeft
-            const btnRight = btnLeft + btn.offsetWidth
-            const scrollLeft = container.scrollLeft
-            const scrollRight = scrollLeft + container.clientWidth
-            if (btnLeft >= scrollLeft + 10 && btnRight <= scrollRight - 10) return true
-
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
-            container.scrollTo({
-                left: scrollTarget,
-                behavior: swipeActive ? 'instant' : 'smooth',
+
+            // Utiliser 'instant' pour éviter la race condition avec l'extension du buffer
+            // Le smooth scroll interfère avec le recalcul des positions quand le buffer s'étend
+            programmaticScrollRef.current = true
+            container.scrollTo({ left: scrollTarget, behavior: 'instant' })
+            // Relâcher le flag après que le scroll event soit traité
+            requestAnimationFrame(() => {
+                programmaticScrollRef.current = false
             })
             return true
         }
@@ -196,8 +195,8 @@ export default function CalendarNavigation({
                 }
             }
 
-            // Extension aux bords
-            if (extendingRef.current) return
+            // Extension aux bords (pas pendant un scroll programmatique)
+            if (extendingRef.current || programmaticScrollRef.current) return
 
             if (scrollLeft < EXTEND_THRESHOLD) {
                 extendingRef.current = true
