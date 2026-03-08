@@ -20,7 +20,7 @@ import styles from './SlideMenu.module.css'
 
 export default function SlideMenu({ isOpen, onClose }) {
     const { user, logout, simulatedRole, setSimulatedRole, getSimulatableRoles } = useAuth()
-    const { canInstall, hasNativePrompt, promptInstall } = usePwaInstall()
+    const { canInstall, hasNativePrompt, isIOS, promptInstall } = usePwaInstall()
     const [showInstallTip, setShowInstallTip] = useState(false)
     const location = useLocation()
     const navigate = useNavigate()
@@ -177,8 +177,18 @@ export default function SlideMenu({ isOpen, onClose }) {
                         </button>
                         {showInstallTip && (
                             <div className={styles.installTip}>
-                                Ouvre le menu de ton navigateur (⋮) puis appuie sur{' '}
-                                <strong>« Ajouter à l'écran d'accueil »</strong>
+                                {isIOS ? (
+                                    <>
+                                        Appuie sur le bouton <strong>Partager</strong>{' '}
+                                        <span style={{ fontSize: '1.1em' }}>⬆</span> puis sur{' '}
+                                        <strong>« Sur l'écran d'accueil »</strong>
+                                    </>
+                                ) : (
+                                    <>
+                                        Ouvre le menu de ton navigateur (⋮) puis appuie sur{' '}
+                                        <strong>« Ajouter à l'écran d'accueil »</strong>
+                                    </>
+                                )}
                             </div>
                         )}
                     </>

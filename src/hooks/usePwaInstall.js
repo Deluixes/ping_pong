@@ -11,6 +11,12 @@ export function usePwaInstall() {
             window.navigator.standalone === true
     )
 
+    const [isIOS] = useState(
+        () =>
+            /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
+    )
+
     useEffect(() => {
         if (isStandalone) return
 
@@ -49,6 +55,7 @@ export function usePwaInstall() {
     return {
         canInstall: !isStandalone && !dismissed,
         hasNativePrompt: deferredPrompt !== null,
+        isIOS,
         promptInstall,
     }
 }
