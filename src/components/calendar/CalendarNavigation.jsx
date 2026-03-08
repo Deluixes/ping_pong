@@ -66,12 +66,27 @@ export default function CalendarNavigation({
 
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
 
-            // Utiliser 'instant' pour éviter la race condition avec l'extension du buffer
-            // Le smooth scroll interfère avec le recalcul des positions quand le buffer s'étend
+            console.log('[DEBUG scrollToSelected]', {
+                dateStr,
+                btnOffsetLeft: btn.offsetLeft,
+                containerOffsetWidth: container.offsetWidth,
+                containerClientWidth: container.clientWidth,
+                btnOffsetWidth: btn.offsetWidth,
+                scrollTarget,
+                currentScrollLeft: container.scrollLeft,
+                containerScrollWidth: container.scrollWidth,
+                bufferLength: container.children.length,
+                btnIndex: Array.from(container.children).indexOf(btn),
+            })
+
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
-            // Relâcher le flag après que le scroll event soit traité
+
             requestAnimationFrame(() => {
+                console.log('[DEBUG after scroll]', {
+                    scrollLeft: container.scrollLeft,
+                    expectedTarget: scrollTarget,
+                })
                 programmaticScrollRef.current = false
             })
             return true
