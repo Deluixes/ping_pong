@@ -67,14 +67,29 @@ export default function CalendarNavigation({
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
             const container = daySelectorRef.current
+            console.log('[DEBUG scroll]', {
+                dateStr,
+                btnFound: !!btn,
+                containerFound: !!container,
+                offsetLeft: btn?.offsetLeft,
+                containerWidth: container?.offsetWidth,
+            })
             if (!btn || !container?.scrollTo) return false
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+            console.log('[DEBUG scroll target]', {
+                scrollTarget,
+                currentScrollLeft: container.scrollLeft,
+            })
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
             requestAnimationFrame(() => {
+                console.log('[DEBUG after scroll]', {
+                    scrollLeft: container.scrollLeft,
+                    scrollTarget,
+                })
                 programmaticScrollRef.current = false
             })
             return true
