@@ -226,7 +226,12 @@ function SwipeableCard({ inv, onAccept, onDecline, onTap, onViewPlanning }) {
                                 {inv.originalSlotId && (
                                     <span className={styles.originalSlot}>
                                         {' '}
-                                        (initialement {inv.originalSlotId.replace(':', 'h')})
+                                        (initialement {inv.originalSlotId.replace(':', 'h')} à{' '}
+                                        {getEndTime(
+                                            inv.originalSlotId,
+                                            inv.originalDuration || inv.duration
+                                        )}
+                                        )
                                     </span>
                                 )}
                             </>
@@ -574,6 +579,7 @@ export default function MyInvitations({ onNotificationChange }) {
                         {
                             type: 'modification',
                             originalSlotId: inv.slotId,
+                            originalDuration: inv.duration,
                         }
                     )
                 }

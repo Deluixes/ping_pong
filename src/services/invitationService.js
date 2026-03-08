@@ -11,6 +11,7 @@ export function mapInvitationRow(r) {
         duration: r.duration || 1,
         type: r.type || 'standard',
         originalSlotId: r.original_slot_id || null,
+        originalDuration: r.original_duration || null,
     }
 }
 
@@ -56,7 +57,9 @@ export const invitationService = {
     async getPendingInvitations(userId) {
         const { data, error } = await supabase
             .from('slot_invitations')
-            .select('slot_id, date, invited_by, duration, type, original_slot_id')
+            .select(
+                'slot_id, date, invited_by, duration, type, original_slot_id, original_duration'
+            )
             .eq('user_id', userId)
             .eq('status', 'pending')
 
@@ -89,6 +92,7 @@ export const invitationService = {
             duration: inv.duration || 1,
             type: inv.type || 'standard',
             originalSlotId: inv.original_slot_id || null,
+            originalDuration: inv.original_duration || null,
         }))
     },
 
@@ -118,6 +122,7 @@ export const invitationService = {
         }
         if (options.type) insertData.type = options.type
         if (options.originalSlotId) insertData.original_slot_id = options.originalSlotId
+        if (options.originalDuration) insertData.original_duration = options.originalDuration
 
         const { error } = await supabase.from('slot_invitations').insert(insertData)
 
