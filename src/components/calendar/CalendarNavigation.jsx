@@ -48,11 +48,11 @@ export default function CalendarNavigation({
     const skipNextScrollRef = useRef(false)
 
     // Recentrer le buffer si selectedDate est hors du buffer
-    // On utilise un ref pour signaler au useEffect de scroll qu'il doit attendre la régénération
     const needsScrollAfterBufferRegen = useRef(false)
     useEffect(() => {
         const isInBuffer = dayBuffer.some((d) => isSameDay(d, selectedDate))
         if (!isInBuffer) {
+            console.log('[NAV] buffer regen needed, selectedDate not in buffer')
             needsScrollAfterBufferRegen.current = true
             setDayBuffer(generateDays(selectedDate))
         }
@@ -62,18 +62,38 @@ export default function CalendarNavigation({
     useEffect(() => {
         if (!needsScrollAfterBufferRegen.current) return
         needsScrollAfterBufferRegen.current = false
+        console.log('[NAV] buffer regen scroll effect fired')
 
         const scrollToSelected = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
             const container = daySelectorRef.current
+            console.log('[NAV] buffer regen scroll attempt', {
+                dateStr,
+                btnFound: !!btn,
+                btnOffsetLeft: btn?.offsetLeft,
+                containerWidth: container?.offsetWidth,
+                containerClientWidth: container?.clientWidth,
+            })
             if (!btn || !container?.scrollTo) return false
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+            console.log('[NAV] buffer regen scrollTo', {
+                scrollTarget,
+                btnOffsetLeft: btn.offsetLeft,
+                containerWidth: container.offsetWidth,
+                btnWidth: btn.offsetWidth,
+            })
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
+            setTimeout(() => {
+                console.log('[NAV] buffer regen after scroll', {
+                    scrollLeft: container.scrollLeft,
+                    scrollTarget,
+                })
+            }, 100)
             return true
         }
 
@@ -99,13 +119,17 @@ export default function CalendarNavigation({
 
     // Scroll vers le jour sélectionné quand selectedDate change
     useEffect(() => {
-        // Si le changement vient d'un clic direct sur un bouton jour, ne pas scroller
         if (skipNextScrollRef.current) {
+            console.log('[NAV] selectedDate scroll skipped (day click)')
             skipNextScrollRef.current = false
             return
         }
-        // Si le buffer va être régénéré, le useEffect sur dayBuffer s'en chargera
-        if (needsScrollAfterBufferRegen.current) return
+        if (needsScrollAfterBufferRegen.current) {
+            console.log('[NAV] selectedDate scroll skipped (buffer regen pending)')
+            return
+        }
+
+        console.log('[NAV] selectedDate scroll effect fired', format(selectedDate, 'yyyy-MM-dd'))
 
         const scrollToSelected = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
@@ -116,8 +140,33 @@ export default function CalendarNavigation({
             if (container.offsetWidth === 0) return false
 
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+            console.log('[NAV] selectedDate scrollTo', {
+                scrollTarget,
+                btnOffsetLeft: btn.offsetLeft,
+                containerWidth: container.offsetWidth,
+                btnWidth: btn.offsetWidth,
+            })
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
+            setTimeout(() => {
+                console.log('[NAV] selectedDate after scroll', {
+                    scrollLeft: container.scrollLeft,
+                    scrollTarget,
+                })
+                // Log visible day buttons
+                const children = Array.from(container.children)
+                const visible = children.filter((c) => {
+                    const l = c.offsetLeft
+                    const r = l + c.offsetWidth
+                    return (
+                        r > container.scrollLeft && l < container.scrollLeft + container.clientWidth
+                    )
+                })
+                console.log(
+                    '[NAV] visible days after scroll',
+                    visible.map((c) => c.dataset.date)
+                )
+            }, 100)
             return true
         }
 
@@ -241,10 +290,20 @@ export default function CalendarNavigation({
             if (extendingRef.current) return
             if (programmaticScrollRef.current) {
                 programmaticScrollRef.current = false
+                console.log('[NAV] handleScroll: skipped extension (programmatic)')
                 return
             }
 
+            console.log('[NAV] handleScroll extension check', {
+                scrollLeft,
+                clientWidth,
+                scrollWidth,
+                leftThreshold: EXTEND_THRESHOLD,
+                rightThreshold: scrollWidth - EXTEND_THRESHOLD,
+            })
+
             if (scrollLeft < EXTEND_THRESHOLD) {
+                console.log('[NAV] EXTENDING LEFT!')
                 extendingRef.current = true
                 const oldScrollWidth = scrollWidth
                 const oldScrollLeft = scrollLeft
