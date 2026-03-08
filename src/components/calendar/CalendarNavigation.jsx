@@ -56,7 +56,17 @@ export default function CalendarNavigation({
     }, [selectedDate])
 
     // Scroll vers le jour sélectionné quand selectedDate change
+    const prevSelectedRef = useRef(selectedDate)
     useEffect(() => {
+        const prevDate = prevSelectedRef.current
+        prevSelectedRef.current = selectedDate
+        console.log('[DEBUG useEffect triggered]', {
+            selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+            prevDate: format(prevDate, 'yyyy-MM-dd'),
+            skipNextScroll: skipNextScrollRef.current,
+            sameRef: prevDate === selectedDate,
+        })
+
         // Si le changement vient d'un clic direct sur un bouton jour, ne pas scroller
         if (skipNextScrollRef.current) {
             skipNextScrollRef.current = false

@@ -56,6 +56,7 @@ export default function Calendar() {
     }
     const goToToday = () => {
         const today = new Date()
+        console.log('[DEBUG goToToday called]', { today: today.toISOString() })
         setSelectedDate(today)
         setWeekStart(startOfWeek(today, { weekStartsOn: 1 }))
     }
