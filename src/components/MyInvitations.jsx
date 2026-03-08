@@ -24,16 +24,22 @@ function getContiguousRange(originalSlotId, openedSlots, blockedSlots, invDate, 
         openedSlots.filter((os) => os.date === invDate).map((os) => os.slotId)
     )
 
-    // Inclure les slots couverts par l'invitation originale
+    // Slots couverts par l'invitation originale (exemptés du blocage)
+    const invSlotIds = new Set()
     for (let i = 0; i < invDuration; i++) {
         const slot = TIME_SLOTS[startIndex + i]
-        if (slot) openedSet.add(slot.id)
+        if (slot) {
+            openedSet.add(slot.id)
+            invSlotIds.add(slot.id)
+        }
     }
 
     const isAvailable = (idx) => {
         if (idx < 0 || idx >= TIME_SLOTS.length) return false
         const slot = TIME_SLOTS[idx]
         if (!openedSet.has(slot.id)) return false
+        // Les slots de l'invitation originale sont toujours disponibles
+        if (invSlotIds.has(slot.id)) return true
         const [h, m] = slot.id.split(':').map(Number)
         const slotTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
         return !blockedSlots.some((bs) => {
@@ -309,125 +315,131 @@ function InvitationModal({ inv, onClose, onAccept, onAcceptModified, onDecline, 
                     </button>
                 </div>
 
-                {/* Infos */}
-                <div className={styles.modalInfo}>
-                    <div className={styles.modalInfoRow}>
-                        <Calendar size={16} />
-                        <span>{format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}</span>
+                {loading ? (
+                    <div className={styles.modalLoadingFull}>
+                        <RefreshCw size={24} className="spin" />
+                        <span>Chargement...</span>
                     </div>
-                    <div className={styles.modalInfoRow}>
-                        <Clock size={16} />
-                        <span>
-                            {inv.slotId.replace(':', 'h')} → {getEndTime(inv.slotId, inv.duration)}{' '}
-                            ({formatDuration(inv.duration)})
-                        </span>
-                    </div>
-                    {inv.invitedBy && (
-                        <div className={styles.modalInfoRow}>
-                            <UserPlus size={16} />
-                            <span>
-                                {inv.type === 'modification'
-                                    ? `Modifié par ${inv.invitedBy}`
-                                    : `Invité par ${inv.invitedBy}`}
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Section modifier */}
-                <div className={styles.modalSection}>
-                    <div className={styles.modalSectionTitle}>Modifier le créneau</div>
-                    {loading ? (
-                        <div className={styles.editRow}>
-                            <span className={styles.editLoading}>Chargement...</span>
-                        </div>
-                    ) : contiguousRange.length > 0 ? (
-                        <>
-                            <div className={styles.editRow}>
-                                <label>Début</label>
-                                <select
-                                    className={styles.editSelect}
-                                    value={selectedSlotId}
-                                    onChange={(e) => setSelectedSlotId(e.target.value)}
-                                >
-                                    {contiguousRange.map((slotId) => (
-                                        <option key={slotId} value={slotId}>
-                                            {slotId.replace(':', 'h')}
-                                        </option>
-                                    ))}
-                                </select>
+                ) : (
+                    <>
+                        {/* Infos */}
+                        <div className={styles.modalInfo}>
+                            <div className={styles.modalInfoRow}>
+                                <Calendar size={16} />
+                                <span>
+                                    {format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}
+                                </span>
                             </div>
-                            <div className={styles.editRow}>
-                                <label>Durée</label>
-                                <select
-                                    className={styles.editSelect}
-                                    value={selectedDuration}
-                                    onChange={(e) => setSelectedDuration(Number(e.target.value))}
-                                >
-                                    {availableDurations.map((d) => (
-                                        <option key={d.value} value={d.slots}>
-                                            {d.label}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className={styles.modalInfoRow}>
+                                <Clock size={16} />
+                                <span>
+                                    {inv.slotId.replace(':', 'h')} →{' '}
+                                    {getEndTime(inv.slotId, inv.duration)} (
+                                    {formatDuration(inv.duration)})
+                                </span>
                             </div>
-                            {isModified && (
-                                <div className={styles.editSummary}>
-                                    → {selectedSlotId.replace(':', 'h')} à{' '}
-                                    {getEndTime(selectedSlotId, selectedDuration)}
+                            {inv.invitedBy && (
+                                <div className={styles.modalInfoRow}>
+                                    <UserPlus size={16} />
+                                    <span>
+                                        {inv.type === 'modification'
+                                            ? `Modifié par ${inv.invitedBy}`
+                                            : `Invité par ${inv.invitedBy}`}
+                                    </span>
                                 </div>
                             )}
-                        </>
-                    ) : (
-                        <div className={styles.editLoading}>Aucun créneau ouvert ce jour-là.</div>
-                    )}
-                </div>
+                        </div>
 
-                {/* Inviter des membres */}
-                <div className={styles.modalSection}>
-                    <div className={styles.modalSectionTitle}>Inviter des membres</div>
-                    {loading ? (
-                        <div className={styles.editLoading}>Chargement...</div>
-                    ) : approvedMembers.length > 0 ? (
-                        <>
-                            <div className={styles.guestFieldList}>
-                                {guests.map((guest, idx) => (
-                                    <div key={idx} className={styles.guestRow}>
-                                        <MemberSearchSelect
-                                            members={approvedMembers.filter(
-                                                (m) =>
-                                                    !guests.some(
-                                                        (g) =>
-                                                            g.userId === m.userId &&
-                                                            m.userId !== guest.userId
-                                                    )
-                                            )}
-                                            value={guest.userId}
-                                            onChange={(userId) => updateGuest(idx, userId)}
-                                        />
-                                        {(guest.userId || guests.length > 1) && (
-                                            <button
-                                                onClick={() => removeGuest(idx)}
-                                                className={styles.removeGuestBtn}
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        )}
+                        {/* Section modifier */}
+                        <div className={styles.modalSection}>
+                            <div className={styles.modalSectionTitle}>Modifier le créneau</div>
+                            {contiguousRange.length > 0 ? (
+                                <>
+                                    <div className={styles.editRow}>
+                                        <label>Début</label>
+                                        <select
+                                            className={styles.editSelect}
+                                            value={selectedSlotId}
+                                            onChange={(e) => setSelectedSlotId(e.target.value)}
+                                        >
+                                            {contiguousRange.map((slotId) => (
+                                                <option key={slotId} value={slotId}>
+                                                    {slotId.replace(':', 'h')}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
-                                ))}
+                                    <div className={styles.editRow}>
+                                        <label>Durée</label>
+                                        <select
+                                            className={styles.editSelect}
+                                            value={selectedDuration}
+                                            onChange={(e) =>
+                                                setSelectedDuration(Number(e.target.value))
+                                            }
+                                        >
+                                            {availableDurations.map((d) => (
+                                                <option key={d.value} value={d.slots}>
+                                                    {d.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {isModified && (
+                                        <div className={styles.editSummary}>
+                                            → {selectedSlotId.replace(':', 'h')} à{' '}
+                                            {getEndTime(selectedSlotId, selectedDuration)}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className={styles.editLoading}>
+                                    Aucun créneau ouvert ce jour-là.
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Inviter des membres */}
+                        {approvedMembers.length > 0 && (
+                            <div className={styles.modalSection}>
+                                <div className={styles.modalSectionTitle}>Inviter des membres</div>
+                                <div className={styles.guestFieldList}>
+                                    {guests.map((guest, idx) => (
+                                        <div key={idx} className={styles.guestRow}>
+                                            <MemberSearchSelect
+                                                members={approvedMembers.filter(
+                                                    (m) =>
+                                                        !guests.some(
+                                                            (g) =>
+                                                                g.userId === m.userId &&
+                                                                m.userId !== guest.userId
+                                                        )
+                                                )}
+                                                value={guest.userId}
+                                                onChange={(userId) => updateGuest(idx, userId)}
+                                            />
+                                            {(guest.userId || guests.length > 1) && (
+                                                <button
+                                                    onClick={() => removeGuest(idx)}
+                                                    className={styles.removeGuestBtn}
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={addGuestField}
+                                    className={`btn ${styles.addPlayerBtn}`}
+                                >
+                                    <UserPlus size={16} />
+                                    Ajouter un joueur
+                                </button>
                             </div>
-                            <button
-                                onClick={addGuestField}
-                                className={`btn ${styles.addPlayerBtn}`}
-                            >
-                                <UserPlus size={16} />
-                                Ajouter un joueur
-                            </button>
-                        </>
-                    ) : (
-                        <div className={styles.editLoading}>Aucun autre membre dans le groupe</div>
-                    )}
-                </div>
+                        )}
+                    </>
+                )}
 
                 {/* Actions */}
                 <div className={styles.modalActions}>
