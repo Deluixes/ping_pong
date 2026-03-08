@@ -148,24 +148,17 @@ export default function CalendarNavigation({
             })
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
-            setTimeout(() => {
-                console.log('[NAV] selectedDate after scroll', {
+            console.log('[NAV] scrollLeft immediately after scrollTo', container.scrollLeft)
+            // Monitor scroll changes for 2 seconds
+            let monitorCount = 0
+            const monitorInterval = setInterval(() => {
+                monitorCount++
+                console.log(`[NAV] scroll monitor #${monitorCount}`, {
                     scrollLeft: container.scrollLeft,
                     scrollTarget,
+                    diff: container.scrollLeft - scrollTarget,
                 })
-                // Log visible day buttons
-                const children = Array.from(container.children)
-                const visible = children.filter((c) => {
-                    const l = c.offsetLeft
-                    const r = l + c.offsetWidth
-                    return (
-                        r > container.scrollLeft && l < container.scrollLeft + container.clientWidth
-                    )
-                })
-                console.log(
-                    '[NAV] visible days after scroll',
-                    visible.map((c) => c.dataset.date)
-                )
+                if (monitorCount >= 20) clearInterval(monitorInterval)
             }, 100)
             return true
         }
