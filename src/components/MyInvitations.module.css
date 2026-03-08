@@ -191,6 +191,12 @@
 
 /* ===== Edit Controls ===== */
 
+.editLoading {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+}
+
 .editRow {
     display: flex;
     align-items: center;
