@@ -7,8 +7,9 @@
 /* ===== Slider Transition ===== */
 
 .sliderContainer {
-    overflow: hidden;
+    overflow: hidden !important;
     padding: 0;
+    width: 100%;
 }
 
 .slider {
