@@ -151,6 +151,22 @@
     text-align: center;
 }
 
+.badgeBounce {
+    animation: badgeBounce 0.3s ease;
+}
+
+@keyframes badgeBounce {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.4);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 :global([data-theme='dark']) .bottomTab {
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }

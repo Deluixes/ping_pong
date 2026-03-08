@@ -4,6 +4,30 @@
     max-height: 70vh;
 }
 
+/* ===== Slider Transition ===== */
+
+.sliderContainer {
+    overflow: hidden;
+    padding: 0;
+}
+
+.slider {
+    display: flex;
+    width: 200%;
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.slider[data-step='duration-picker'] {
+    transform: translateX(-50%);
+}
+
+.panel {
+    width: 50%;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
 /* ===== Header ===== */
 
 .title {

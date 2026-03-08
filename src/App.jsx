@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
     BrowserRouter as Router,
     Routes,
@@ -78,6 +78,8 @@ function AppContent() {
     const location = useLocation()
     const [menuOpen, setMenuOpen] = useState(false)
     const [notificationCount, setNotificationCount] = useState(0)
+    const badgeRef = useRef(null)
+    const prevNotifCount = useRef(notificationCount)
     const showMainUI = user && (memberStatus === 'approved' || user?.isAdmin)
     const pageTitle = PAGE_TITLES[location.pathname]
 
@@ -99,6 +101,15 @@ function AppContent() {
             storageService.unsubscribe(invitationsSub)
         }
     }, [refreshNotificationCount])
+
+    useEffect(() => {
+        if (prevNotifCount.current !== notificationCount && badgeRef.current) {
+            badgeRef.current.classList.remove(styles.badgeBounce)
+            void badgeRef.current.offsetWidth
+            badgeRef.current.classList.add(styles.badgeBounce)
+        }
+        prevNotifCount.current = notificationCount
+    }, [notificationCount])
 
     return (
         <div className="app-container">
@@ -229,7 +240,9 @@ function AppContent() {
                         <span className={styles.tabItemIconWrap}>
                             <Mail size={20} />
                             {notificationCount > 0 && (
-                                <span className={styles.tabBadge}>{notificationCount}</span>
+                                <span ref={badgeRef} className={styles.tabBadge}>
+                                    {notificationCount}
+                                </span>
                             )}
                         </span>
                         <span>Invitations</span>

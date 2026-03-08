@@ -1,9 +1,29 @@
-import { Fragment } from 'react'
+import { Fragment, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 import { Users, X, Check, Lock, Unlock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { TIME_SLOTS, SLOT_INDEX_MAP } from './calendarUtils'
 import { useCalendar } from '../../contexts/CalendarContext'
 import styles from './DayViewSlots.module.css'
+
+function AnimatedCount({ value, className }) {
+    const ref = useRef(null)
+    const prevValue = useRef(value)
+
+    useEffect(() => {
+        if (prevValue.current !== value && ref.current) {
+            ref.current.classList.remove(styles.bounce)
+            void ref.current.offsetWidth
+            ref.current.classList.add(styles.bounce)
+            prevValue.current = value
+        }
+    }, [value])
+
+    return (
+        <span ref={ref} className={className}>
+            {value}
+        </span>
+    )
+}
 
 export default function DayViewSlots({ loading }) {
     const {
@@ -358,8 +378,9 @@ function NormalSlotRow({
                                 })}
                             >
                                 <Users size={14} />
+                                <AnimatedCount value={acceptedCount} className={styles.countText} />
                                 <span className={styles.countText}>
-                                    {acceptedCount}/{maxPersons}
+                                    /{maxPersons}
                                     {count > acceptedCount && (
                                         <span className={styles.pendingCount}>
                                             {' '}
