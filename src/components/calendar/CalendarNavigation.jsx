@@ -42,6 +42,10 @@ export default function CalendarNavigation({
     const lastMonthRef = useRef('')
     const [todayVisible, setTodayVisible] = useState(false)
     const todayVisibleRef = useRef(false)
+    const programmaticScrollRef = useRef(false)
+
+    // Quand un jour est cliqué directement dans la barre, on ne veut pas re-scroller
+    const skipNextScrollRef = useRef(false)
 
     // Recentrer le buffer si selectedDate est hors du buffer
     useEffect(() => {
@@ -51,28 +55,23 @@ export default function CalendarNavigation({
         }
     }, [selectedDate])
 
-    // Scroll vers le jour selectionne
-    const programmaticScrollRef = useRef(false)
+    // Scroll vers le jour sélectionné quand selectedDate change
     useEffect(() => {
+        // Si le changement vient d'un clic direct sur un bouton jour, ne pas scroller
+        if (skipNextScrollRef.current) {
+            skipNextScrollRef.current = false
+            return
+        }
+
         const scrollToSelected = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
             const btn = daySelectorRef.current?.querySelector(`[data-date="${dateStr}"]`)
             const container = daySelectorRef.current
             if (!btn || !container?.scrollTo) return false
-
-            // Si offsetLeft est 0 et ce n'est pas le premier bouton, le layout n'est pas prêt
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
-            // Ne pas scroller si le jour est déjà visible dans la barre
-            const btnLeft = btn.offsetLeft
-            const btnRight = btnLeft + btn.offsetWidth
-            const scrollLeft = container.scrollLeft
-            const scrollRight = scrollLeft + container.clientWidth
-            if (btnLeft >= scrollLeft && btnRight <= scrollRight) return true
-
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
-
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
             requestAnimationFrame(() => {
@@ -81,7 +80,6 @@ export default function CalendarNavigation({
             return true
         }
 
-        // Double rAF pour attendre que le layout DOM soit terminé
         let cancelled = false
         const attemptWithRetries = (retriesLeft) => {
             if (cancelled) return
@@ -102,7 +100,7 @@ export default function CalendarNavigation({
         return () => {
             cancelled = true
         }
-    }, [selectedDate, swipeActive]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [selectedDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Scroll initial robuste (montage uniquement)
     const hasInitialScrolled = useRef(false)
@@ -181,7 +179,6 @@ export default function CalendarNavigation({
 
             // Mois visible — manipulation DOM directe, pas de React state
             const centerX = scrollLeft + clientWidth / 2
-            // Estimer l'index du bouton central (chaque bouton fait ~78px : 70 + 8 gap)
             const btnStep = 78
             const estimatedIndex = Math.round(centerX / btnStep)
             const buttons = el.children
@@ -238,6 +235,15 @@ export default function CalendarNavigation({
         })
     }, [])
 
+    // Clic sur un bouton jour : sélectionner sans scroller
+    const handleDayClick = useCallback(
+        (day) => {
+            skipNextScrollRef.current = true
+            onSelectDate(day)
+        },
+        [onSelectDate]
+    )
+
     return (
         <>
             <button
@@ -273,7 +279,7 @@ export default function CalendarNavigation({
                         <button
                             key={dayStr}
                             data-date={dayStr}
-                            onClick={() => onSelectDate(day)}
+                            onClick={() => handleDayClick(day)}
                             className={clsx(
                                 styles.dayBtn,
                                 !isSelected && hasSlots && styles.dayBtnHasSlots,
