@@ -61,6 +61,14 @@ export default function CalendarNavigation({
 
             // Si offsetLeft est 0 et ce n'est pas le premier bouton, le layout n'est pas prêt
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
+            if (container.offsetWidth === 0) return false
+
+            // Ne pas scroller si le jour est déjà bien visible
+            const btnLeft = btn.offsetLeft
+            const btnRight = btnLeft + btn.offsetWidth
+            const scrollLeft = container.scrollLeft
+            const scrollRight = scrollLeft + container.clientWidth
+            if (btnLeft >= scrollLeft + 10 && btnRight <= scrollRight - 10) return true
 
             const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
             container.scrollTo({
@@ -91,7 +99,7 @@ export default function CalendarNavigation({
         return () => {
             cancelled = true
         }
-    }, [selectedDate, swipeActive, dayBuffer])
+    }, [selectedDate, swipeActive]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Scroll initial robuste (montage uniquement)
     const hasInitialScrolled = useRef(false)
