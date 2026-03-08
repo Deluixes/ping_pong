@@ -64,29 +64,18 @@ export default function CalendarNavigation({
             if (btn.offsetLeft === 0 && container.children[0] !== btn) return false
             if (container.offsetWidth === 0) return false
 
-            const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
+            // Ne pas scroller si le jour est déjà visible dans la barre
+            const btnLeft = btn.offsetLeft
+            const btnRight = btnLeft + btn.offsetWidth
+            const scrollLeft = container.scrollLeft
+            const scrollRight = scrollLeft + container.clientWidth
+            if (btnLeft >= scrollLeft && btnRight <= scrollRight) return true
 
-            console.log('[DEBUG scrollToSelected]', {
-                dateStr,
-                btnOffsetLeft: btn.offsetLeft,
-                containerOffsetWidth: container.offsetWidth,
-                containerClientWidth: container.clientWidth,
-                btnOffsetWidth: btn.offsetWidth,
-                scrollTarget,
-                currentScrollLeft: container.scrollLeft,
-                containerScrollWidth: container.scrollWidth,
-                bufferLength: container.children.length,
-                btnIndex: Array.from(container.children).indexOf(btn),
-            })
+            const scrollTarget = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2
 
             programmaticScrollRef.current = true
             container.scrollTo({ left: scrollTarget, behavior: 'instant' })
-
             requestAnimationFrame(() => {
-                console.log('[DEBUG after scroll]', {
-                    scrollLeft: container.scrollLeft,
-                    expectedTarget: scrollTarget,
-                })
                 programmaticScrollRef.current = false
             })
             return true
