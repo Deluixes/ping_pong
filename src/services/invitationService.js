@@ -9,6 +9,8 @@ export function mapInvitationRow(r) {
         status: r.status,
         invitedBy: r.invited_by,
         duration: r.duration || 1,
+        type: r.type || 'standard',
+        originalSlotId: r.original_slot_id || null,
     }
 }
 
@@ -54,7 +56,7 @@ export const invitationService = {
     async getPendingInvitations(userId) {
         const { data, error } = await supabase
             .from('slot_invitations')
-            .select('slot_id, date, invited_by, duration')
+            .select('slot_id, date, invited_by, duration, type, original_slot_id')
             .eq('user_id', userId)
             .eq('status', 'pending')
 
@@ -83,7 +85,10 @@ export const invitationService = {
             slotId: inv.slot_id,
             date: inv.date,
             invitedBy: inviterNames[inv.invited_by] || null,
+            invitedByUserId: inv.invited_by || null,
             duration: inv.duration || 1,
+            type: inv.type || 'standard',
+            originalSlotId: inv.original_slot_id || null,
         }))
     },
 
@@ -101,8 +106,8 @@ export const invitationService = {
         return count || 0
     },
 
-    async inviteToSlot(slotId, date, userId, userName, invitedBy, duration = 1) {
-        const { error } = await supabase.from('slot_invitations').insert({
+    async inviteToSlot(slotId, date, userId, userName, invitedBy, duration = 1, options = {}) {
+        const insertData = {
             slot_id: slotId,
             date: date,
             user_id: userId,
@@ -110,7 +115,11 @@ export const invitationService = {
             status: 'pending',
             invited_by: invitedBy,
             duration: duration,
-        })
+        }
+        if (options.type) insertData.type = options.type
+        if (options.originalSlotId) insertData.original_slot_id = options.originalSlotId
+
+        const { error } = await supabase.from('slot_invitations').insert(insertData)
 
         return { success: !error || error.code === '23505' }
     },

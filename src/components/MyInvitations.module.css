@@ -26,18 +26,70 @@
     margin: 0;
 }
 
+.swipeHint {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    margin: 0 0 0.75rem;
+    opacity: 0.7;
+}
+
 .list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.invCard {
-    padding: 1rem;
+/* ===== Swipe Container ===== */
+
+.swipeContainer {
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
 }
 
-.invInfo {
-    margin-bottom: 0.75rem;
+.swipeBg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1.5rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    pointer-events: none;
+    transition: opacity 0.1s;
+}
+
+.swipeBgLeft {
+    background: #ef4444;
+    justify-content: flex-end;
+}
+
+.swipeBgRight {
+    background: #10b981;
+    justify-content: flex-start;
+}
+
+/* ===== Invitation Card ===== */
+
+.invCard {
+    position: relative;
+    z-index: 1;
+    padding: 1rem;
+    cursor: pointer;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.invHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
 }
 
 .invDate {
@@ -51,97 +103,99 @@
 }
 
 .invBy {
-    color: var(--color-primary);
+    color: var(--color-text-muted);
     font-size: 0.85rem;
     margin-top: 0.25rem;
 }
 
-.invActions {
-    display: flex;
-    gap: 0.5rem;
+.originalSlot {
+    opacity: 0.7;
+    font-size: 0.8rem;
 }
 
-.calendarBtn {
-    background: var(--color-primary);
+.modBadge {
+    display: inline-block;
+    background: #3b82f6;
     color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.4rem;
+}
+
+.eyeBtn {
+    background: none;
     border: none;
-    border-radius: var(--radius-md);
-    padding: 0.75rem;
+    color: var(--color-text-muted);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-weight: 500;
-}
-
-.acceptBtn {
-    flex: 1;
-    background: #10b981;
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 0.75rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-weight: 500;
-}
-
-.declineBtn {
-    flex: 1;
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 0.75rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-weight: 500;
-}
-
-.editBtn {
-    background: var(--color-surface, #f3f4f6);
-    color: var(--color-text, #374151);
-    border: 1px solid var(--color-border, #d1d5db);
-    border-radius: var(--radius-md);
-    padding: 0.75rem;
-    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm, 4px);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.editBtnActive {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
+.eyeBtn:hover {
+    color: var(--color-primary);
 }
 
-.editSection {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--color-border, #e5e7eb);
+/* ===== Modal ===== */
+
+.modalTitle {
+    margin: 0;
+    color: var(--color-secondary);
+}
+
+.modalInfo {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
 }
 
-.editLoading {
+.modalInfoRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.modalLoading {
     color: var(--color-text-muted);
     font-size: 0.85rem;
-    padding: 0.5rem 0;
+    padding: 0.75rem 0;
+    text-align: center;
 }
+
+.modalSection {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+}
+
+.modalSectionTitle {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ===== Edit Controls ===== */
 
 .editRow {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .editRow label {
@@ -167,17 +221,49 @@
     padding: 0.25rem 0;
 }
 
-.acceptModifiedBtn {
-    background: #10b981;
-    color: white;
+/* ===== Guest Fields ===== */
+
+.guestFieldList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.guestRow {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.removeGuestBtn {
+    background: var(--color-red-bg);
     border: none;
     border-radius: var(--radius-md);
-    padding: 0.75rem;
+    padding: 0 0.75rem;
+    color: var(--color-red-text);
     cursor: pointer;
+}
+
+.addPlayerBtn {
+    width: 100%;
+    background: var(--color-surface);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-weight: 500;
-    width: 100%;
+}
+
+/* ===== Modal Actions ===== */
+
+.modalActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.declineFullBtn {
+    background: var(--color-red-bg) !important;
+    color: var(--color-red-text) !important;
+    border: 1px solid #ef4444 !important;
 }
