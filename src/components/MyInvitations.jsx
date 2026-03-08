@@ -242,40 +242,27 @@ function SwipeableCard({ inv, onAccept, onDecline, onTap, onViewPlanning }) {
 
 // ── Modal de détail ──
 
-function InvitationModal({ inv, onClose, onAccept, onAcceptModified, onDecline, user, addToast }) {
-    const [openedSlots, setOpenedSlots] = useState([])
-    const [blockedSlots, setBlockedSlots] = useState([])
-    const [loading, setLoading] = useState(true)
+function InvitationModal({
+    inv,
+    openedSlots,
+    blockedSlots,
+    approvedMembers,
+    onClose,
+    onAccept,
+    onAcceptModified,
+    onDecline,
+}) {
     const [selectedSlotId, setSelectedSlotId] = useState(inv.slotId)
     const [selectedDuration, setSelectedDuration] = useState(inv.duration)
-    const [approvedMembers, setApprovedMembers] = useState([])
     const [guests, setGuests] = useState([{ userId: '', name: '' }])
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const invDate = new Date(inv.date)
-                const weekStartStr = format(startOfWeek(invDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-                const [opened, weekConfig, membersData] = await Promise.all([
-                    storageService.getOpenedSlotsForDate(inv.date),
-                    storageService.getWeekConfig(weekStartStr),
-                    storageService.getMembers(),
-                ])
-                setOpenedSlots(opened)
-                setBlockedSlots(weekConfig?.slots || [])
-                setApprovedMembers((membersData.approved || []).filter((m) => m.userId !== user.id))
-            } catch {
-                addToast('Erreur lors du chargement des créneaux.', 'error')
-            } finally {
-                setLoading(false)
-            }
-        }
-        load()
-    }, [inv.date, user.id, addToast])
-
-    const contiguousRange = !loading
-        ? getContiguousRange(inv.slotId, openedSlots, blockedSlots, inv.date, inv.duration)
-        : []
+    const contiguousRange = getContiguousRange(
+        inv.slotId,
+        openedSlots,
+        blockedSlots,
+        inv.date,
+        inv.duration
+    )
 
     const availableDurations = getDurationsForSlotInRange(selectedSlotId, contiguousRange)
 
@@ -334,130 +321,111 @@ function InvitationModal({ inv, onClose, onAccept, onAcceptModified, onDecline, 
                     </button>
                 </div>
 
-                {loading ? (
-                    <div className={styles.modalLoadingFull}>
-                        <RefreshCw size={24} className="spin" />
-                        <span>Chargement...</span>
+                {/* Infos */}
+                <div className={styles.modalInfo}>
+                    <div className={styles.modalInfoRow}>
+                        <Calendar size={16} />
+                        <span>{format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}</span>
                     </div>
-                ) : (
-                    <>
-                        {/* Infos */}
-                        <div className={styles.modalInfo}>
-                            <div className={styles.modalInfoRow}>
-                                <Calendar size={16} />
-                                <span>
-                                    {format(new Date(inv.date), 'EEEE d MMMM', { locale: fr })}
-                                </span>
-                            </div>
-                            <div className={styles.modalInfoRow}>
-                                <Clock size={16} />
-                                <span>
-                                    {inv.slotId.replace(':', 'h')} →{' '}
-                                    {getEndTime(inv.slotId, inv.duration)} (
-                                    {formatDuration(inv.duration)})
-                                </span>
-                            </div>
-                            {inv.invitedBy && (
-                                <div className={styles.modalInfoRow}>
-                                    <UserPlus size={16} />
-                                    <span>
-                                        {inv.type === 'modification'
-                                            ? `Modifié par ${inv.invitedBy}`
-                                            : `Invité par ${inv.invitedBy}`}
-                                    </span>
-                                </div>
-                            )}
+                    <div className={styles.modalInfoRow}>
+                        <Clock size={16} />
+                        <span>
+                            {inv.slotId.replace(':', 'h')} → {getEndTime(inv.slotId, inv.duration)}{' '}
+                            ({formatDuration(inv.duration)})
+                        </span>
+                    </div>
+                    {inv.invitedBy && (
+                        <div className={styles.modalInfoRow}>
+                            <UserPlus size={16} />
+                            <span>
+                                {inv.type === 'modification'
+                                    ? `Modifié par ${inv.invitedBy}`
+                                    : `Invité par ${inv.invitedBy}`}
+                            </span>
                         </div>
+                    )}
+                </div>
 
-                        {/* Section modifier */}
-                        <div className={styles.modalSection}>
-                            <div className={styles.modalSectionTitle}>Modifier le créneau</div>
-                            {contiguousRange.length > 0 ? (
-                                <>
-                                    <div className={styles.editRow}>
-                                        <label>Début</label>
-                                        <select
-                                            className={styles.editSelect}
-                                            value={selectedSlotId}
-                                            onChange={(e) => setSelectedSlotId(e.target.value)}
-                                        >
-                                            {contiguousRange.map((slotId) => (
-                                                <option key={slotId} value={slotId}>
-                                                    {slotId.replace(':', 'h')}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className={styles.editRow}>
-                                        <label>Durée</label>
-                                        <select
-                                            className={styles.editSelect}
-                                            value={selectedDuration}
-                                            onChange={(e) =>
-                                                setSelectedDuration(Number(e.target.value))
-                                            }
-                                        >
-                                            {availableDurations.map((d) => (
-                                                <option key={d.value} value={d.slots}>
-                                                    {d.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    {isModified && (
-                                        <div className={styles.editSummary}>
-                                            → {selectedSlotId.replace(':', 'h')} à{' '}
-                                            {getEndTime(selectedSlotId, selectedDuration)}
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className={styles.editLoading}>
-                                    Aucun créneau ouvert ce jour-là.
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Inviter des membres */}
-                        {approvedMembers.length > 0 && (
-                            <div className={styles.modalSection}>
-                                <div className={styles.modalSectionTitle}>Inviter des membres</div>
-                                <div className={styles.guestFieldList}>
-                                    {guests.map((guest, idx) => (
-                                        <div key={idx} className={styles.guestRow}>
-                                            <MemberSearchSelect
-                                                members={approvedMembers.filter(
-                                                    (m) =>
-                                                        !guests.some(
-                                                            (g) =>
-                                                                g.userId === m.userId &&
-                                                                m.userId !== guest.userId
-                                                        )
-                                                )}
-                                                value={guest.userId}
-                                                onChange={(userId) => updateGuest(idx, userId)}
-                                            />
-                                            {(guest.userId || guests.length > 1) && (
-                                                <button
-                                                    onClick={() => removeGuest(idx)}
-                                                    className={styles.removeGuestBtn}
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={addGuestField}
-                                    className={`btn ${styles.addPlayerBtn}`}
+                {/* Section modifier */}
+                <div className={styles.modalSection}>
+                    <div className={styles.modalSectionTitle}>Modifier le créneau</div>
+                    {contiguousRange.length > 0 ? (
+                        <>
+                            <div className={styles.editRow}>
+                                <label>Début</label>
+                                <select
+                                    className={styles.editSelect}
+                                    value={selectedSlotId}
+                                    onChange={(e) => setSelectedSlotId(e.target.value)}
                                 >
-                                    <UserPlus size={16} />
-                                    Ajouter un joueur
-                                </button>
+                                    {contiguousRange.map((slotId) => (
+                                        <option key={slotId} value={slotId}>
+                                            {slotId.replace(':', 'h')}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                        )}
-                    </>
+                            <div className={styles.editRow}>
+                                <label>Durée</label>
+                                <select
+                                    className={styles.editSelect}
+                                    value={selectedDuration}
+                                    onChange={(e) => setSelectedDuration(Number(e.target.value))}
+                                >
+                                    {availableDurations.map((d) => (
+                                        <option key={d.value} value={d.slots}>
+                                            {d.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {isModified && (
+                                <div className={styles.editSummary}>
+                                    → {selectedSlotId.replace(':', 'h')} à{' '}
+                                    {getEndTime(selectedSlotId, selectedDuration)}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className={styles.editLoading}>Aucun créneau ouvert ce jour-là.</div>
+                    )}
+                </div>
+
+                {/* Inviter des membres */}
+                {approvedMembers.length > 0 && (
+                    <div className={styles.modalSection}>
+                        <div className={styles.modalSectionTitle}>Inviter des membres</div>
+                        <div className={styles.guestFieldList}>
+                            {guests.map((guest, idx) => (
+                                <div key={idx} className={styles.guestRow}>
+                                    <MemberSearchSelect
+                                        members={approvedMembers.filter(
+                                            (m) =>
+                                                !guests.some(
+                                                    (g) =>
+                                                        g.userId === m.userId &&
+                                                        m.userId !== guest.userId
+                                                )
+                                        )}
+                                        value={guest.userId}
+                                        onChange={(userId) => updateGuest(idx, userId)}
+                                    />
+                                    {(guest.userId || guests.length > 1) && (
+                                        <button
+                                            onClick={() => removeGuest(idx)}
+                                            className={styles.removeGuestBtn}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        <button onClick={addGuestField} className={`btn ${styles.addPlayerBtn}`}>
+                            <UserPlus size={16} />
+                            Ajouter un joueur
+                        </button>
+                    </div>
                 )}
 
                 {/* Actions */}
@@ -497,13 +465,18 @@ export default function MyInvitations({ onNotificationChange }) {
     const [invitations, setInvitations] = useState([])
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
-    const [selectedInv, setSelectedInv] = useState(null)
+    const [modalData, setModalData] = useState(null) // { inv, openedSlots, blockedSlots }
+    const [approvedMembers, setApprovedMembers] = useState([])
     const [showHint, setShowHint] = useState(() => !localStorage.getItem(SWIPE_HINT_KEY))
 
     const loadInvitations = async () => {
         if (!user) return
-        const data = await storageService.getPendingInvitations(user.id)
+        const [data, membersData] = await Promise.all([
+            storageService.getPendingInvitations(user.id),
+            storageService.getMembers(),
+        ])
         setInvitations(data)
+        setApprovedMembers((membersData.approved || []).filter((m) => m.userId !== user.id))
         setLoading(false)
     }
 
@@ -517,6 +490,24 @@ export default function MyInvitations({ onNotificationChange }) {
         return () => storageService.unsubscribe(sub)
     }, [user])
 
+    const openModal = async (inv) => {
+        try {
+            const invDate = new Date(inv.date)
+            const weekStartStr = format(startOfWeek(invDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+            const [opened, weekConfig] = await Promise.all([
+                storageService.getOpenedSlotsForDate(inv.date),
+                storageService.getWeekConfig(weekStartStr),
+            ])
+            setModalData({
+                inv,
+                openedSlots: opened,
+                blockedSlots: weekConfig?.slots || [],
+            })
+        } catch {
+            addToast('Erreur lors du chargement.', 'error')
+        }
+    }
+
     const handleRefresh = async () => {
         setRefreshing(true)
         await loadInvitations()
@@ -527,7 +518,7 @@ export default function MyInvitations({ onNotificationChange }) {
         try {
             await storageService.acceptInvitation(inv.slotId, inv.date, user.id)
             addToast('Invitation acceptée.', 'success')
-            setSelectedInv(null)
+            setModalData(null)
             await loadInvitations()
             onNotificationChange?.()
             dismissHint()
@@ -546,7 +537,7 @@ export default function MyInvitations({ onNotificationChange }) {
         try {
             await storageService.declineInvitation(inv.slotId, inv.date, user.id)
             addToast('Invitation refusée.', 'success')
-            setSelectedInv(null)
+            setModalData(null)
             await loadInvitations()
             onNotificationChange?.()
             dismissHint()
@@ -607,7 +598,7 @@ export default function MyInvitations({ onNotificationChange }) {
             }
 
             addToast('Invitation acceptée.', 'success')
-            setSelectedInv(null)
+            setModalData(null)
             await loadInvitations()
             onNotificationChange?.()
         } catch {
@@ -662,7 +653,7 @@ export default function MyInvitations({ onNotificationChange }) {
                                 inv={inv}
                                 onAccept={() => handleAccept(inv)}
                                 onDecline={() => handleDecline(inv)}
-                                onTap={() => setSelectedInv(inv)}
+                                onTap={() => openModal(inv)}
                                 onViewPlanning={() =>
                                     navigate(`/?date=${inv.date}&slot=${inv.slotId}`)
                                 }
@@ -672,15 +663,16 @@ export default function MyInvitations({ onNotificationChange }) {
                 </>
             )}
 
-            {selectedInv && (
+            {modalData && (
                 <InvitationModal
-                    inv={selectedInv}
-                    onClose={() => setSelectedInv(null)}
+                    inv={modalData.inv}
+                    openedSlots={modalData.openedSlots}
+                    blockedSlots={modalData.blockedSlots}
+                    approvedMembers={approvedMembers}
+                    onClose={() => setModalData(null)}
                     onAccept={handleAccept}
                     onAcceptModified={handleAcceptModified}
                     onDecline={handleDecline}
-                    user={user}
-                    addToast={addToast}
                 />
             )}
         </div>
