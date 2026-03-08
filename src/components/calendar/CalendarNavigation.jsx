@@ -214,7 +214,18 @@ export default function CalendarNavigation({
             // Extension aux bords (pas pendant un scroll programmatique)
             if (extendingRef.current || programmaticScrollRef.current) return
 
+            console.log('[DEBUG handleScroll extension check]', {
+                scrollLeft,
+                threshold: EXTEND_THRESHOLD,
+                willExtendLeft: scrollLeft < EXTEND_THRESHOLD,
+            })
+
             if (scrollLeft < EXTEND_THRESHOLD) {
+                console.log('[DEBUG EXTENDING LEFT]', {
+                    scrollLeft,
+                    scrollWidth,
+                    oldChildCount: el.children.length,
+                })
                 extendingRef.current = true
                 const oldScrollWidth = scrollWidth
                 const oldScrollLeft = scrollLeft
@@ -229,6 +240,11 @@ export default function CalendarNavigation({
                 requestAnimationFrame(() => {
                     if (daySelectorRef.current) {
                         const delta = daySelectorRef.current.scrollWidth - oldScrollWidth
+                        console.log('[DEBUG extension correction]', {
+                            delta,
+                            oldScrollLeft,
+                            newScrollLeft: oldScrollLeft + delta,
+                        })
                         daySelectorRef.current.scrollLeft = oldScrollLeft + delta
                     }
                     extendingRef.current = false
