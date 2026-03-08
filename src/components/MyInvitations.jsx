@@ -54,7 +54,22 @@ function getContiguousRange(originalSlotId, openedSlots, blockedSlots, invDate, 
     let right = startIndex
     while (right < TIME_SLOTS.length - 1 && isAvailable(right + 1)) right++
 
-    return TIME_SLOTS.slice(left, right + 1).map((s) => s.id)
+    const range = TIME_SLOTS.slice(left, right + 1).map((s) => s.id)
+    console.log('[DEBUG getContiguousRange]', {
+        originalSlotId,
+        invDuration,
+        startIndex,
+        openedSlotsCount: openedSlots.length,
+        openedSet: [...openedSet],
+        invSlotIds: [...invSlotIds],
+        blockedSlots: blockedSlots
+            .filter((bs) => bs.date === invDate && bs.isBlocking)
+            .map((bs) => `${bs.startTime}-${bs.endTime}`),
+        left,
+        right,
+        range,
+    })
+    return range
 }
 
 function getDurationsForSlotInRange(slotId, contiguousRange) {
