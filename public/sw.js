@@ -1,4 +1,5 @@
 // Kamikaze SW: replaces the old Workbox SW, unregisters itself, and reloads all clients
+// TODO: Remove this file after May 2026 — all users should have migrated to sw-custom.js by then
 self.addEventListener('install', function() {
     self.skipWaiting()
 })
