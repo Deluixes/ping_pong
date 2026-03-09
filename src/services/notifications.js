@@ -11,7 +11,6 @@ const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID
 console.log('[NotificationService] ONESIGNAL_APP_ID:', ONESIGNAL_APP_ID ? 'configured' : 'MISSING!')
 
 class NotificationService {
-
     constructor() {
         this._initialized = false
         this._initPromise = null
@@ -56,7 +55,7 @@ class NotificationService {
                             appId: ONESIGNAL_APP_ID,
                             allowLocalhostAsSecureOrigin: true,
                             notifyButton: { enable: false },
-                            welcomeNotification: { disable: true }
+                            welcomeNotification: { disable: true },
                         })
                         this._initialized = true
                         resolve(true)
@@ -84,9 +83,7 @@ class NotificationService {
      * Check if push notifications are supported
      */
     isSupported() {
-        return 'serviceWorker' in navigator &&
-               'PushManager' in window &&
-               'Notification' in window
+        return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
     }
 
     /**
@@ -159,7 +156,10 @@ class NotificationService {
                     }
 
                     // Set external user ID (links OneSignal to our user)
-                    console.log('[NotificationService] Calling OneSignal.login with userId:', userId)
+                    console.log(
+                        '[NotificationService] Calling OneSignal.login with userId:',
+                        userId
+                    )
                     await OneSignal.login(userId)
                     console.log('[NotificationService] Login successful')
 
@@ -258,11 +258,14 @@ class NotificationService {
             console.error('Error fetching preferences:', error)
         }
 
-        return data || {
-            enabled: false,
-            invitations_enabled: true,
-            slot_openings_enabled: true
-        }
+        return (
+            data || {
+                enabled: false,
+                invitations_enabled: true,
+                slot_openings_enabled: true,
+                registrations_enabled: true,
+            }
+        )
     }
 
     /**
@@ -271,15 +274,16 @@ class NotificationService {
      * @param {object} preferences
      */
     async updatePreferences(userId, preferences) {
-        const { error } = await supabase
-            .from('notification_preferences')
-            .upsert({
+        const { error } = await supabase.from('notification_preferences').upsert(
+            {
                 user_id: userId,
                 ...preferences,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id'
-            })
+                updated_at: new Date().toISOString(),
+            },
+            {
+                onConflict: 'user_id',
+            }
+        )
 
         if (error) {
             console.error('Error updating preferences:', error)
@@ -292,7 +296,7 @@ class NotificationService {
             window.OneSignalDeferred.push(async (OneSignal) => {
                 await OneSignal.User.addTags({
                     invitations_enabled: preferences.invitations_enabled ? 'true' : 'false',
-                    slot_openings_enabled: preferences.slot_openings_enabled ? 'true' : 'false'
+                    slot_openings_enabled: preferences.slot_openings_enabled ? 'true' : 'false',
                 })
             })
         }
@@ -312,7 +316,8 @@ class NotificationService {
         await this.updatePreferences(userId, {
             enabled: true,
             invitations_enabled: true,
-            slot_openings_enabled: true
+            slot_openings_enabled: true,
+            registrations_enabled: true,
         })
         return { success: true }
     }
@@ -340,7 +345,7 @@ class NotificationService {
             icon: '/pwa-192x192.png',
             badge: '/pwa-192x192.png',
             vibrate: [200, 100, 200],
-            tag: 'test-notification'
+            tag: 'test-notification',
         })
     }
 }

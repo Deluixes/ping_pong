@@ -1,0 +1,24 @@
+.wrapper {
+    padding-bottom: 2rem;
+    touch-action: pan-y;
+    min-height: 60vh;
+    overflow-x: hidden;
+}
+
+.pullIndicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    transition: height 0.2s ease-out;
+}
+
+.loading {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.reloadBtn {
+    margin-top: 1rem;
+}

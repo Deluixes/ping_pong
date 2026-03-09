@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import clsx from 'clsx'
 import { storageService } from '../services/storage'
 import { useAuth } from '../contexts/AuthContext'
 import { Search, Users, X } from 'lucide-react'
+import styles from './ClubMembers.module.css'
 
 export default function ClubMembers() {
     const { user } = useAuth()
@@ -22,7 +24,7 @@ export default function ClubMembers() {
     }
 
     const filteredMembers = useMemo(() => {
-        return members.filter(m => {
+        return members.filter((m) => {
             const matchesSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase())
             const matchesLicense = licenseFilter === 'all' || m.licenseType === licenseFilter
             return matchesSearch && matchesLicense
@@ -30,106 +32,56 @@ export default function ClubMembers() {
     }, [members, searchTerm, licenseFilter])
 
     if (loading) {
-        return <div style={{ padding: '2rem', textAlign: 'center' }}>Chargement...</div>
+        return <div className={styles.loading}>Chargement...</div>
     }
 
     return (
         <div>
             {/* Barre de recherche */}
-            <div style={{
-                position: 'relative',
-                marginBottom: '0.75rem'
-            }}>
-                <Search
-                    size={18}
-                    style={{
-                        position: 'absolute',
-                        left: '0.75rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: '#9CA3AF'
-                    }}
-                />
+            <div className={styles.searchWrapper}>
+                <Search size={18} className={styles.searchIcon} />
                 <input
                     type="text"
                     placeholder="Rechercher un membre..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        width: '100%',
-                        padding: '0.75rem 0.75rem 0.75rem 2.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid #E5E7EB',
-                        fontSize: '0.9rem'
-                    }}
+                    className={clsx('form-input', styles.searchInput)}
                 />
             </div>
 
             {/* Filtre par licence */}
-            <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                marginBottom: '1rem'
-            }}>
+            <div className={styles.filterGroup}>
                 <button
                     onClick={() => setLicenseFilter('all')}
-                    style={{
-                        flex: 1,
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: licenseFilter === 'all' ? '2px solid var(--color-primary)' : '1px solid #E5E7EB',
-                        background: licenseFilter === 'all' ? 'rgba(249, 115, 22, 0.1)' : 'white',
-                        color: licenseFilter === 'all' ? 'var(--color-primary)' : 'var(--color-text)',
-                        fontWeight: licenseFilter === 'all' ? '600' : '400',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                    }}
+                    className={clsx(
+                        styles.filterBtn,
+                        licenseFilter === 'all' && styles.filterBtnAllActive
+                    )}
                 >
                     Tous
                 </button>
                 <button
                     onClick={() => setLicenseFilter('L')}
-                    style={{
-                        flex: 1,
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: licenseFilter === 'L' ? '2px solid #1D4ED8' : '1px solid #E5E7EB',
-                        background: licenseFilter === 'L' ? '#DBEAFE' : 'white',
-                        color: licenseFilter === 'L' ? '#1D4ED8' : 'var(--color-text)',
-                        fontWeight: licenseFilter === 'L' ? '600' : '400',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                    }}
+                    className={clsx(
+                        styles.filterBtn,
+                        licenseFilter === 'L' && styles.filterBtnLActive
+                    )}
                 >
                     Loisir
                 </button>
                 <button
                     onClick={() => setLicenseFilter('C')}
-                    style={{
-                        flex: 1,
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: licenseFilter === 'C' ? '2px solid #7C3AED' : '1px solid #E5E7EB',
-                        background: licenseFilter === 'C' ? '#F3E8FF' : 'white',
-                        color: licenseFilter === 'C' ? '#7C3AED' : 'var(--color-text)',
-                        fontWeight: licenseFilter === 'C' ? '600' : '400',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                    }}
+                    className={clsx(
+                        styles.filterBtn,
+                        licenseFilter === 'C' && styles.filterBtnCActive
+                    )}
                 >
                     Compétition
                 </button>
             </div>
 
             {/* Nombre de membres */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '1rem',
-                color: 'var(--color-text-muted)',
-                fontSize: '0.9rem'
-            }}>
+            <div className={styles.memberCount}>
                 <Users size={16} />
                 {filteredMembers.length} membre{filteredMembers.length > 1 ? 's' : ''}
                 {searchTerm && ` trouvé${filteredMembers.length > 1 ? 's' : ''}`}
@@ -137,54 +89,29 @@ export default function ClubMembers() {
 
             {/* Liste des membres */}
             {filteredMembers.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <Users size={48} style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }} />
-                    <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
-                        {searchTerm ? `Aucun membre trouvé pour "${searchTerm}"` : 'Aucun membre dans le club'}
+                <div className={clsx('card', styles.emptyState)}>
+                    <Users size={48} className={styles.emptyIcon} />
+                    <p className={styles.emptyText}>
+                        {searchTerm
+                            ? `Aucun membre trouvé pour "${searchTerm}"`
+                            : 'Aucun membre dans le club'}
                     </p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {filteredMembers.map(member => (
+                <div className={styles.memberList}>
+                    {filteredMembers.map((member) => (
                         <div
                             key={member.userId}
                             onClick={() => setSelectedMember(member)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                padding: '0.75rem 1rem',
-                                background: 'white',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid #E5E7EB',
-                                cursor: 'pointer',
-                                transition: 'background 0.15s'
-                            }}
+                            className={styles.memberRow}
                         >
                             {/* Avatar */}
-                            <div style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '50%',
-                                background: 'var(--color-primary)',
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem',
-                                flexShrink: 0,
-                                overflow: 'hidden'
-                            }}>
+                            <div className="avatar avatar--sm">
                                 {member.profilePhotoUrl ? (
                                     <img
                                         src={member.profilePhotoUrl}
                                         alt={member.name}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover'
-                                        }}
+                                        className="avatar__img"
                                     />
                                 ) : (
                                     member.name?.charAt(0).toUpperCase() || '?'
@@ -192,21 +119,19 @@ export default function ClubMembers() {
                             </div>
 
                             {/* Nom */}
-                            <div style={{ flex: 1, fontWeight: '500' }}>
-                                {member.name}
-                            </div>
+                            <div className={styles.memberName}>{member.name}</div>
 
                             {/* Badge licence */}
                             {member.licenseType && (
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    background: member.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
-                                    color: member.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
-                                    padding: '0.25rem 0.5rem',
-                                    borderRadius: '999px',
-                                    fontWeight: 'bold',
-                                    flexShrink: 0
-                                }}>
+                                <span
+                                    className={clsx(
+                                        'badge',
+                                        'badge--pill',
+                                        member.licenseType === 'C'
+                                            ? styles.badgeCompetition
+                                            : styles.badgeLoisir
+                                    )}
+                                >
                                     {member.licenseType}
                                 </span>
                             )}
@@ -219,91 +144,50 @@ export default function ClubMembers() {
             {selectedMember && (
                 <div
                     onClick={() => setSelectedMember(null)}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.7)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1000,
-                        padding: '1rem'
-                    }}
+                    className={clsx('modal-overlay', 'modal-overlay--dark', styles.modalPadding)}
                 >
                     <div
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: 'white',
-                            borderRadius: '1rem',
-                            padding: '1.5rem',
-                            maxWidth: '300px',
-                            width: '100%',
-                            textAlign: 'center',
-                            position: 'relative'
-                        }}
+                        className={clsx('modal-dialog', styles.modalContent)}
                     >
                         {/* Bouton fermer */}
                         <button
                             onClick={() => setSelectedMember(null)}
-                            style={{
-                                position: 'absolute',
-                                top: '0.75rem',
-                                right: '0.75rem',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '0.25rem',
-                                color: 'var(--color-text-muted)'
-                            }}
+                            className={clsx('icon-btn', 'icon-btn--muted', styles.closeBtn)}
                         >
                             <X size={20} />
                         </button>
 
                         {/* Grande photo ou initiale */}
-                        <div style={{
-                            width: '150px',
-                            height: '150px',
-                            borderRadius: '50%',
-                            background: 'var(--color-primary)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 1rem',
-                            overflow: 'hidden'
-                        }}>
+                        <div className={clsx('avatar', 'avatar--xxl', styles.modalAvatar)}>
                             {selectedMember.profilePhotoUrl ? (
                                 <img
                                     src={selectedMember.profilePhotoUrl}
                                     alt={selectedMember.name}
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover'
-                                    }}
+                                    className="avatar__img"
                                 />
                             ) : (
-                                <span style={{ fontSize: '4rem', fontWeight: 'bold' }}>
+                                <span className={styles.modalInitial}>
                                     {selectedMember.name?.charAt(0).toUpperCase() || '?'}
                                 </span>
                             )}
                         </div>
 
                         {/* Nom */}
-                        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem' }}>
-                            {selectedMember.name}
-                        </h3>
+                        <h3 className={styles.modalName}>{selectedMember.name}</h3>
 
                         {/* Badge licence */}
                         {selectedMember.licenseType && (
-                            <span style={{
-                                fontSize: '0.85rem',
-                                background: selectedMember.licenseType === 'C' ? '#F3E8FF' : '#DBEAFE',
-                                color: selectedMember.licenseType === 'C' ? '#7C3AED' : '#1D4ED8',
-                                padding: '0.35rem 0.75rem',
-                                borderRadius: '999px',
-                                fontWeight: 'bold'
-                            }}>
+                            <span
+                                className={clsx(
+                                    'badge',
+                                    'badge--pill',
+                                    styles.badgeLg,
+                                    selectedMember.licenseType === 'C'
+                                        ? styles.badgeCompetition
+                                        : styles.badgeLoisir
+                                )}
+                            >
                                 {selectedMember.licenseType === 'C' ? 'Compétition' : 'Loisir'}
                             </span>
                         )}

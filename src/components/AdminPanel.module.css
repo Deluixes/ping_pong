@@ -1,0 +1,235 @@
+.wrapper {
+    padding-bottom: 2rem;
+}
+
+.loading {
+    padding: 2rem;
+    text-align: center;
+}
+
+.groupBanner {
+    background: var(--color-primary);
+    color: white;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.groupBannerTitle {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sectionTitleWarning {
+    color: #f59e0b;
+}
+
+.sectionTitleSuccess {
+    color: #10b981;
+}
+
+.emptyText {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.memberRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.pendingRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-yellow-bg);
+    border-radius: var(--radius-md);
+}
+
+.memberInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.memberName {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.memberEmail {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.licenseBadge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-weight: bold;
+}
+
+.licenseBadgeC {
+    background: var(--color-purple-bg);
+    color: var(--color-purple-text);
+}
+
+.licenseBadgeL {
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
+}
+
+.editBtn {
+    background: var(--color-bg-muted);
+    color: var(--color-text);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.approveBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.rejectBtn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.refreshBtn {
+    margin-left: auto;
+}
+
+.searchWrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+}
+
+.searchInput {
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    font-size: 0.9rem;
+}
+
+.noResults {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.formGroup {
+    margin-bottom: 1rem;
+}
+
+.formGroupLg {
+    margin-bottom: 1.5rem;
+}
+
+.modalTitle {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.modalActions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.cancelBtn {
+    flex: 1;
+    background: var(--color-bg);
+}
+
+.saveBtn {
+    flex: 1;
+}
+
+.removeBtn {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--color-red-bg);
+    color: var(--color-red-text);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.groupSectionTitle {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.groupSectionTitleAdmin {
+    color: var(--color-blue-text);
+}
+
+.groupSectionTitleManager {
+    color: var(--color-green-text);
+}
+
+.groupSectionTitleMember {
+    color: var(--color-text-muted);
+}
+
+.groupSection {
+    margin-bottom: 1.5rem;
+}
+
+.pendingCard {
+    margin-bottom: 1rem;
+}

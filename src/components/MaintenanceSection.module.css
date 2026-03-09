@@ -1,0 +1,26 @@
+/* ===== Section Heading ===== */
+
+.sectionHeading {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ===== Cache / Maintenance ===== */
+
+.cacheDesc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 0 0 1rem;
+}
+
+.cacheBtn {
+    width: 100%;
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}

@@ -60,6 +60,29 @@ Dans le Dashboard Supabase : Database > Webhooks > Create webhook
 - Type: `Supabase Edge Function`
 - Edge Function: `on-slot-opened`
 
+**Webhook 3 : Réponse aux invitations (acceptation/refus)**
+- Name: `on-invitation-response`
+- Table: `slot_invitations`
+- Events: `UPDATE`, `DELETE`
+- Type: `Supabase Edge Function`
+- Edge Function: `on-invitation-response`
+
+**Webhook 4 : Inscription sur un créneau**
+- Name: `on-slot-registration`
+- Table: `reservations`
+- Events: `INSERT`
+- Type: `Supabase Edge Function`
+- Edge Function: `on-slot-registration`
+
+### 3.3 Migration pour les notifications d'inscription
+
+Exécuter dans le SQL Editor :
+
+```sql
+ALTER TABLE notification_preferences
+ADD COLUMN IF NOT EXISTS registrations_enabled BOOLEAN DEFAULT true;
+```
+
 ## 4. Tester
 
 1. Ouvrir l'application sur un appareil mobile

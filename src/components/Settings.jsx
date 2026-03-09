@@ -1,162 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { storageService } from '../services/storage'
-import { notificationService } from '../services/notifications'
-import { ArrowLeft, Save, User, Mail, Award, Bell, BellOff, Smartphone, Lock, Camera, Trash2 } from 'lucide-react'
+import { ArrowLeft, Lock, Sun, Moon, Monitor } from 'lucide-react'
 import ChangePassword from './ChangePassword'
+import ProfileSection from './ProfileSection'
+import NotificationsSection from './NotificationsSection'
+import MaintenanceSection from './MaintenanceSection'
+import { useTheme } from '../hooks/useTheme'
+import clsx from 'clsx'
+import styles from './Settings.module.css'
 
 export default function Settings() {
-    const { user, updateName, logout } = useAuth()
+    const { logout } = useAuth()
     const navigate = useNavigate()
-    const [name, setName] = useState(user?.name || '')
-    const [licenseType, setLicenseType] = useState(null)
-    const [isSaving, setIsSaving] = useState(false)
-    const [saved, setSaved] = useState(false)
-
-    // Notification states
-    const [notifSupported, setNotifSupported] = useState(false)
-    const [notifEnabled, setNotifEnabled] = useState(false)
-    const [notifPrefs, setNotifPrefs] = useState({
-        invitations_enabled: true,
-        slot_openings_enabled: true
-    })
-    const [notifLoading, setNotifLoading] = useState(false)
-    const [notifPermission, setNotifPermission] = useState('default')
     const [showPasswordModal, setShowPasswordModal] = useState(false)
-
-    // Photo de profil
-    const [profilePhotoUrl, setProfilePhotoUrl] = useState(null)
-    const [photoUploading, setPhotoUploading] = useState(false)
-    const [showPhotoModal, setShowPhotoModal] = useState(false)
-
-    // Charger le profil pour récupérer le type de licence et la photo
-    useEffect(() => {
-        const loadProfile = async () => {
-            if (user?.id) {
-                const profile = await storageService.getMemberProfile(user.id)
-                if (profile) {
-                    setLicenseType(profile.licenseType)
-                }
-                // Charger la photo de profil
-                const photoUrl = await storageService.getProfilePhotoUrl(user.id)
-                setProfilePhotoUrl(photoUrl)
-            }
-        }
-        loadProfile()
-    }, [user?.id])
-
-    // Charger les préférences de notifications
-    useEffect(() => {
-        const loadNotificationSettings = async () => {
-            const supported = notificationService.isSupported()
-            setNotifSupported(supported)
-            setNotifPermission(notificationService.getPermissionStatus())
-
-            if (supported && user?.id) {
-                const prefs = await notificationService.getPreferences(user.id)
-                setNotifEnabled(prefs.enabled)
-                setNotifPrefs({
-                    invitations_enabled: prefs.invitations_enabled,
-                    slot_openings_enabled: prefs.slot_openings_enabled
-                })
-            }
-        }
-        loadNotificationSettings()
-    }, [user?.id])
-
-    // Handlers pour les notifications
-    const handleToggleNotifications = async () => {
-        setNotifLoading(true)
-        if (notifEnabled) {
-            await notificationService.disableNotifications(user.id)
-            setNotifEnabled(false)
-        } else {
-            const result = await notificationService.enableNotifications(user.id)
-            if (result.success) {
-                setNotifEnabled(true)
-                setNotifPermission('granted')
-            } else {
-                alert(result.error || 'Impossible d\'activer les notifications')
-                setNotifPermission(notificationService.getPermissionStatus())
-            }
-        }
-        setNotifLoading(false)
-    }
-
-    const handleUpdateNotifPref = async (key, value) => {
-        const newPrefs = { ...notifPrefs, [key]: value }
-        setNotifPrefs(newPrefs)
-        await notificationService.updatePreferences(user.id, newPrefs)
-    }
-
-    const handleTestNotification = async () => {
-        await notificationService.sendTestNotification()
-    }
-
-    // Handlers pour la photo de profil
-    const handlePhotoUpload = async (e) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        // Vérifier le type de fichier
-        if (!file.type.startsWith('image/')) {
-            alert('Veuillez sélectionner une image')
-            return
-        }
-
-        // Vérifier la taille (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('L\'image ne doit pas dépasser 5 Mo')
-            return
-        }
-
-        setPhotoUploading(true)
-        const result = await storageService.uploadProfilePhoto(user.id, file)
-        setPhotoUploading(false)
-
-        if (result.success) {
-            setProfilePhotoUrl(result.url)
-        } else {
-            alert(result.error || 'Erreur lors de l\'upload de la photo')
-        }
-
-        // Reset input
-        e.target.value = ''
-    }
-
-    const handleDeletePhoto = async () => {
-        if (!window.confirm('Supprimer votre photo de profil ?')) return
-
-        setPhotoUploading(true)
-        const result = await storageService.deleteProfilePhoto(user.id)
-        setPhotoUploading(false)
-
-        if (result.success) {
-            setProfilePhotoUrl(null)
-        } else {
-            alert(result.error || 'Erreur lors de la suppression')
-        }
-    }
-
-    const handleSave = async (e) => {
-        e.preventDefault()
-        if (!name.trim()) return
-
-        setIsSaving(true)
-        await updateName(name.trim())
-        // Also update name in members table, reservations and invitations
-        await storageService.updateMemberName(user.id, name.trim())
-        await storageService.updateUserNameInEvents(user.id, name.trim())
-        await storageService.updateUserNameInInvitations(user.id, name.trim())
-        // Update license type
-        if (licenseType) {
-            await storageService.updateMemberLicense(user.id, licenseType)
-        }
-        setIsSaving(false)
-        setSaved(true)
-        setTimeout(() => setSaved(false), 2000)
-    }
+    const { preference, setTheme } = useTheme()
 
     const handleLogout = async () => {
         await logout()
@@ -164,252 +22,30 @@ export default function Settings() {
     }
 
     return (
-        <div style={{ paddingBottom: '2rem' }}>
+        <div className={styles.page}>
             {/* Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '1.5rem',
-                marginTop: '1rem'
-            }}>
-                <button
-                    onClick={() => navigate('/')}
-                    className="btn"
-                    style={{ background: 'var(--color-bg)', padding: '0.5rem' }}
-                >
+            <div className="page-header">
+                <button onClick={() => navigate('/')} className="btn btn-back">
                     <ArrowLeft size={20} />
                 </button>
-                <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Paramètres</h1>
+                <h1 className="page-title">Paramètres</h1>
             </div>
 
             {/* Profile Section */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <User size={18} />
-                    Mon Compte
-                </h2>
-
-                {/* Photo de profil */}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    marginBottom: '1.5rem',
-                    paddingBottom: '1.5rem',
-                    borderBottom: '1px solid #E2E8F0'
-                }}>
-                    <div
-                        onClick={() => profilePhotoUrl && setShowPhotoModal(true)}
-                        style={{
-                            width: '100px',
-                            height: '100px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            background: 'var(--color-primary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: '1rem',
-                            position: 'relative',
-                            cursor: profilePhotoUrl ? 'pointer' : 'default'
-                        }}
-                    >
-                        {profilePhotoUrl ? (
-                            <img
-                                src={profilePhotoUrl}
-                                alt="Photo de profil"
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover'
-                                }}
-                            />
-                        ) : (
-                            <span style={{
-                                color: 'white',
-                                fontSize: '2.5rem',
-                                fontWeight: '600'
-                            }}>
-                                {user?.name?.charAt(0).toUpperCase() || '?'}
-                            </span>
-                        )}
-                        {photoUploading && (
-                            <div style={{
-                                position: 'absolute',
-                                inset: 0,
-                                background: 'rgba(0,0,0,0.5)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'white',
-                                fontSize: '0.8rem'
-                            }}>
-                                Chargement...
-                            </div>
-                        )}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <label style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            background: 'var(--color-bg)',
-                            borderRadius: 'var(--radius-md)',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem'
-                        }}>
-                            <Camera size={16} />
-                            {profilePhotoUrl ? 'Changer' : 'Ajouter une photo'}
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handlePhotoUpload}
-                                style={{ display: 'none' }}
-                                disabled={photoUploading}
-                            />
-                        </label>
-                        {profilePhotoUrl && (
-                            <button
-                                type="button"
-                                onClick={handleDeletePhoto}
-                                disabled={photoUploading}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.5rem 1rem',
-                                    background: '#FEE2E2',
-                                    color: '#DC2626',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                <Trash2 size={16} />
-                                Supprimer
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                <form onSubmit={handleSave}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                            <Mail size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                            Email
-                        </label>
-                        <div style={{
-                            padding: '0.75rem',
-                            background: 'var(--color-bg)',
-                            borderRadius: 'var(--radius-md)',
-                            fontSize: '0.95rem',
-                            color: 'var(--color-text-muted)'
-                        }}>
-                            {user?.email}
-                        </div>
-                    </div>
-
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                            Prénom Nom
-                        </label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Votre nom"
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid #DDD',
-                                fontSize: '1rem'
-                            }}
-                            required
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                            <Award size={14} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                            Type de licence
-                        </label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button
-                                type="button"
-                                onClick={() => setLicenseType('L')}
-                                style={{
-                                    flex: 1,
-                                    padding: '0.75rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: `2px solid ${licenseType === 'L' ? 'var(--color-primary)' : '#DDD'}`,
-                                    background: licenseType === 'L' ? '#EFF6FF' : 'white',
-                                    cursor: 'pointer',
-                                    fontWeight: licenseType === 'L' ? '600' : '400',
-                                    color: licenseType === 'L' ? 'var(--color-primary)' : 'var(--color-text)'
-                                }}
-                            >
-                                Loisir (L)
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setLicenseType('C')}
-                                style={{
-                                    flex: 1,
-                                    padding: '0.75rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: `2px solid ${licenseType === 'C' ? 'var(--color-primary)' : '#DDD'}`,
-                                    background: licenseType === 'C' ? '#EFF6FF' : 'white',
-                                    cursor: 'pointer',
-                                    fontWeight: licenseType === 'C' ? '600' : '400',
-                                    color: licenseType === 'C' ? 'var(--color-primary)' : 'var(--color-text)'
-                                }}
-                            >
-                                Compétition (C)
-                            </button>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                        disabled={isSaving}
-                    >
-                        {saved ? (
-                            <>✓ Enregistré</>
-                        ) : (
-                            <>
-                                <Save size={18} />
-                                {isSaving ? 'Enregistrement...' : 'Enregistrer'}
-                            </>
-                        )}
-                    </button>
-                </form>
+            <div className={clsx('card', styles.section)}>
+                <ProfileSection />
             </div>
 
             {/* Password Section */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className={clsx('card', styles.section)}>
+                <h2 className={styles.sectionHeading}>
                     <Lock size={18} />
                     Mot de passe
                 </h2>
 
                 <button
                     onClick={() => setShowPasswordModal(true)}
-                    className="btn"
-                    style={{
-                        width: '100%',
-                        background: 'var(--color-bg)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem'
-                    }}
+                    className={clsx('btn', styles.passwordBtn)}
                 >
                     <Lock size={16} />
                     Modifier le mot de passe
@@ -417,250 +53,60 @@ export default function Settings() {
             </div>
 
             {/* Notifications Section */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Bell size={18} />
-                    Notifications
+            <div className={clsx('card', styles.section)}>
+                <NotificationsSection />
+            </div>
+
+            {/* Theme Section */}
+            <div className={clsx('card', styles.section)}>
+                <h2 className={styles.sectionHeading}>
+                    <Sun size={18} />
+                    Apparence
                 </h2>
+                <div className={styles.themeToggle}>
+                    {[
+                        { value: 'light', label: 'Clair', icon: Sun },
+                        { value: 'auto', label: 'Auto', icon: Monitor },
+                        { value: 'dark', label: 'Sombre', icon: Moon },
+                    ].map(({ value, label, icon: Icon }) => (
+                        <button
+                            key={value}
+                            onClick={() => setTheme(value)}
+                            className={clsx(
+                                styles.themeBtn,
+                                preference === value && styles.themeBtnActive
+                            )}
+                        >
+                            <Icon size={16} />
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-                {!notifSupported ? (
-                    <div style={{
-                        background: '#FEF3C7',
-                        padding: '0.75rem',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '0.9rem',
-                        color: '#92400E',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}>
-                        <Smartphone size={16} />
-                        Les notifications ne sont pas supportées sur ce navigateur.
-                    </div>
-                ) : notifPermission === 'denied' && !notifEnabled ? (
-                    <div style={{
-                        background: '#FEE2E2',
-                        padding: '0.75rem',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '0.9rem',
-                        color: '#991B1B'
-                    }}>
-                        <p style={{ margin: 0, marginBottom: '0.5rem', fontWeight: '500' }}>
-                            Notifications bloquées
-                        </p>
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                            Vous avez refusé les notifications. Pour les activer, modifiez les paramètres de votre navigateur pour ce site.
-                        </p>
-                    </div>
-                ) : (
-                    <>
-                        {/* Master toggle */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '0.75rem',
-                            background: notifEnabled ? '#F0FDF4' : '#F9FAFB',
-                            borderRadius: 'var(--radius-md)',
-                            marginBottom: notifEnabled ? '1rem' : 0,
-                            border: notifEnabled ? '1px solid #86EFAC' : '1px solid #E5E7EB'
-                        }}>
-                            <div>
-                                <div style={{ fontWeight: '500' }}>
-                                    {notifEnabled ? 'Notifications activées' : 'Notifications désactivées'}
-                                </div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                    Recevez des alertes sur votre appareil
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleToggleNotifications}
-                                disabled={notifLoading}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: 'none',
-                                    background: notifEnabled ? '#DC2626' : 'var(--color-primary)',
-                                    color: 'white',
-                                    cursor: notifLoading ? 'wait' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                {notifEnabled ? <BellOff size={16} /> : <Bell size={16} />}
-                                {notifLoading ? '...' : (notifEnabled ? 'Désactiver' : 'Activer')}
-                            </button>
-                        </div>
-
-                        {/* Granular preferences - only show if enabled */}
-                        {notifEnabled && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <label style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    padding: '0.75rem',
-                                    background: 'var(--color-bg)',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={notifPrefs.invitations_enabled}
-                                        onChange={(e) => handleUpdateNotifPref('invitations_enabled', e.target.checked)}
-                                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                                    />
-                                    <div>
-                                        <div style={{ fontWeight: '500' }}>Invitations</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                            Quand quelqu'un vous invite sur un créneau
-                                        </div>
-                                    </div>
-                                </label>
-
-                                <label style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    padding: '0.75rem',
-                                    background: 'var(--color-bg)',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={notifPrefs.slot_openings_enabled}
-                                        onChange={(e) => handleUpdateNotifPref('slot_openings_enabled', e.target.checked)}
-                                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                                    />
-                                    <div>
-                                        <div style={{ fontWeight: '500' }}>Ouvertures de créneaux</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                            Quand un créneau correspondant à votre licence s'ouvre
-                                        </div>
-                                    </div>
-                                </label>
-
-                                {/* Test button */}
-                                <button
-                                    onClick={handleTestNotification}
-                                    className="btn"
-                                    style={{
-                                        marginTop: '0.5rem',
-                                        background: 'var(--color-bg)',
-                                        fontSize: '0.85rem'
-                                    }}
-                                >
-                                    Tester les notifications
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
+            {/* Maintenance Section */}
+            <div className={clsx('card', styles.section)}>
+                <MaintenanceSection />
             </div>
 
             {/* Logout Section */}
             <div className="card">
-                <button
-                    onClick={handleLogout}
-                    className="btn"
-                    style={{
-                        width: '100%',
-                        background: '#FEE2E2',
-                        color: '#991B1B',
-                        border: '1px solid #FECACA'
-                    }}
-                >
+                <button onClick={handleLogout} className={clsx('btn', styles.logoutBtn)}>
                     Se déconnecter
                 </button>
             </div>
 
             {/* Version info */}
-            <p style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                Ping Pong Club PWA v1.0
-            </p>
+            <p className={styles.version}>Ping Pong Club PWA v1.0</p>
 
             {/* Password Change Modal */}
             {showPasswordModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    padding: '1rem'
-                }}>
-                    <div className="card" style={{
-                        width: '100%',
-                        maxWidth: '400px',
-                        maxHeight: '90vh',
-                        overflow: 'auto'
-                    }}>
+                <div className={clsx('modal-overlay', styles.modalPadding)}>
+                    <div className={clsx('card', styles.modalCard)}>
                         <ChangePassword
                             forced={false}
                             onClose={() => setShowPasswordModal(false)}
                         />
-                    </div>
-                </div>
-            )}
-
-            {/* Photo Modal - affichage en grand */}
-            {showPhotoModal && profilePhotoUrl && (
-                <div
-                    onClick={() => setShowPhotoModal(false)}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.85)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1000,
-                        padding: '1rem'
-                    }}
-                >
-                    <div style={{
-                        position: 'relative',
-                        maxWidth: '90vw',
-                        maxHeight: '90vh'
-                    }}>
-                        <img
-                            src={profilePhotoUrl}
-                            alt="Photo de profil"
-                            style={{
-                                maxWidth: '100%',
-                                maxHeight: '80vh',
-                                borderRadius: '1rem',
-                                objectFit: 'contain'
-                            }}
-                        />
-                        <button
-                            onClick={() => setShowPhotoModal(false)}
-                            style={{
-                                position: 'absolute',
-                                top: '-40px',
-                                right: '0',
-                                background: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '32px',
-                                height: '32px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                fontSize: '1.25rem'
-                            }}
-                        >
-                            ×
-                        </button>
                     </div>
                 </div>
             )}

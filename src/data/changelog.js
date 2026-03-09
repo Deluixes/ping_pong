@@ -1,0 +1,47 @@
+export const changelog = [
+    {
+        version: '1.2.1',
+        date: '2026-03-07',
+        title: 'Corrections et améliorations',
+        changes: [
+            'Nouvel onglet Statistiques : consultez vos stats de jeu et celles du club.',
+            'Scroll infini sur le calendrier : parcourez les jours sans limite, le calendrier charge automatiquement les semaines suivantes et précédentes.',
+            'Bouton "Revenir à aujourd\'hui" amélioré : il se désactive quand la date du jour est visible et se réactive dès que vous scrollez plus loin.',
+            'Affichage du type de licence des joueurs inscrits à un créneau.',
+            'Amélioration de la fluidité du swipe entre les jours.',
+            'Corrections de bugs divers sur le calendrier et les inscriptions.',
+        ],
+    },
+    {
+        version: '1.2.0',
+        date: '2026-03-06',
+        title: 'Mise à jour de mars',
+        changes: [
+            "Mode sombre amélioré : toutes les modales, menus, badges et composants s'adaptent désormais correctement au thème sombre.",
+            'Nouveau thème : choix entre Clair, Sombre et Auto (suit les préférences système) dans les paramètres.',
+            'Navigation par swipe : balayez vers la gauche ou la droite pour changer de jour dans le calendrier.',
+            'Tirer vers le bas pour actualiser le calendrier (pull-to-refresh).',
+            'Guide de bienvenue pour les nouveaux utilisateurs.',
+            "Recherche de membres avec auto-complétion lors de l'inscription à un créneau.",
+            "Notifications push lors de l'inscription ou de la désinscription d'un joueur à un créneau.",
+            "Améliorations visuelles de la page d'attente d'approbation.",
+            'Corrections de bugs divers et améliorations de la stabilité.',
+        ],
+    },
+    {
+        version: '1.1.0',
+        date: '2026-02-18',
+        title: 'Mise à jour de février',
+        changes: [
+            'Nouveau look : le rouge est de mise, comme le meilleur club du Sud-Ouest !',
+            "Refonte et unification du processus d'inscription aux créneaux pour une expérience plus fluide.",
+            "Notifications push lors de l'acceptation ou du refus d'une invitation à un créneau.",
+            "Possibilité d'ajouter une photo de profil pour personnaliser votre compte.",
+            'Meilleur visuel de la vue semaine : les jours avec des créneaux ouverts apparaissent en vert, les jours sans créneaux en gris, et le jour sélectionné est mis en gras.',
+            'Ajout de notifications contextuelles (pop-up) confirmant la réalisation de vos actions (inscription réussie, désinscription, etc.).',
+            'Amélioration du visuel du planning : sur une journée, les créneaux dont les horaires ne se suivent pas sont désormais séparés par une ligne en pointillés.',
+            "Amélioration générale de la fluidité de l'application.",
+            "Nouveau bouton de suppression du cache dans Mon Compte, utile en cas de problème avec l'application.",
+        ],
+    },
+]

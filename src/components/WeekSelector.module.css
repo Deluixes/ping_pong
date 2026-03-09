@@ -1,0 +1,72 @@
+/* ===== Overlay & Dialog ===== */
+
+.overlay {
+    padding: 1rem;
+}
+
+.dialog {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+/* ===== Header ===== */
+
+.header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.headerTitle {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+/* ===== Body ===== */
+
+.body {
+    padding: 1.5rem;
+}
+
+/* ===== Config Warning ===== */
+
+.configWarning {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: var(--color-yellow-bg);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--color-yellow-text);
+}
+
+/* ===== Footer ===== */
+
+.footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    gap: 0.75rem;
+}
+
+.footerBtnCancel {
+    flex: 1;
+    background: var(--color-bg);
+}
+
+.footerBtnApply {
+    flex: 1;
+}

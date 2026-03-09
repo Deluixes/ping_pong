@@ -1,0 +1,127 @@
+.wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.trigger {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.9rem;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    min-height: 42px;
+}
+
+.trigger:active {
+    border-color: var(--color-primary);
+}
+
+.placeholder {
+    color: var(--color-text-muted);
+}
+
+.selectedName {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.clearBtn {
+    color: var(--color-text-muted);
+    padding: 0.2rem;
+    display: flex;
+}
+
+.avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.dropdown {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-primary);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.searchRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.searchIcon {
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+.searchInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 0.9rem;
+    font-family: inherit;
+    padding: 0.25rem 0;
+    background: transparent;
+    color: var(--color-text);
+}
+
+.list {
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.option {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.option:active {
+    background: var(--color-bg);
+}
+
+.licenseBadge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: var(--color-blue-bg);
+    color: var(--color-blue-text);
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.empty {
+    padding: 0.75rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}

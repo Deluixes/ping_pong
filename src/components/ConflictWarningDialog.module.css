@@ -1,0 +1,70 @@
+/* ===== Conflict Warning Dialog ===== */
+
+.conflictOverlay {
+    padding: 1rem;
+}
+
+.conflictDialog {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 450px;
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+.conflictDialogBody {
+    padding: 1.5rem;
+}
+
+.conflictHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.conflictTitle {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.conflictDescription {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.conflictList {
+    background: var(--color-yellow-bg);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 1.25rem;
+    max-height: 200px;
+    overflow: auto;
+}
+
+.conflictItem {
+    font-size: 0.85rem;
+    color: var(--color-yellow-text);
+    padding: 0.25rem 0;
+}
+
+.conflictItemBorder {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.conflictFooter {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.conflictBtnCancel {
+    flex: 1;
+    background: var(--color-bg);
+}
+
+.conflictBtnContinue {
+    flex: 1;
+}

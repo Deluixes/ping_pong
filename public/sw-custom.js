@@ -1,7 +1,95 @@
 /**
- * Custom Service Worker for Push Notifications
- * This file is imported by the main Workbox-generated service worker
+ * Custom Service Worker for Push Notifications and PWA Install
  */
+
+const CACHE_NAME = 'pingpong-v1'
+
+// Take control immediately on install/activate
+self.addEventListener('install', function() {
+    self.skipWaiting()
+})
+
+self.addEventListener('activate', function(event) {
+    // Clean up old caches
+    event.waitUntil(
+        caches.keys().then(function(cacheNames) {
+            return Promise.all(
+                cacheNames
+                    .filter(function(name) { return name !== CACHE_NAME })
+                    .map(function(name) { return caches.delete(name) })
+            )
+        }).then(function() {
+            return self.clients.claim()
+        })
+    )
+})
+
+// Fetch handler: cache-first for static assets, network-first for API/navigation
+self.addEventListener('fetch', function(event) {
+    const url = new URL(event.request.url)
+
+    // Skip non-GET requests
+    if (event.request.method !== 'GET') return
+
+    // Skip Supabase API and OneSignal requests
+    if (url.hostname.includes('supabase') || url.hostname.includes('onesignal')) return
+
+    // Navigation requests (HTML pages): network-first with offline fallback
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(function(response) {
+                    var clone = response.clone()
+                    caches.open(CACHE_NAME).then(function(cache) {
+                        cache.put(event.request, clone)
+                    })
+                    return response
+                })
+                .catch(function() {
+                    return caches.match(event.request).then(function(cached) {
+                        return cached || caches.match('/index.html')
+                    })
+                })
+        )
+        return
+    }
+
+    // Static assets (JS, CSS, images, fonts): cache-first
+    if (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)(\?.*)?$/)) {
+        event.respondWith(
+            caches.match(event.request).then(function(cached) {
+                if (cached) return cached
+                return fetch(event.request).then(function(response) {
+                    if (response.ok) {
+                        var clone = response.clone()
+                        caches.open(CACHE_NAME).then(function(cache) {
+                            cache.put(event.request, clone)
+                        })
+                    }
+                    return response
+                })
+            })
+        )
+        return
+    }
+
+    // All other requests: network with cache fallback
+    event.respondWith(
+        fetch(event.request)
+            .then(function(response) {
+                if (response.ok) {
+                    var clone = response.clone()
+                    caches.open(CACHE_NAME).then(function(cache) {
+                        cache.put(event.request, clone)
+                    })
+                }
+                return response
+            })
+            .catch(function() {
+                return caches.match(event.request)
+            })
+    )
+})
 
 // Handle push notifications
 self.addEventListener('push', function(event) {

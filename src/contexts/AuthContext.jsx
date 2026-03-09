@@ -1,6 +1,10 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { storageService } from '../services/storage'
+import {
+    derivePermissions,
+    getSimulatableRoles as getSimulatableRolesUtil,
+} from '../utils/permissions'
 
 const AuthContext = createContext(null)
 
@@ -29,12 +33,19 @@ export const AuthProvider = ({ children }) => {
             console.error('Error checking member status:', error)
             setMemberStatus('none')
             setMustChangePassword(false)
-            return { status: 'none', role: 'member', licenseType: null, name: null, mustChangePassword: false }
+            return {
+                status: 'none',
+                role: 'member',
+                licenseType: null,
+                name: null,
+                mustChangePassword: false,
+            }
         }
     }, [])
 
     useEffect(() => {
         let isMounted = true
+        let initialSessionHandled = false
 
         // Fonction pour traiter la session
         const handleSession = async (session, shouldCheckMember = false) => {
@@ -44,12 +55,15 @@ export const AuthProvider = ({ children }) => {
                 const userData = {
                     id: session.user.id,
                     email: session.user.email,
-                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Joueur',
+                    name:
+                        session.user.user_metadata?.name ||
+                        session.user.email?.split('@')[0] ||
+                        'Joueur',
                     isSuperAdmin: false,
                     isAdmin: false,
                     isAdminSalles: false,
                     role: 'member',
-                    licenseType: null
+                    licenseType: null,
                 }
 
                 if (!isMounted) return
@@ -59,16 +73,17 @@ export const AuthProvider = ({ children }) => {
                 if (shouldCheckMember) {
                     const { role, licenseType, name } = await checkMemberStatus(userData.id)
                     if (!isMounted) return
-                    setUser(prev => prev ? ({
-                        ...prev,
-                        // Utiliser le nom depuis la table members s'il existe (peut être modifié par admin)
-                        name: name || prev.name,
-                        role: role,
-                        isSuperAdmin: role === 'super_admin',
-                        isAdmin: role === 'admin' || role === 'super_admin',
-                        isAdminSalles: role === 'admin' || role === 'admin_salles' || role === 'super_admin',
-                        licenseType: licenseType
-                    }) : null)
+                    setUser((prev) =>
+                        prev
+                            ? {
+                                  ...prev,
+                                  name: name || prev.name,
+                                  role: role,
+                                  ...derivePermissions(role),
+                                  licenseType: licenseType,
+                              }
+                            : null
+                    )
                 }
 
                 if (!isMounted) return
@@ -90,27 +105,34 @@ export const AuthProvider = ({ children }) => {
         }, 10000)
 
         // 1. Récupérer la session initiale explicitement (plus fiable que INITIAL_SESSION)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            handleSession(session, true)
-        }).catch(err => {
-            console.error('Session error:', err)
-            if (isMounted) setLoading(false)
-        })
+        supabase.auth
+            .getSession()
+            .then(({ data: { session } }) => {
+                initialSessionHandled = true
+                handleSession(session, true)
+            })
+            .catch((err) => {
+                console.error('Session error:', err)
+                initialSessionHandled = true
+                if (isMounted) setLoading(false)
+            })
 
         // 2. Écouter les changements ultérieurs
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (event === 'SIGNED_IN') {
-                    handleSession(session, true)
-                } else if (event === 'SIGNED_OUT') {
-                    handleSession(null)
-                } else if (event === 'TOKEN_REFRESHED') {
-                    // Session rafraîchie, pas besoin de re-vérifier le membre
-                    handleSession(session, false)
-                }
-                // Ignorer INITIAL_SESSION car on utilise getSession()
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN') {
+                // Ignorer si getSession() a déjà traité la session initiale
+                if (!initialSessionHandled) return
+                handleSession(session, true)
+            } else if (event === 'SIGNED_OUT') {
+                handleSession(null)
+            } else if (event === 'TOKEN_REFRESHED') {
+                // Session rafraîchie, pas besoin de re-vérifier le membre
+                handleSession(session, false)
             }
-        )
+            // Ignorer INITIAL_SESSION car on utilise getSession()
+        })
 
         return () => {
             isMounted = false
@@ -125,20 +147,28 @@ export const AuthProvider = ({ children }) => {
 
         const memberSubscription = supabase
             .channel('my-member-changes')
-            .on('postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'members', filter: `user_id=eq.${user.id}` },
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'members',
+                    filter: `user_id=eq.${user.id}`,
+                },
                 async (payload) => {
                     // Le profil a été modifié (possiblement par un admin)
                     const newData = payload.new
-                    setUser(prev => prev ? ({
-                        ...prev,
-                        name: newData.name || prev.name,
-                        role: newData.role || prev.role,
-                        licenseType: newData.license_type || prev.licenseType,
-                        isSuperAdmin: newData.role === 'super_admin',
-                        isAdmin: newData.role === 'admin' || newData.role === 'super_admin',
-                        isAdminSalles: newData.role === 'admin' || newData.role === 'admin_salles' || newData.role === 'super_admin'
-                    }) : null)
+                    setUser((prev) =>
+                        prev
+                            ? {
+                                  ...prev,
+                                  name: newData.name || prev.name,
+                                  role: newData.role || prev.role,
+                                  licenseType: newData.license_type || prev.licenseType,
+                                  ...derivePermissions(newData.role || prev.role),
+                              }
+                            : null
+                    )
                 }
             )
             .subscribe()
@@ -149,7 +179,7 @@ export const AuthProvider = ({ children }) => {
     }, [user?.id])
 
     // Inscription avec mot de passe
-    const signUp = async (email, password, name) => {
+    const signUp = useCallback(async (email, password, name) => {
         setAuthError(null)
         try {
             const { data, error } = await supabase.auth.signUp({
@@ -157,8 +187,8 @@ export const AuthProvider = ({ children }) => {
                 password,
                 options: {
                     data: { name },
-                    emailRedirectTo: window.location.origin
-                }
+                    emailRedirectTo: window.location.origin,
+                },
             })
             if (error) throw error
             return { success: true, data }
@@ -167,15 +197,15 @@ export const AuthProvider = ({ children }) => {
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
     // Connexion avec mot de passe
-    const signIn = async (email, password) => {
+    const signIn = useCallback(async (email, password) => {
         setAuthError(null)
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
-                password
+                password,
             })
             if (error) throw error
             return { success: true, data }
@@ -184,14 +214,14 @@ export const AuthProvider = ({ children }) => {
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
     // Réinitialisation du mot de passe (envoi email)
-    const resetPassword = async (email) => {
+    const resetPassword = useCallback(async (email) => {
         setAuthError(null)
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password`
+                redirectTo: `${window.location.origin}/reset-password`,
             })
             if (error) throw error
             return { success: true }
@@ -200,118 +230,104 @@ export const AuthProvider = ({ children }) => {
             setAuthError(error.message)
             return { success: false, error: error.message }
         }
-    }
+    }, [])
 
     // Changement de mot de passe (utilisateur connecté)
-    const changePassword = async (newPassword) => {
-        setAuthError(null)
-        try {
-            const { error } = await supabase.auth.updateUser({
-                password: newPassword
-            })
-            if (error) throw error
-            // Après changement réussi, marquer comme n'ayant plus besoin de changer
-            if (user?.id) {
-                await storageService.clearMustChangePassword(user.id)
-                setMustChangePassword(false)
+    const changePassword = useCallback(
+        async (newPassword) => {
+            setAuthError(null)
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPassword,
+                })
+                if (error) throw error
+                // Après changement réussi, marquer comme n'ayant plus besoin de changer
+                if (user?.id) {
+                    await storageService.clearMustChangePassword(user.id)
+                    setMustChangePassword(false)
+                }
+                return { success: true }
+            } catch (error) {
+                console.error('Change password error:', error)
+                setAuthError(error.message)
+                return { success: false, error: error.message }
             }
-            return { success: true }
-        } catch (error) {
-            console.error('Change password error:', error)
-            setAuthError(error.message)
-            return { success: false, error: error.message }
-        }
-    }
+        },
+        [user?.id]
+    )
 
-    const requestAccess = async () => {
+    const requestAccess = useCallback(async () => {
         if (!user) return { success: false }
-        // Default role is member unless updated later
         const result = await storageService.requestAccess(user.id, user.email, user.name)
         setMemberStatus(result.status)
         return { success: true, status: result.status }
-    }
+    }, [user])
 
-    const updateName = async (name) => {
+    const updateName = useCallback(async (name) => {
         try {
             const { error } = await supabase.auth.updateUser({
-                data: { name }
+                data: { name },
             })
-            if (!error) {
-                setUser(prev => ({ ...prev, name }))
-            }
+            if (error) return { success: false, error: error.message }
+            setUser((prev) => ({ ...prev, name }))
+            return { success: true }
         } catch (error) {
             console.error('Update name error:', error)
+            return { success: false, error: error.message }
         }
-    }
+    }, [])
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         setUser(null)
         await supabase.auth.signOut()
-    }
+    }, [])
 
     // Refresh member status (useful after admin approval or name change)
-    const refreshMemberStatus = async () => {
-        if (user) {
-            const { role, licenseType, name } = await checkMemberStatus(user.id)
-            // Update user role, license and name in state
-            setUser(prev => prev ? ({
-                ...prev,
-                name: name || prev.name,
-                role: role,
-                isSuperAdmin: role === 'super_admin',
-                isAdmin: role === 'admin' || role === 'super_admin',
-                isAdminSalles: role === 'admin' || role === 'admin_salles' || role === 'super_admin',
-                licenseType: licenseType
-            }) : null)
-        }
-    }
-
-    // Calcul des permissions effectives (prend en compte le rôle simulé)
-    const getEffectivePermissions = () => {
-        const effectiveRole = simulatedRole || user?.role || 'member'
-        return {
-            effectiveRole,
-            isSuperAdmin: effectiveRole === 'super_admin',
-            isAdmin: effectiveRole === 'admin' || effectiveRole === 'super_admin',
-            isAdminSalles: effectiveRole === 'admin' || effectiveRole === 'admin_salles' || effectiveRole === 'super_admin'
-        }
-    }
+    const refreshMemberStatus = useCallback(async () => {
+        // Utilise le setter fonctionnel pour accéder à la valeur courante
+        setUser((prev) => {
+            if (prev?.id) {
+                checkMemberStatus(prev.id).then(({ role, licenseType, name }) => {
+                    setUser((curr) =>
+                        curr
+                            ? {
+                                  ...curr,
+                                  name: name || curr.name,
+                                  role: role,
+                                  ...derivePermissions(role),
+                                  licenseType: licenseType,
+                              }
+                            : null
+                    )
+                })
+            }
+            return prev
+        })
+    }, [checkMemberStatus])
 
     // Obtenir les rôles qu'on peut simuler
-    const getSimulatableRoles = () => {
-        const realRole = user?.role || 'member'
-        const roles = []
+    const getSimulatableRoles = useCallback(() => {
+        return getSimulatableRolesUtil(user?.role || 'member')
+    }, [user?.role])
 
-        if (realRole === 'super_admin') {
-            roles.push({ value: 'admin', label: 'Admin' })
-            roles.push({ value: 'admin_salles', label: 'Gestion Salle' })
-            roles.push({ value: 'member', label: 'Membre' })
-        } else if (realRole === 'admin') {
-            roles.push({ value: 'admin_salles', label: 'Gestion Salle' })
-            roles.push({ value: 'member', label: 'Membre' })
-        } else if (realRole === 'admin_salles') {
-            roles.push({ value: 'member', label: 'Membre' })
+    // User enrichi avec les permissions effectives (mémorisé)
+    const effectiveUser = useMemo(() => {
+        if (!user) return null
+        const effectiveRole = simulatedRole || user.role || 'member'
+        const perms = derivePermissions(effectiveRole)
+        return {
+            ...user,
+            realRole: user.role,
+            role: effectiveRole,
+            isSuperAdmin: perms.isSuperAdmin,
+            isAdmin: perms.isAdmin,
+            isAdminSalles: perms.isAdminSalles,
         }
+    }, [user, simulatedRole])
 
-        return roles
-    }
-
-    const effectivePermissions = getEffectivePermissions()
-
-    // User enrichi avec les permissions effectives
-    const effectiveUser = user ? {
-        ...user,
-        // Garder le vrai rôle accessible
-        realRole: user.role,
-        // Remplacer par le rôle effectif (simulé ou réel)
-        role: effectivePermissions.effectiveRole,
-        isSuperAdmin: effectivePermissions.isSuperAdmin,
-        isAdmin: effectivePermissions.isAdmin,
-        isAdminSalles: effectivePermissions.isAdminSalles
-    } : null
-
-    return (
-        <AuthContext.Provider value={{
+    // Mémoiser la valeur du contexte pour éviter les re-renders inutiles
+    const contextValue = useMemo(
+        () => ({
             user: effectiveUser,
             loading,
             authError,
@@ -325,14 +341,30 @@ export const AuthProvider = ({ children }) => {
             updateName,
             logout,
             refreshMemberStatus,
-            // Simulation de rôle
             simulatedRole,
             setSimulatedRole,
-            getSimulatableRoles
-        }}>
-            {children}
-        </AuthContext.Provider>
+            getSimulatableRoles,
+        }),
+        [
+            effectiveUser,
+            loading,
+            authError,
+            memberStatus,
+            mustChangePassword,
+            signUp,
+            signIn,
+            resetPassword,
+            changePassword,
+            requestAccess,
+            updateName,
+            logout,
+            refreshMemberStatus,
+            simulatedRole,
+            getSimulatableRoles,
+        ]
     )
+
+    return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)

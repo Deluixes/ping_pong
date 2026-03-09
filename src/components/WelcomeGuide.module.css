@@ -1,0 +1,83 @@
+.dialog {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.iconCircle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-bg);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.title {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+}
+
+.description {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.actionArea {
+    margin-bottom: 1.5rem;
+}
+
+.actionDone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #16a34a;
+    font-weight: 500;
+}
+
+.altText {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin: 0;
+}
+
+.dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-border);
+    transition: background 0.2s;
+}
+
+.dotActive {
+    background: var(--color-primary);
+    width: 20px;
+    border-radius: 4px;
+}
+
+.actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.skipBtn {
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    padding: 0.5rem;
+}

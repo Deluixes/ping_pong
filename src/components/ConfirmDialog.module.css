@@ -1,0 +1,25 @@
+.title {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+}
+
+.message {
+    margin: 0 0 1.25rem;
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    white-space: pre-line;
+}
+
+.actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.cancelBtn {
+    flex: 1;
+    background: var(--color-bg);
+}
+
+.actions .cancelBtn + .btn {
+    flex: 1;
+}

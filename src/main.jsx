@@ -6,5 +6,13 @@ import './index.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <App />
-    </React.StrictMode>,
+    </React.StrictMode>
 )
+
+// Register service worker for push notifications and PWA install
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+        .register('/sw-custom.js', { updateViaCache: 'none' })
+        .then((reg) => reg.update())
+        .catch((err) => console.error('SW registration failed:', err))
+}

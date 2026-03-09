@@ -1,0 +1,32 @@
+/* ===== Loading ===== */
+
+.loading {
+    padding: 2rem;
+    text-align: center;
+}
+
+/* ===== Header ===== */
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.backBtn {
+    background: var(--color-bg);
+    padding: 0.5rem;
+}
+
+.title {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* ===== Tab buttons (size override) ===== */
+
+.tabBtn {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+}

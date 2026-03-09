@@ -1,0 +1,110 @@
+/* OpenSlotModal — component-specific styles */
+
+.modalTitle {
+    margin: 0;
+    color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.subtitle {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.section {
+    margin-bottom: 1rem;
+}
+
+.durationChipsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.durationChip {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-weight: 400;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.durationChipActive {
+    border: 2px solid var(--color-primary);
+    background: var(--color-blue-bg);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: var(--color-surface);
+}
+
+.radioLabelAll {
+    border: 2px solid var(--color-primary);
+    background: var(--color-green-bg);
+}
+
+.radioLabelLoisir {
+    border: 2px solid var(--color-blue-border);
+    background: var(--color-blue-bg);
+}
+
+.radioLabelCompetition {
+    border: 2px solid #92400e;
+    background: var(--color-yellow-bg);
+}
+
+.radioTitle {
+    font-weight: 500;
+}
+
+.radioTitleLoisir {
+    color: var(--color-blue-text);
+}
+
+.radioTitleCompetition {
+    color: var(--color-yellow-text);
+}
+
+.radioSubtitle {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.footerButtons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cancelBtn {
+    flex: 1;
+    background: var(--color-bg);
+}
+
+.confirmBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}

@@ -1,0 +1,125 @@
+/* ===== Section Heading ===== */
+
+.sectionHeading {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ===== Notifications ===== */
+
+.notifUnsupported {
+    background: var(--color-yellow-bg);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    color: var(--color-yellow-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notifDenied {
+    background: var(--color-red-bg);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    color: var(--color-red-text);
+}
+
+.notifDeniedTitle {
+    margin: 0 0 0.5rem;
+    font-weight: 500;
+}
+
+.notifDeniedText {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.notifToggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
+}
+
+.notifToggleEnabled {
+    background: var(--color-green-bg);
+    border-color: var(--color-green-border);
+    margin-bottom: 1rem;
+}
+
+.notifToggleLabel {
+    font-weight: 500;
+}
+
+.notifToggleSub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.notifToggleBtn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    background: var(--color-primary);
+    cursor: pointer;
+}
+
+.notifToggleBtnDisable {
+    background: #dc2626;
+}
+
+.notifToggleBtnLoading {
+    cursor: wait;
+}
+
+/* ===== Notification Preferences ===== */
+
+.notifPrefs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.notifPrefLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.notifPrefCheckbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+}
+
+.notifPrefTitle {
+    font-weight: 500;
+}
+
+.notifPrefSub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.notifTestBtn {
+    margin-top: 0.5rem;
+    background: var(--color-bg);
+    font-size: 0.85rem;
+}

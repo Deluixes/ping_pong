@@ -1,0 +1,83 @@
+/* ===== Login Container ===== */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 2rem;
+}
+
+.cardWrapper {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* ===== Loading ===== */
+
+.loading {
+    padding: 2rem;
+    text-align: center;
+}
+
+/* ===== Logo ===== */
+
+.logoSection {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--color-primary);
+}
+
+.logoTitle {
+    margin-top: 0.75rem;
+    font-size: 1.4rem;
+}
+
+/* ===== Sent Step ===== */
+
+.sentWrapper {
+    text-align: center;
+}
+
+.sentIcon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--color-green-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+}
+
+.sentTitle {
+    margin-bottom: 1rem;
+    color: var(--color-secondary);
+}
+
+.sentText {
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.sentEmailHighlight {
+    color: var(--color-text);
+}
+
+.sentInfoBox {
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.backBtn {
+    width: 100%;
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
