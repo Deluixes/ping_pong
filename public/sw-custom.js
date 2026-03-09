@@ -54,12 +54,11 @@ self.addEventListener('fetch', function(event) {
         return
     }
 
-    // Static assets (JS, CSS, images, fonts): cache-first
+    // Static assets: network-first (Vite uses hashed filenames, so new deploys = new URLs)
     if (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)(\?.*)?$/)) {
         event.respondWith(
-            caches.match(event.request).then(function(cached) {
-                if (cached) return cached
-                return fetch(event.request).then(function(response) {
+            fetch(event.request)
+                .then(function(response) {
                     if (response.ok) {
                         var clone = response.clone()
                         caches.open(CACHE_NAME).then(function(cache) {
@@ -68,7 +67,9 @@ self.addEventListener('fetch', function(event) {
                     }
                     return response
                 })
-            })
+                .catch(function() {
+                    return caches.match(event.request)
+                })
         )
         return
     }
