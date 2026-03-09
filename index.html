@@ -18,6 +18,26 @@
       (function(){var t=localStorage.getItem('pingpong_theme')||'light';var d=t==='auto'?window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light':t;document.documentElement.setAttribute('data-theme',d)})();
     </script>
     <div id="root"></div>
+    <script>
+      // One-time SW cache buster: force re-fetch of sw-custom.js bypassing all caches
+      (function(){
+        if (!navigator.serviceWorker) return;
+        var key = 'sw_cache_busted_v3';
+        if (localStorage.getItem(key)) return;
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (!reg) return;
+          // Unregister old SW, clear all caches, then re-register fresh
+          reg.unregister().then(function() {
+            return caches.keys().then(function(names) {
+              return Promise.all(names.map(function(n) { return caches.delete(n); }));
+            });
+          }).then(function() {
+            localStorage.setItem(key, '1');
+            window.location.reload();
+          });
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
