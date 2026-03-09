@@ -2,7 +2,7 @@
  * Custom Service Worker for Push Notifications and PWA Install
  */
 
-const CACHE_NAME = 'pingpong-v1'
+const CACHE_NAME = 'pingpong-v2'
 
 // Take control immediately on install/activate
 self.addEventListener('install', function() {
