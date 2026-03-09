@@ -18,30 +18,6 @@
       (function(){var t=localStorage.getItem('pingpong_theme')||'light';var d=t==='auto'?window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light':t;document.documentElement.setAttribute('data-theme',d)})();
     </script>
     <div id="root"></div>
-    <script>
-      // One-time SW cache buster: unregister old SW and clear caches before loading app
-      (function(){
-        function loadApp() {
-          var s = document.createElement('script');
-          s.type = 'module';
-          s.src = '/src/main.jsx';
-          document.body.appendChild(s);
-        }
-        if (!navigator.serviceWorker) { loadApp(); return; }
-        var key = 'sw_cache_busted_v3';
-        if (localStorage.getItem(key)) { loadApp(); return; }
-        navigator.serviceWorker.getRegistration().then(function(reg) {
-          if (!reg) { localStorage.setItem(key, '1'); loadApp(); return; }
-          reg.unregister().then(function() {
-            return caches.keys().then(function(names) {
-              return Promise.all(names.map(function(n) { return caches.delete(n); }));
-            });
-          }).then(function() {
-            localStorage.setItem(key, '1');
-            window.location.reload();
-          });
-        });
-      })();
-    </script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
