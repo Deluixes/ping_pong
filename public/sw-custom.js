@@ -10,7 +10,6 @@ self.addEventListener('install', function() {
 })
 
 self.addEventListener('activate', function(event) {
-    // Clean up old caches
     event.waitUntil(
         caches.keys().then(function(cacheNames) {
             return Promise.all(
@@ -20,6 +19,13 @@ self.addEventListener('activate', function(event) {
             )
         }).then(function() {
             return self.clients.claim()
+        }).then(function() {
+            // Force reload all open windows to pick up new assets
+            return self.clients.matchAll({ type: 'window' }).then(function(windowClients) {
+                windowClients.forEach(function(client) {
+                    client.navigate(client.url)
+                })
+            })
         })
     )
 })

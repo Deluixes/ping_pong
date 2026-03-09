@@ -15,4 +15,13 @@ if ('serviceWorker' in navigator) {
         .register('/sw-custom.js', { updateViaCache: 'none' })
         .then((reg) => reg.update())
         .catch((err) => console.error('SW registration failed:', err))
+
+    // Reload when a new SW takes control
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true
+            window.location.reload()
+        }
+    })
 }
