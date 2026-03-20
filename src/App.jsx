@@ -25,6 +25,8 @@ import SlideMenu from './components/SlideMenu'
 import ChangePassword from './components/ChangePassword'
 import DevIndicator from './components/DevIndicator'
 import WelcomeGuide from './components/WelcomeGuide'
+import LoadingScreen from './components/LoadingScreen'
+import NotificationPrompt from './components/NotificationPrompt'
 import { useTheme } from './hooks/useTheme'
 import { GROUP_NAME } from './constants'
 import { storageService } from './services/storage'
@@ -35,7 +37,7 @@ import styles from './components/App.module.css'
 function PrivateRoute({ children, requireApproval = true, allowPasswordChange = false }) {
     const { user, loading, memberStatus, mustChangePassword } = useAuth()
 
-    if (loading) return <div className={styles.loading}>Chargement...</div>
+    if (loading) return <LoadingScreen />
     if (!user) return <Navigate to="/login" />
 
     // Force password change for migrated users (unless on password change page)
@@ -54,7 +56,7 @@ function PrivateRoute({ children, requireApproval = true, allowPasswordChange = 
 function AdminRoute({ children }) {
     const { user, loading } = useAuth()
 
-    if (loading) return <div className={styles.loading}>Chargement...</div>
+    if (loading) return <LoadingScreen />
     if (!user) return <Navigate to="/login" />
     if (!user.isAdmin) return <Navigate to="/" />
 
@@ -116,6 +118,7 @@ function AppContent() {
             {showMainUI && (
                 <>
                     <WelcomeGuide />
+                    <NotificationPrompt />
                     <SlideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
                     <header className={styles.header}>
