@@ -37,7 +37,7 @@ import styles from './components/App.module.css'
 function PrivateRoute({ children, requireApproval = true, allowPasswordChange = false }) {
     const { user, loading, memberStatus, mustChangePassword } = useAuth()
 
-    if (loading) return <LoadingScreen />
+    if (loading || memberStatus === null) return <LoadingScreen />
     if (!user) return <Navigate to="/login" />
 
     // Force password change for migrated users (unless on password change page)

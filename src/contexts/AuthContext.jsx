@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState(null)
-    const [memberStatus, setMemberStatus] = useState('none')
+    const [memberStatus, setMemberStatus] = useState(null)
     const [mustChangePassword, setMustChangePassword] = useState(false)
     const [simulatedRole, setSimulatedRole] = useState(null) // Rôle simulé (null = pas de simulation)
 
